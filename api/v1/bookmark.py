@@ -21,7 +21,7 @@ async def create_new_book(book: BookMarkCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/remove/{bookmarkId}", response_model=BookMarkOut)
-async def delete_a_book(bookmarkId: str):
+async def delete_a_bookmark(bookmarkId: str):
     try:
         removed_bookmark = await remove_bookmark(bookmarkId=bookmarkId)
         if removed_bookmark:

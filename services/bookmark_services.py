@@ -18,4 +18,4 @@ async def retrieve_user_bookmark(userId:str):
         list_of_bookmarks = [BookMarkOut(**bookmark) for bookmark in result]
         return list_of_bookmarks
     else:
-        return None
+        return []
