@@ -1,4 +1,4 @@
-from repositories.book_repo import get_all_books,get_all_books_by_name,get_book_by_number,create_book,get_book_by_book_id,delete_book_with_bookId,update_book_order_after_delete
+from repositories.book_repo import get_all_books,get_all_books_by_name,get_book_by_number,create_book,get_book_by_book_id,delete_book_with_bookId,update_book_order_after_delete,update_book
 from repositories.page_repo import delete_pages_with_chapter_ids
 from repositories.chapter_repo import delete_chapters_with_book_id
 from schemas.book_schema import BookCreate,BookOut,BookUpdate
@@ -44,5 +44,10 @@ async def fetch_books():
     list_of_books = [BookOut(**book) for book in books]
     return list_of_books
 
+
+async def change_book_name(bookId,book:BookUpdate):
+     updated_book = await update_book(book_id=bookId,update_data=book)
+     return_data = BookOut(**updated_book)
+     return return_data
 # asyncio.run(add_book(num=1,name="Mrs. Bee"))
 # asyncio.run(delete_book(bookId="6802f901b04928b8a0589600"))
