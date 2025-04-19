@@ -3,7 +3,6 @@ from repositories.page_repo import delete_pages_by_chapter_id
 from repositories.book_repo import update_book
 from schemas.book_schema import BookUpdate
 from schemas.chapter_schema import ChapterOut,ChapterCreate
-import asyncio
 
 async def add_chapter(bookId:str):
     retrieved_chapters = await get_chapter_by_bookId(bookId=bookId)
@@ -31,5 +30,8 @@ async def delete_chapter(chapterId:str):
     else:
         print("chapter doesn't exist")
 
-# asyncio.run(add_chapter(bookId="6802f901b04928b8a0589600"))
-# asyncio.run(delete_chapter(chapterId="6802a0362897052494193f4a"))
+
+async def fetch_chapters(bookId:str):
+    chapters = await get_chapter_by_bookId(bookId=bookId)
+    returnable_chapters = [ChapterOut(**chapter) for chapter in chapters]
+    return returnable_chapters
