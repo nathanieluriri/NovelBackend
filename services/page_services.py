@@ -18,10 +18,10 @@ async def add_page(bookId,chapterId,textContent):
     
 async def update_page_content(pageId,textContent):
     result = await update_page(page_id=pageId,update_data=PageUpdate(textContent=textContent))
-    print(result)
+    
     pages = await get_all_pages(chapterId=result['chapterId'])
     page_ids = [str(ids.get("_id")) for ids in pages]
-    print(len(page_ids))
+    
     await update_chapter(chapter_id=result['chapterId'],update_data=ChapterUpdate(pageCount=len(pages),pages=page_ids))
     return result
 

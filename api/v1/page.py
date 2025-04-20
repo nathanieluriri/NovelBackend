@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from schemas.page_schema import PageCreate, PageOut,PageBase
+from schemas.page_schema import PageOut,PageBase,PageUpdateRequest
 from typing import List
 from services.page_services import add_page,delete_page,fetch_page,update_page_content
 
@@ -28,6 +28,21 @@ async def delete_a_page(pageId:str ):
         deleted_page = await delete_page(pageId=pageId)
         if deleted_page:
             return deleted_page
+        else:
+            raise HTTPException(status_code=404, detail="Resource already deleted")
+    except HTTPException:
+        # re-raise known exceptions (like 404s) without changing them
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.patch("/update/{pageId}",response_model=PageOut)
+async def update_a_page(pageId:str ,page: PageUpdateRequest):
+    try:
+        updated_ = await update_page_content(pageId=pageId,textContent=page.textContent)
+        if updated_:
+            return updated_
         else:
             raise HTTPException(status_code=404, detail="Resource already deleted")
     except HTTPException:

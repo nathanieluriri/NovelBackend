@@ -6,6 +6,9 @@ class PageBase(BaseModel):
     chapterId:str
     number: int
     textContent:str
+    
+class PageUpdateRequest(BaseModel):
+    textContent:str
 
 class PageCreate(PageBase):
     dateCreated: Optional[str]=None
