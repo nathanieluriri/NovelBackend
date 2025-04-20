@@ -11,3 +11,8 @@ async def register(user: UserCreate):
         return new_user
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/me")
+def read_me():
+    return {"user": "authenticated_user"}

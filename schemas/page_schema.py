@@ -5,10 +5,9 @@ from schemas.utils import clean_html
 class PageBase(BaseModel):
     chapterId:str
     number: int
-
+    textContent:str
 
 class PageCreate(PageBase):
-    textContent:str
     dateCreated: Optional[str]=None
     dateUpdated: Optional[str]=None
     textCount: Optional[int]=0
@@ -27,9 +26,11 @@ class PageCreate(PageBase):
     
 class PageOut(PageCreate):
     id: Optional[str] =None
-    lastAccessed: str
+    lastAccessed: Optional[str] =None
     @model_validator(mode='before')
     def set_values(cls,values):
+        if values is None:
+            values = {}
         now_str = datetime.now(timezone.utc).isoformat()
         values['lastAccessed']= now_str
         values['id']= str(values.get('_id'))

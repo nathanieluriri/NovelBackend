@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from schemas.bookmark_schema import BookMarkCreate, BookMarkOut
+from schemas.bookmark_schema import BookMarkCreate, BookMarkOut,BookMarkBase
 from typing import List
 from services.bookmark_services import add_bookmark,remove_bookmark,retrieve_user_bookmark
 
@@ -13,7 +13,8 @@ async def get_all_available_bookmarks(userId:str):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/create", response_model=BookMarkOut)
-async def create_new_book(book: BookMarkCreate):
+async def create_new_book(book: BookMarkBase):
+    book = BookMarkCreate(**book.model_dump())
     try:
         new_book = await add_bookmark(userId=book.userId,pageId=book.pageId)
         return new_book

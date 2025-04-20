@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from schemas.chapter_schema import ChapterCreate, ChapterOut
+from schemas.chapter_schema import ChapterCreate, ChapterOut,ChapterBase
 from typing import List
 from services.chapter_services import add_chapter,delete_chapter,fetch_chapters
 
@@ -14,17 +14,18 @@ async def get_all_available_chapters(bookId:str):
 
 
 @router.post("/create", response_model=ChapterOut)
-async def create_a_new_chapter(book: ChapterCreate):
+async def create_a_new_chapter(chapter: ChapterBase):
+    chapter= ChapterCreate(**chapter.model_dump())
     try:
-        new_book = await add_chapter(bookId=book.bookId)
-        return new_book
+        new_chapter = await add_chapter(bookId=chapter.bookId)
+        return new_chapter
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/delete/{chapterId}",response_model=ChapterOut)
 async def delete_a_chapter(chapterId:str ):
     try:
-        new_book = await delete_chapter(chapterId=chapterId)
-        return new_book
+        deleted_chapter = await delete_chapter(chapterId=chapterId)
+        return deleted_chapter
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

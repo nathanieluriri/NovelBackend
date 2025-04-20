@@ -75,3 +75,12 @@ async def update_page(page_id: str, update_data: PageUpdate):
     updated_page_value = await db.pages.find_one({"_id": ObjectId(page_id)})
     return updated_page_value
 
+
+async def get_pages_by_chapter_id(chapterId):
+    try:
+        obj_id = ObjectId(chapterId)
+    except errors.InvalidId:
+        return None 
+    cursor =  db.pages.find({"chapterId":chapterId})
+    pages = [page async for page in cursor]
+    return pages

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from schemas.likes_schema import LikeCreate, LikeOut
+from schemas.likes_schema import LikeCreate, LikeOut,LikeBase
 from typing import List
 from services.like_services import add_like,remove_like,retrieve_user_likes
 
@@ -13,7 +13,8 @@ async def get_all_available_likes(userId:str):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/create", response_model=LikeOut)
-async def like_Page(like: LikeOut):
+async def like_Page(like: LikeBase):
+    like = LikeCreate(**like.model_dump())
     try:
         new_like = await add_like(userId=like.userId,pageId=like.pageId)
         return new_like

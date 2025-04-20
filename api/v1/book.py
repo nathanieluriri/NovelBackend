@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from schemas.book_schema import BookCreate, BookOut,BookUpdate
+from schemas.book_schema import BookCreate, BookOut,BookUpdate,BookBase
 from typing import List
 from services.book_services import add_book,delete_book,fetch_books,change_book_name
 
@@ -14,7 +14,8 @@ async def get_all_available_books():
 
 
 @router.post("/create", response_model=BookOut)
-async def create_new_book(book: BookCreate):
+async def create_new_book(book: BookBase):
+    book = BookCreate(**book.model_dump())
     try:
         new_book = await add_book(num=book.number,name=book.name,)
         return new_book
