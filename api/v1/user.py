@@ -5,6 +5,7 @@ from schemas.tokens_schema import TokenOut,refreshTokenRequest
 from security.auth import verify_admin_token,verify_token,verify_token_and_refresh_token
 from repositories.tokens_repo import delete_refresh_token
 router = APIRouter()
+
 @router.post("/sign-up", response_model=NewUserOut)
 async def register(user: NewUserBase):
     if user.provider=="google":
@@ -60,4 +61,8 @@ async def refresh_access_token(refreshObj:refreshTokenRequest, dep=Depends(verif
 
 @router.post("/protected-member",dependencies=[Depends(verify_token)])
 async def protected_route():
+    return {"message":"success"} 
+
+@router.post("/protected-admin",dependencies=[Depends(verify_admin_token)])
+async def protected_route_admin():
     return {"message":"success"} 

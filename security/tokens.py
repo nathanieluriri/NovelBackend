@@ -4,6 +4,8 @@ from security.encrypting_jwt import create_jwt_admin_token,create_jwt_member_tok
 from bson import errors,ObjectId
 from fastapi import HTTPException,status
 from security.encrypting_jwt import decode_jwt_token
+
+
 async def generate_member_access_tokens(userId)->accessTokenOut:
     
     try:
@@ -15,6 +17,7 @@ async def generate_member_access_tokens(userId)->accessTokenOut:
     new_access_token.accesstoken = await create_jwt_member_token(token=new_access_token.accesstoken)
     
     return new_access_token
+
 
 async def generate_admin_access_tokens(userId)->accessTokenOut:
     
