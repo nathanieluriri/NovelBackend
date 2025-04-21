@@ -17,5 +17,3 @@ async def retrieve_user_likes(userId:str):
     list_of_likes = [LikeOut(**likes) for likes in result]
     return list_of_likes
 
-# asyncio.run(add_book(num=1,name="Mrs. Bee"))
-# asyncio.run(delete_book(bookId="6802f901b04928b8a0589600"))

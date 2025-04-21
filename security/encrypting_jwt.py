@@ -47,11 +47,10 @@ async def create_jwt_member_token(token):
         'role':'member',
         'exp': datetime.datetime.now(timezone.utc) + datetime.timedelta(hours=20)
     }
-
+    
     
     token = jwt.encode(payload, SECRET_KEYS[headers['kid']], algorithm='HS256', headers=headers)
 
-    print(token)
     return token
 
 async def create_jwt_admin_token(token):
@@ -68,7 +67,6 @@ async def create_jwt_admin_token(token):
     
     token = jwt.encode(payload, SECRET_KEYS[headers['kid']], algorithm='HS256', headers=headers)
 
-    print(token)
     return token
 
 
@@ -88,7 +86,6 @@ async def decode_jwt_token(token):
     # Now decode and verify
     try:
         decoded = jwt.decode(token, key, algorithms=['HS256'])
-        print(decoded)
         return decoded
     except jwt.exceptions.ExpiredSignatureError:
         print("expired token")

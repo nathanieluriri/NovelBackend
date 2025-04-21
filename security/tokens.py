@@ -3,7 +3,7 @@ from repositories.tokens_repo import add_access_tokens,add_refresh_tokens,get_ac
 from security.encrypting_jwt import create_jwt_admin_token,create_jwt_member_token,decode_jwt_token
 from bson import errors,ObjectId
 from fastapi import HTTPException,status
-
+from security.encrypting_jwt import decode_jwt_token
 async def generate_member_access_tokens(userId)->accessTokenOut:
     
     try:
@@ -32,15 +32,17 @@ async def generate_refresh_tokens(userId,accessToken)->refreshTokenOut:
     try:
         obj_id = ObjectId(userId)
     except errors.InvalidId:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid User Id")    # or raise an error / log it    
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid User Id While trying to create refresh token")    # or raise an error / log it    
 
-    
+    accessToken = await decode_jwt_token(accessToken)
+    if accessToken==None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Failed to decode the accesstoken while trying to create a refreshtoken")
     try:
-        obj_id = ObjectId(accessToken)
+        obj_id = ObjectId(accessToken['accessToken'])
     except errors.InvalidId:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Access Id")    # or raise an error / log it    
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Access Id While trying to create refresh token")    # or raise an error / log it    
 
-    new_refresh_token =await add_refresh_tokens(token_data=refreshTokenCreate(userId=userId,previousAccessToken=accessToken))
+    new_refresh_token =await add_refresh_tokens(token_data=refreshTokenCreate(userId=userId,previousAccessToken=accessToken['accessToken']))
     return new_refresh_token
 
 

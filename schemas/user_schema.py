@@ -1,16 +1,19 @@
 from schemas.imports import *
 from security.hash import hash_password
+from typing import Union
 class NewUserBase(BaseModel):
     provider:str
     email: EmailStr
-    password: Optional[str]=None
+    password: Union[str ,bytes]
     googleAccessToken:Optional[str]=None
     @model_validator(mode='after')
     def obscure_password(self):
+        print("self",self)
         if self.provider=="credentials":
+            print("self",self.password)
             self.password=hash_password(self.password)
             return self
-        else: return self
+      
         
         
 class NewUserCreate(NewUserBase):

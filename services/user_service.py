@@ -36,8 +36,12 @@ async def register_user(user_data: NewUserCreate):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="User already exists")
     new_user =await create_user(user_data)
     new_user = NewUserOut(**new_user)
-    new_user.accessToken= generate_member_access_tokens(new_user.userId)
-    new_user.refreshToken= generate_refresh_tokens(userId=new_user.userId,accessToken=new_user.accessToken)
+    accessToken= await generate_member_access_tokens(new_user.userId)
+    new_user.accessToken=accessToken.accesstoken
+    refreshToken= await generate_refresh_tokens(userId=new_user.userId,accessToken=new_user.accessToken)
+    
+    
+    new_user.refreshToken=refreshToken.refreshtoken
     return new_user
 
 
@@ -45,6 +49,7 @@ async def register_user(user_data: NewUserCreate):
 
 async def login_credentials(user_data:OldUserBase):
     existing = await get_user_by_email_and_provider(email=user_data.email,provider="credentials")
+    print(existing)
     if existing:
         if existing.get("password",None):
             if check_password(password=user_data.password,hashed=existing.get("password")):

@@ -49,5 +49,3 @@ async def change_book_name(bookId,book:BookUpdate):
      updated_book = await update_book(book_id=bookId,update_data=book)
      return_data = BookOut(**updated_book)
      return return_data
-# asyncio.run(add_book(num=1,name="Mrs. Bee"))
-# asyncio.run(delete_book(bookId="6802f901b04928b8a0589600"))

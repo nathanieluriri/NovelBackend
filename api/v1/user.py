@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException,Depends
-from schemas.user_schema import NewUserBase, NewUserCreate,NewUserOut
-from services.user_service import register_user,verify_google_access_token
+from schemas.user_schema import NewUserBase, NewUserCreate,NewUserOut,OldUserBase,OldUserOut,OldUserCreate
+from services.user_service import register_user,verify_google_access_token,login_credentials,login_google
 from schemas.tokens_schema import TokenOut
 from security.auth import verify_admin_token
 router = APIRouter()
@@ -15,18 +15,38 @@ async def register(user: NewUserBase):
     try:
         new_user = await register_user(user)
         return new_user
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/sign-in",response_model=TokenOut,dependencies=[Depends(verify_admin_token)])
-def login():
-    return {"user": "authenticated_user"}
+
+@router.post("/sign-in",response_model=TokenOut)
+async def login(user_data:OldUserBase):
+    try:
+        if user_data.provider=="credentials":
+            data = await login_credentials(user_data=user_data)
+            print(data)
+            response = TokenOut(userId=data.userId,accesstoken=data.accessToken,previousAccessToken=data.accessToken,refreshtoken=data.accessToken)
+            return response
+        elif user_data.provider=="google":
+            data = await login_google(user_data=user_data)
+            response = TokenOut(userId=data.userId,accesstoken=data.accessToken,previousAccessToken=data.accessToken,refreshtoken=data.accessToken)
+            return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+    
 
 
 
 @router.get("/refresh",response_model=TokenOut)
-def login():
+def refresh_access_token():
     return {"user": "authenticated_user"}
 
 

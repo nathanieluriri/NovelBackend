@@ -12,8 +12,8 @@ app = FastAPI(title="Mei FastAPI Backend",
     summary="hello"
     
     )
-
-app.include_router(user.router, prefix="/api/v1/user", tags=["User"],dependencies=[Depends(verify_token)])
+dependencies=[Depends(verify_token)]
+app.include_router(user.router, prefix="/api/v1/user", tags=["User"])
 app.include_router(book.router,prefix="/api/v1/book", tags=["Book"])
 app.include_router(bookmark.router,prefix="/api/v1/bookmark", tags=["Bookmark"])
 app.include_router(like.router,prefix="/api/v1/like", tags=["Like"])

@@ -44,7 +44,3 @@ async def fetch_page(chapterId):
     pages = await get_pages_by_chapter_id(chapterId=chapterId)
     returnable_pages = [PageOut(**page) for page in pages]
     return returnable_pages
-
-# asyncio.run(update_page_content(pageId="6802e119e09d971c20cc9e94",textContent="removed"))
-# asyncio.run(add_page(bookId="6802f901b04928b8a0589600",chapterId="6802f954f245d97a8259c879",textContent="trial2"))
-# asyncio.run(delete_page(pageId="6802eca854e0a49dfb9379ab"))

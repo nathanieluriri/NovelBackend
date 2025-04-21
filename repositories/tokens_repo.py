@@ -8,7 +8,6 @@ async def add_access_tokens(token_data:accessTokenCreate)->accessTokenOut:
     result = await db.accessToken.insert_one(token)
     tokn = await db.accessToken.find_one({"_id":result.inserted_id})
     accessToken = accessTokenOut(**tokn)
-    print(accessToken)
     
     return accessToken 
     
@@ -18,7 +17,6 @@ async def add_refresh_tokens(token_data:refreshTokenCreate)->refreshTokenOut:
     result = await db.refreshToken.insert_one(token)
     tokn = await db.refreshToken.find_one({"_id":result.inserted_id})
     refreshToken = refreshTokenOut(**tokn)
-    print(refreshToken)
     return refreshToken
 
 
@@ -27,7 +25,6 @@ async def get_access_tokens(accessToken:str):
     token = await db.accessToken.find_one({"_id": ObjectId(accessToken)})
     if token:
         tokn = accessTokenOut(**token)
-        print(tokn)
         return tokn
     else:
         print("No token found")
@@ -36,7 +33,6 @@ async def get_refresh_tokens(refreshToken:str):
     token = await db.refreshToken.find_one({"_id": ObjectId(refreshToken)})
     if token:
         tokn = refreshTokenOut(**token)
-        print(tokn)
         return tokn
 
     else: return None
