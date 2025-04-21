@@ -1,10 +1,17 @@
 from schemas.imports import *
 from security.hash import hash_password
 from typing import Union
+from enum import Enum
+
+class Provider(str, Enum):
+    CREDENTIALS = "credentials"
+    GOOGLE = "google"
+    
+
 class NewUserBase(BaseModel):
-    provider:str
+    provider:Provider
     email: EmailStr
-    password: str 
+    password:  str 
     googleAccessToken:Optional[str]=None
     
       
@@ -54,7 +61,7 @@ class NewUserOut(BaseModel):
 
 
 class OldUserBase(BaseModel):
-    provider:str
+    provider:Provider
     email: EmailStr
     password: Optional[str]=None
     accessToken:Optional[str]=None
