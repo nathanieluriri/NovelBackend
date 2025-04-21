@@ -10,3 +10,13 @@ def verify_token(token: str = Depends(token_auth_scheme)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
+
+
+
+def verify_admin_token(token: str = Depends(token_auth_scheme)):
+    print(token)
+    if token.credentials != "secret-token-admin":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid admin token"
+        )
