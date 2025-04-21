@@ -7,10 +7,10 @@ app = FastAPI(title="Mei Novel-app FastAPI Backend",
         {"url": "https://novel-backend-eight.vercel.app/", "description": "Production server"},
         {"url": "http://127.0.0.1:8000/", "description": "Local development server"},
         
-        {"url": "http://127.0.0.1:8000/", "description": "Sandbox server"},
+        {"url": "https://novelbackend.onrender.com/", "description": "Sandbox server"},
         
     ],
-    summary="hello"
+    summary="""Backend for the "Mei Novel-app", providing RESTful endpoints to manage users, novel content (books, chapters, pages), bookmarks, and likes. Features JWT-based authentication supporting both traditional credentials and Google sign-in, including token refresh capabilities."""
     
     )
 dependencies=[Depends(verify_token)]
