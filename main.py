@@ -1,11 +1,12 @@
 from fastapi import FastAPI, Depends
 from api.v1 import user,book,bookmark,like,chapter,page
 from security.auth import verify_token
-app = FastAPI(title="Mei FastAPI Backend",
+app = FastAPI(title="Mei Novel-app FastAPI Backend",
               servers=
     [
+        {"url": "https://novel-backend-eight.vercel.app/", "description": "Production server"},
         {"url": "http://127.0.0.1:8000/", "description": "Local development server"},
-        {"url": "https://api.example.com", "description": "Production server"},
+        
         {"url": "http://127.0.0.1:8000/", "description": "Sandbox server"},
         
     ],
