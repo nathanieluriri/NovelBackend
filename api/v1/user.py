@@ -27,13 +27,15 @@ async def login(user_data:OldUserBase):
     try:
         if user_data.provider=="credentials":
             data = await login_credentials(user_data=user_data)
-            print(data)
-            response = TokenOut(userId=data.userId,accesstoken=data.accessToken,previousAccessToken=data.accessToken,refreshtoken=data.accessToken)
+            print("data",data)
+            response = TokenOut(userId=data.userId,accesstoken=data.accessToken,refreshtoken=data.refreshToken)
             return response
         elif user_data.provider=="google":
             data = await login_google(user_data=user_data)
-            response = TokenOut(userId=data.userId,accesstoken=data.accessToken,previousAccessToken=data.accessToken,refreshtoken=data.accessToken)
+            response = TokenOut(userId=data.userId,accesstoken=data.accessToken,refreshtoken=data.refreshToken)
             return response
+        else:
+            raise HTTPException(status_code=404,detail="Provider Not Recognized")
         
     except HTTPException:
         raise

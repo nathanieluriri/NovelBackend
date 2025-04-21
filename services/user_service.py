@@ -49,13 +49,21 @@ async def register_user(user_data: NewUserCreate):
 
 async def login_credentials(user_data:OldUserBase):
     existing = await get_user_by_email_and_provider(email=user_data.email,provider="credentials")
-    print(existing)
     if existing:
-        if existing.get("password",None):
-            if check_password(password=user_data.password,hashed=existing.get("password")):
-                "success"
-                existing['accessToken']= await generate_member_access_tokens(existing['userId'])
-                existing['refreshToken']=await generate_refresh_tokens(userId=existing['userId'],accessToken=existing['accessToken'])
+        if existing.get("password",None)!=None:
+            hashed=existing.get("password")
+            regular=user_data.password
+            
+            if check_password(regular,hashed=hashed):
+                
+                accessToken=await generate_member_access_tokens(str(existing['_id']))
+                print("here")
+                existing['accessToken']= accessToken.accesstoken
+                
+                refreshToken=await generate_refresh_tokens(userId=str(existing['_id']),accessToken=accessToken.accesstoken)
+                
+                existing['refreshToken']= refreshToken.refreshtoken
+                print("refresh token ", refreshToken.refreshtoken)
                 
                 return OldUserOut(**existing)
             else:

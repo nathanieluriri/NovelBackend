@@ -4,15 +4,9 @@ from typing import Union
 class NewUserBase(BaseModel):
     provider:str
     email: EmailStr
-    password: Union[str ,bytes]
+    password: str 
     googleAccessToken:Optional[str]=None
-    @model_validator(mode='after')
-    def obscure_password(self):
-        print("self",self)
-        if self.provider=="credentials":
-            print("self",self.password)
-            self.password=hash_password(self.password)
-            return self
+    
       
         
         
@@ -20,6 +14,7 @@ class NewUserCreate(NewUserBase):
     firstName:Optional[str]=None
     lastName:Optional[str]=None
     avatar:Optional[str]=None
+    password: Union[str ,bytes]
     dateCreated:Optional[str]=None
     subscriptionStartDate:Optional[str]="None"
     subscriptionEndDate:Optional[str]="None"
@@ -29,8 +24,11 @@ class NewUserCreate(NewUserBase):
         now_str = datetime.now(timezone.utc).isoformat()
         values['dateCreated']= now_str
         return values
-    
-    
+    @model_validator(mode='after')
+    def obscure_password(self):
+        if self.provider=="credentials":
+            self.password=hash_password(self.password)
+            return self
 
 class NewUserOut(BaseModel):
     userId: Optional[str] =None
@@ -77,12 +75,12 @@ class OldUserCreate(OldUserBase):
     
 
 class OldUserOut(NewUserOut):
-    id: Optional[str] =None
+    userId: Optional[str] =None
     accessToken: str
     refreshToken:str    
     @model_validator(mode='before')
     def set_values(cls,values):   
-        values['id']= str(values.get('_id'))
+        values['userId']= str(values.get('_id'))
         return values
         
 

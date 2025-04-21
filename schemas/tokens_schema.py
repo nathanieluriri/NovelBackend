@@ -62,8 +62,16 @@ class refreshTokenOut(refreshTokenCreate):
     }
 
 
-class TokenOut(refreshTokenOut,accessTokenOut):
-    pass
+class TokenOut(BaseModel):
+    userId:str
+    accesstoken: Optional[str] =None
+    refreshtoken: Optional[str] =None
+    dateCreated:Optional[str]=None
+    @model_validator(mode='before')
+    def set_dates(cls,values):
+        now_str = datetime.now(timezone.utc).isoformat()
+        values['dateCreated']= now_str
+        return values    
 
 
 
