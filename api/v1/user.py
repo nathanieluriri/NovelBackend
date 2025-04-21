@@ -1,15 +1,17 @@
 from fastapi import APIRouter, HTTPException,Depends
 from schemas.user_schema import NewUserBase, NewUserCreate,NewUserOut,OldUserBase,OldUserOut,OldUserCreate
-from services.user_service import register_user,verify_google_access_token,login_credentials,login_google
-from schemas.tokens_schema import TokenOut
-from security.auth import verify_admin_token
+from services.user_service import register_user,verify_google_access_token,login_credentials,login_google,generate_refresh_tokens
+from schemas.tokens_schema import TokenOut,refreshTokenRequest
+from security.auth import verify_admin_token,verify_token,verify_token_and_refresh_token
+from repositories.tokens_repo import delete_refresh_token
 router = APIRouter()
-
 @router.post("/sign-up", response_model=NewUserOut)
 async def register(user: NewUserBase):
     if user.provider=="google":
         other_values = verify_google_access_token(google_access_token=user.googleAccessToken)
-        user = NewUserCreate(firstName=other_values['firstName'],email=other_values['email'],lastName=other_values['lastName'],avatar=other_values['avatar'],provider=user.provider,)
+        if other_values:
+            user = NewUserCreate(firstName=other_values['firstName'],email=other_values['email'],lastName=other_values['lastName'],avatar=other_values['avatar'],provider=user.provider,password="None",googleAccessToken=None)
+            print(user)
     elif user.provider=="credentials":
         user = NewUserCreate(**user.model_dump())
     try:
@@ -47,8 +49,15 @@ async def login(user_data:OldUserBase):
 
 
 
-@router.get("/refresh",response_model=TokenOut)
-def refresh_access_token():
-    return {"user": "authenticated_user"}
+@router.post("/refresh")
+async def refresh_access_token(refreshObj:refreshTokenRequest, dep=Depends(verify_token_and_refresh_token)):
+    result = await delete_refresh_token(refreshToken=refreshObj.refreshToken)
+    if result:
+        return dep
+    else:
+        raise HTTPException(status_code=404,detail="Refresh Token is Invalid")
 
 
+@router.post("/protected-member",dependencies=[Depends(verify_token)])
+async def protected_route():
+    return {"message":"success"} 

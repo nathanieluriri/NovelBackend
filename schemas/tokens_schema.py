@@ -1,6 +1,19 @@
 from schemas.imports import *
 
 
+class refreshedTokenRequest(BaseModel):
+    refreshToken:str
+class refreshedToken(BaseModel):
+    userId:str
+    dateCreated:Optional[str]=None
+    refreshToken:str
+    accessToken:str
+    @model_validator(mode='before')
+    def set_dates(cls,values):
+        now_str = datetime.now(timezone.utc).isoformat()
+        values['dateCreated']= now_str
+        return values
+
 class accessTokenBase(BaseModel):
     userId:str
 
@@ -14,7 +27,8 @@ class accessTokenCreate(accessTokenBase):
         return values
 
     
-class accessTokenOut(accessTokenCreate):
+class accessTokenOut(accessTokenBase):
+    dateCreated:Optional[str]=None
     accesstoken: Optional[str] =None
     @model_validator(mode='before')
     def set_values(cls,values):

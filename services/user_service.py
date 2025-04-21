@@ -11,7 +11,7 @@ def verify_google_access_token(google_access_token:str):
     url = "https://www.googleapis.com/oauth2/v3/userinfo"
 
     payload = {}
-    
+  
     headers = {
     'Authorization': f'Bearer {google_access_token}'
     }
@@ -19,7 +19,9 @@ def verify_google_access_token(google_access_token:str):
     response = requests.request("GET", url, headers=headers, data=payload)
 
     response = response.json()
+    print(response)
     if response.get('error',None)!=None:
+        raise HTTPException(status_code=401,detail="Invalid Google Access Token")
         return None
     else:
         avatar = response.get("picture")

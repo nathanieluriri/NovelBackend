@@ -91,6 +91,29 @@ async def decode_jwt_token(token):
         print("expired token")
         return None
 
+async def decode_jwt_token_without_expiration(token):
+    SECRET_KEYS = await get_secret_dict()
+    # Decode header to extract the `kid`
+    unverified_header = jwt.get_unverified_header(token)
+    kid = unverified_header['kid']
+
+    # Look up the correct key
+    key = SECRET_KEYS.get(kid)
+
+    if not key:
+        raise Exception("Unknown key ID")
+
+    # Now decode and verify
+    try:
+        decoded = jwt.decode(token, key, algorithms=['HS256'])
+        return decoded
+    except jwt.exceptions.ExpiredSignatureError:
+        print("expired token")
+        payload = decoded = jwt.decode(token, key, algorithms=['HS256'],options={"verify_exp": False})
+        print(payload)
+        return payload
+
+
 
 
 

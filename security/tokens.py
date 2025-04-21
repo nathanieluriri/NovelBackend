@@ -1,6 +1,6 @@
 from schemas.tokens_schema import refreshTokenOut,accessTokenOut,refreshTokenCreate,accessTokenCreate
 from repositories.tokens_repo import add_access_tokens,add_refresh_tokens,get_access_tokens,get_refresh_tokens
-from security.encrypting_jwt import create_jwt_admin_token,create_jwt_member_token,decode_jwt_token
+from security.encrypting_jwt import create_jwt_admin_token,create_jwt_member_token,decode_jwt_token,decode_jwt_token_without_expiration
 from bson import errors,ObjectId
 from fastapi import HTTPException,status
 from security.encrypting_jwt import decode_jwt_token
@@ -61,22 +61,23 @@ async def validate_refreshToken(refreshToken:str):
     
 
 
-
 async def validate_member_accesstoken(accessToken:str):
+    decodedAccessToken = await decode_jwt_token(token=accessToken)
     try:
-        obj_id = ObjectId(accessToken)
+        obj_id = ObjectId(decodedAccessToken['accessToken'])
     except errors.InvalidId:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Access Id")   # or raise an error / log it    
 
-    decodedAccessToken = await decode_jwt_token(token=accessToken)
+    
     if decodedAccessToken:
         validatedAccessToken= await get_access_tokens(accessToken=decodedAccessToken['accessToken'])
         if validatedAccessToken:
             return validatedAccessToken
         else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Couldn't Find Refresh Id")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Couldn't Find Access Tokens While Validating Member Access Tokens")
     else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Couldn't Find Refresh Id")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Couldn't Find Refresh Tokens While Validating Member Access Tokens")
+    
     
 async def validate_admin_accesstoken(accessToken:str):
     try:
@@ -97,3 +98,26 @@ async def validate_admin_accesstoken(accessToken:str):
         
     else:
         raise ""
+    
+    
+    
+    
+    
+    
+async def validate_member_accesstoken_without_expiration(accessToken:str):
+    decodedAccessToken = await decode_jwt_token_without_expiration(token=accessToken)
+    try:
+        obj_id = ObjectId(decodedAccessToken['accessToken'])
+    except errors.InvalidId:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Access Id")   # or raise an error / log it    
+
+    
+    if decodedAccessToken:
+        validatedAccessToken= await get_access_tokens(accessToken=decodedAccessToken['accessToken'])
+        if validatedAccessToken:
+            return validatedAccessToken
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Couldn't Find Refresh Id")
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Couldn't Find Refresh Id")
+    
