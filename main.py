@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends
-from api.v1 import user,book,bookmark,like,chapter,page
+from api.v1 import user,book,bookmark,like,chapter,page,admin
 from security.auth import verify_token
 app = FastAPI(title="Mei Novel-app FastAPI Backend",
               servers=
@@ -14,6 +14,7 @@ app = FastAPI(title="Mei Novel-app FastAPI Backend",
     
     )
 dependencies=[Depends(verify_token)]
+app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
 app.include_router(user.router, prefix="/api/v1/user", tags=["User"])
 app.include_router(book.router,prefix="/api/v1/book", tags=["Book"],dependencies=[Depends(verify_token)])
 app.include_router(bookmark.router,prefix="/api/v1/bookmark", tags=["Bookmark"],dependencies=[Depends(verify_token)])

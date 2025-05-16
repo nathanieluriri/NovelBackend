@@ -1,8 +1,11 @@
 from core.database import db
 from schemas.tokens_schema import accessTokenCreate,refreshTokenCreate,accessTokenOut,refreshTokenOut
 import asyncio
+from datetime import datetime, timedelta
+from dateutil import parser
 from bson import ObjectId,errors
 from fastapi import HTTPException
+
 async def add_access_tokens(token_data:accessTokenCreate)->accessTokenOut:
     token = token_data.model_dump()
     result = await db.accessToken.insert_one(token)
@@ -34,13 +37,30 @@ async def delete_refresh_token(refreshToken:str):
         return True
 
 
+
+def is_older_than_days(date_string, days=10):
+    # Parse the ISO 8601 date string into a datetime object
+    created_date = parser.isoparse(date_string)
+
+    # Get the current time in UTC
+    now = datetime.utcnow().replace(tzinfo=created_date.tzinfo)
+
+    # Check if the difference is greater than the given number of days
+    return (now - created_date) > timedelta(days=days)
+
+
+
 async def get_access_tokens(accessToken:str):
     
     token = await db.accessToken.find_one({"_id": ObjectId(accessToken)})
     if token:
         print(token)
-        tokn = accessTokenOut(**token)
-        return tokn
+        if is_older_than_days(date_string=token['dateCreated'])==False:
+            tokn = accessTokenOut(**token)
+            return tokn
+        else:
+            delete_access_token(accessToken=str(token['_id'])) 
+            return None
     else:
         print("No token found")
         return None
@@ -53,4 +73,3 @@ async def get_refresh_tokens(refreshToken:str):
         return tokn
 
     else: return None
-

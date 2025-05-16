@@ -58,9 +58,6 @@ async def refresh_access_token(refreshObj:refreshTokenRequest, dep=Depends(verif
     else:
         raise HTTPException(status_code=404,detail="Refresh Token is Invalid")
 
-@router.post("/get-details")
-async def get_user_details():
-    return {"message":"success"}
 
 @router.post("/protected-member",dependencies=[Depends(verify_token)])
 async def protected_route():

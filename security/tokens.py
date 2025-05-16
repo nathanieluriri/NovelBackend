@@ -69,12 +69,15 @@ async def validate_member_accesstoken(accessToken:str):
     try:
         obj_id = ObjectId(decodedAccessToken['accessToken'])
     except errors.InvalidId:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Access Id")   # or raise an error / log it    
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Access Token")   # or raise an error / log it    
+    except TypeError:
+        return None
 
     
     if decodedAccessToken:
         validatedAccessToken= await get_access_tokens(accessToken=decodedAccessToken['accessToken'])
         if validatedAccessToken:
+            print("heree ohh")
             return validatedAccessToken
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Couldn't Find Access Tokens While Validating Member Access Tokens")

@@ -90,6 +90,9 @@ async def decode_jwt_token(token):
     except jwt.exceptions.ExpiredSignatureError:
         print("expired token")
         return None
+    except jwt.exceptions.InvalidSignatureError:
+        print("invalid signature")
+        return None
 
 async def decode_jwt_token_without_expiration(token):
     SECRET_KEYS = await get_secret_dict()
