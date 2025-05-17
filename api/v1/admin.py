@@ -1,22 +1,16 @@
 from fastapi import APIRouter, HTTPException,Depends
-from schemas.user_schema import NewUserBase, NewUserCreate,NewUserOut,OldUserBase,OldUserOut,OldUserCreate
-from services.user_service import register_user,verify_google_access_token,login_credentials,login_google,generate_refresh_tokens
+from schemas.admin_schema import NewAdminCreate, NewAdminBase,NewAdminOut
+from services.admin_services import register_admin_func,login_admin_func
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
 from security.auth import verify_admin_token,verify_token,verify_token_and_refresh_token
 from repositories.tokens_repo import delete_refresh_token
 router = APIRouter()
 
-@router.post("/sign-up", response_model=NewUserOut)
-async def register(user: NewUserBase):
-    if user.provider=="google":
-        other_values = verify_google_access_token(google_access_token=user.googleAccessToken)
-        if other_values:
-            user = NewUserCreate(firstName=other_values['firstName'],email=other_values['email'],lastName=other_values['lastName'],avatar=other_values['avatar'],provider=user.provider,password="None",googleAccessToken=None)
-            print(user)
-    elif user.provider=="credentials":
-        user = NewUserCreate(**user.model_dump())
+@router.post("/sign-up", response_model=NewAdminOut)
+async def register_admin(user: NewAdminCreate):
     try:
-        new_user = await register_user(user)
+        new_user = await register_admin_func(user)
+        
         return new_user
     except HTTPException:
         raise
@@ -25,28 +19,16 @@ async def register(user: NewUserBase):
 
 
 
-@router.post("/sign-in",response_model=TokenOut)
-async def login(user_data:OldUserBase):
+@router.post("/sign-in",response_model=NewAdminOut)
+async def login_admin(user_data:NewAdminBase):
     try:
-        if user_data.provider=="credentials":
-            data = await login_credentials(user_data=user_data)
-            print("data",data)
-            response = TokenOut(userId=data.userId,accesstoken=data.accessToken,refreshtoken=data.refreshToken)
-            return response
-        elif user_data.provider=="google":
-            data = await login_google(user_data=user_data)
-            response = TokenOut(userId=data.userId,accesstoken=data.accessToken,refreshtoken=data.refreshToken)
-            return response
-        else:
-            raise HTTPException(status_code=404,detail="Provider Not Recognized")
-        
+        pass
+       
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
-    
 
 
 

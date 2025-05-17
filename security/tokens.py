@@ -1,12 +1,15 @@
 from schemas.tokens_schema import refreshTokenOut,accessTokenOut,refreshTokenCreate,accessTokenCreate
-from repositories.tokens_repo import add_access_tokens,add_refresh_tokens,get_access_tokens,get_refresh_tokens
+from repositories.tokens_repo import add_access_tokens,add_refresh_tokens,get_access_tokens,get_refresh_tokens,add_admin_access_tokens
 from security.encrypting_jwt import create_jwt_admin_token,create_jwt_member_token,decode_jwt_token,decode_jwt_token_without_expiration
 from bson import errors,ObjectId
 from fastapi import HTTPException,status
 from security.encrypting_jwt import decode_jwt_token
 
 
+
+
 async def generate_member_access_tokens(userId)->accessTokenOut:
+    
     
     try:
         obj_id = ObjectId(userId)
@@ -19,6 +22,7 @@ async def generate_member_access_tokens(userId)->accessTokenOut:
     return new_access_token
 
 
+
 async def generate_admin_access_tokens(userId)->accessTokenOut:
     
     try:
@@ -26,9 +30,11 @@ async def generate_admin_access_tokens(userId)->accessTokenOut:
     except errors.InvalidId:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid User Id")    # or raise an error / log it    
 
-    new_access_token = await add_access_tokens(token_data=accessTokenCreate(userId=userId))
+    new_access_token = await add_admin_access_tokens(token_data=accessTokenCreate(userId=userId))
     new_access_token.accesstoken = await create_jwt_admin_token(token=new_access_token.accesstoken)
     return new_access_token
+    
+    
     
 async def generate_refresh_tokens(userId,accessToken)->refreshTokenOut:
 
@@ -98,12 +104,12 @@ async def validate_admin_accesstoken(accessToken:str):
             if validatedAccessToken:
                 return validatedAccessToken
             else:
-                raise ""
+                raise 
         else:
-            raise "" 
+            raise  
         
     else:
-        raise ""
+        raise 
     
     
     

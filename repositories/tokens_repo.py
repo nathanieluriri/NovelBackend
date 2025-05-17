@@ -1,4 +1,5 @@
 from core.database import db
+
 from schemas.tokens_schema import accessTokenCreate,refreshTokenCreate,accessTokenOut,refreshTokenOut
 import asyncio
 from datetime import datetime, timedelta
@@ -8,6 +9,7 @@ from fastapi import HTTPException
 
 async def add_access_tokens(token_data:accessTokenCreate)->accessTokenOut:
     token = token_data.model_dump()
+    token['role']="member"
     result = await db.accessToken.insert_one(token)
     tokn = await db.accessToken.find_one({"_id":result.inserted_id})
     accessToken = accessTokenOut(**tokn)
@@ -15,6 +17,21 @@ async def add_access_tokens(token_data:accessTokenCreate)->accessTokenOut:
     return accessToken 
     
 
+async def add_admin_access_tokens(token_data:accessTokenCreate)->accessTokenOut:
+    token = token_data.model_dump()
+    token['role']="admin"
+    token['status']="inactive"
+    result = await db.accessToken.insert_one(token)
+    tokn = await db.accessToken.find_one({"_id":result.inserted_id})
+    accessToken = accessTokenOut(**tokn)
+    
+    return accessToken 
+
+async def update_admin_access_tokens(token:str)->accessTokenOut:
+    updatedToken= await db.accessToken.find_one_and_update(filter={"_id":ObjectId(token)},update={"$set": {'status':'active'}},return_document=True)
+    accessToken = accessTokenOut(**updatedToken)
+    return accessToken
+    
 async def add_refresh_tokens(token_data:refreshTokenCreate)->refreshTokenOut:
     token = token_data.model_dump()
     result = await db.refreshToken.insert_one(token)
