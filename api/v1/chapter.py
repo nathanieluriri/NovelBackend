@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException,Depends
+from security.auth import verify_admin_token
 from schemas.chapter_schema import ChapterCreate, ChapterOut,ChapterBase
 from typing import List
 from services.chapter_services import add_chapter,delete_chapter,fetch_chapters
@@ -13,7 +14,7 @@ async def get_all_available_chapters(bookId:str):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/create", response_model=ChapterOut)
+@router.post("/create", response_model=ChapterOut,dependencies=[Depends(verify_admin_token)])
 async def create_a_new_chapter(chapter: ChapterBase):
     chapter= ChapterCreate(**chapter.model_dump())
     try:
@@ -22,7 +23,7 @@ async def create_a_new_chapter(chapter: ChapterBase):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.delete("/delete/{chapterId}",response_model=ChapterOut)
+@router.delete("/delete/{chapterId}",response_model=ChapterOut,dependencies=[Depends(verify_admin_token)])
 async def delete_a_chapter(chapterId:str ):
     try:
         deleted_chapter = await delete_chapter(chapterId=chapterId)

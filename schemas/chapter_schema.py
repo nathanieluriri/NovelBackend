@@ -4,6 +4,8 @@ from schemas.imports import *
 class ChapterBase(BaseModel):
     bookId:str
     number: int
+    chapterLabel:str
+    status:str
 
 
 class ChapterCreate(ChapterBase):

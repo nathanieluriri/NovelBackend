@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException,Depends
+from security.auth import verify_admin_token
 from schemas.page_schema import PageOut,PageBase,PageUpdateRequest
 from typing import List
 from services.page_services import add_page,delete_page,fetch_page,update_page_content
@@ -13,7 +14,7 @@ async def get_all_available_pages(chapterId:str):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/create/{bookId}", response_model=PageOut)
+@router.post("/create/{bookId}", response_model=PageOut,dependencies=[Depends(verify_admin_token)])
 async def create_a_new_page(page: PageBase,bookId:str):
    
     try:
@@ -22,7 +23,7 @@ async def create_a_new_page(page: PageBase,bookId:str):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.delete("/delete/{pageId}",response_model=PageOut)
+@router.delete("/delete/{pageId}",response_model=PageOut,dependencies=[Depends(verify_admin_token)])
 async def delete_a_page(pageId:str ):
     try:
         deleted_page = await delete_page(pageId=pageId)
@@ -37,7 +38,7 @@ async def delete_a_page(pageId:str ):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.patch("/update/{pageId}",response_model=PageOut)
+@router.patch("/update/{pageId}",response_model=PageOut,dependencies=[Depends(verify_admin_token)])
 async def update_a_page(pageId:str ,page: PageUpdateRequest):
     try:
         updated_ = await update_page_content(pageId=pageId,textContent=page.textContent)

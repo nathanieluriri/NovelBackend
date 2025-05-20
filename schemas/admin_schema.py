@@ -2,12 +2,12 @@ from schemas.imports import *
 from security.hash import hash_password
 from typing import Union
 
-class NewAdminBase(BaseModel):
+class AdminBase(BaseModel):
     email: EmailStr
     password:  str 
     
       
-class NewAdminCreate(NewAdminBase):
+class NewAdminCreate(AdminBase):
     firstName:Optional[str]=None
     lastName:Optional[str]=None
     avatar:Optional[str]=None

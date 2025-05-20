@@ -6,6 +6,7 @@ class PageBase(BaseModel):
     chapterId:str
     number: int
     textContent:str
+    status:str
     
 class PageUpdateRequest(BaseModel):
     textContent:str

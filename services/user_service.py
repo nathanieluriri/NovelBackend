@@ -59,7 +59,6 @@ async def login_credentials(user_data:OldUserBase):
             if check_password(regular,hashed=hashed):
                 
                 accessToken=await generate_member_access_tokens(str(existing['_id']))
-                print("here")
                 existing['accessToken']= accessToken.accesstoken
                 
                 refreshToken=await generate_refresh_tokens(userId=str(existing['_id']),accessToken=accessToken.accesstoken)

@@ -71,16 +71,25 @@ async def get_access_tokens(accessToken:str):
     
     token = await db.accessToken.find_one({"_id": ObjectId(accessToken)})
     if token:
-        print(token)
         if is_older_than_days(date_string=token['dateCreated'])==False:
-            tokn = accessTokenOut(**token)
-            return tokn
+            if token.get("role",None)=="member":
+                tokn = accessTokenOut(**token)
+                return tokn
+            elif token.get("role",None)=="admin":
+                if token.get('status',None)=="active":
+                    tokn = accessTokenOut(**token)
+                    return tokn
+                else: 
+                    return None
+            else:
+                return None
+            
         else:
             delete_access_token(accessToken=str(token['_id'])) 
             return None
     else:
         print("No token found")
-        return None
+        return "None"
     
     
 async def get_refresh_tokens(refreshToken:str):

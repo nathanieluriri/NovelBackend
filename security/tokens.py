@@ -82,6 +82,7 @@ async def validate_member_accesstoken(accessToken:str):
     
     if decodedAccessToken:
         validatedAccessToken= await get_access_tokens(accessToken=decodedAccessToken['accessToken'])
+        print(validatedAccessToken)
         if validatedAccessToken:
             print("heree ohh")
             return validatedAccessToken
@@ -92,25 +93,50 @@ async def validate_member_accesstoken(accessToken:str):
     
     
 async def validate_admin_accesstoken(accessToken:str):
-    try:
-        obj_id = ObjectId(accessToken)
-    except errors.InvalidId:
-        return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Access Id")   # or raise an error / log it    
-
     decodedAccessToken = await decode_jwt_token(token=accessToken)
+    try:
+        obj_id = ObjectId(decodedAccessToken['accessToken'])
+    except errors.InvalidId:
+        return None  # or raise an error / log it    
+
+    
     if decodedAccessToken:
         if decodedAccessToken['role']=="admin":
             validatedAccessToken= await get_access_tokens(accessToken=decodedAccessToken['accessToken'])
-            if validatedAccessToken:
+            if type(validatedAccessToken) == type(accessTokenOut(userId="12",accesstoken="sa")):
                 return validatedAccessToken
+            elif validatedAccessToken=="None":
+                return None
             else:
-                raise 
+                return "inactive" 
         else:
-            raise  
+            return None  
         
     else:
-        raise 
+        return None 
     
+    
+    
+    
+# async def validate_admin_accesstoken_status(accessToken:str):
+#     try:
+#         obj_id = ObjectId(accessToken)
+#     except errors.InvalidId:
+#         return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Access Id")   # or raise an error / log it    
+
+#     decodedAccessToken = await decode_jwt_token(token=accessToken)
+#     if decodedAccessToken:
+#         if decodedAccessToken['role']=="admin":
+#             validatedAccessToken= await get_access_tokens(accessToken=decodedAccessToken['accessToken'])
+#             if validatedAccessToken:
+#                 return validatedAccessToken
+#             else:
+#                 raise 
+#         else:
+#             raise  
+        
+#     else:
+#         raise 
     
     
     

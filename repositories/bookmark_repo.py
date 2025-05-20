@@ -41,8 +41,8 @@ async def delete_bookmarks_with_user_id(userId: list):
 async def create_bookmark(bookmark_data: BookMarkCreate):
     bookmark = bookmark_data.model_dump()
     result = await db.bookmarks.insert_one(bookmark)
-    created_like = await db.bookmarks.find_one({"_id": result.inserted_id})
-    return created_like
+    created_bookmark = await db.bookmarks.find_one({"_id": result.inserted_id})
+    return created_bookmark
 
 
 
