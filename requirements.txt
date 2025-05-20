@@ -3,6 +3,9 @@ pydantic
 bcrypt
 requests
 pyjwt
+python-dateutil 
+redis
+yagmail
 
 beautifulsoup4==4.13.4
 certifi==2025.1.31
