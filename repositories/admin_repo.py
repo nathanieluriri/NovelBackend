@@ -1,5 +1,5 @@
 from core.database import db
-from schemas.admin_schema import AdminBase,NewAdminCreate,NewAdminOut
+from schemas.admin_schema import AdminBase,NewAdminCreate,NewAdminOut,AllowedAdminCreate
 from bson import ObjectId
 
 async def get_admin_by_email(email: str)->NewAdminOut|None:
@@ -23,6 +23,13 @@ async def create_admin(user_data: NewAdminCreate):
     user = user_data.model_dump()
     result = await db.admins.insert_one(user)
     created_user = await db.admins.find_one({"_id": result.inserted_id})
+    return created_user
+
+
+async def create_allowed_admin(user_data: AllowedAdminCreate):
+    user = user_data.model_dump()
+    result = await db.AllowedAdmins.insert_one(user)
+    created_user = await db.AllowedAdmins.find_one({"_id": result.inserted_id})
     return created_user
 
 
@@ -54,3 +61,10 @@ async def create_email_list_for_admins(email: str):
     created_user = await db.AllowedAdmins.find_one({"_id": result.inserted_id})
     return created_user
 
+
+
+async def get_admin_details_with_accessToken(accessToken:str):
+    accessToken_doc = await db.accessToken.find_one({"_id": ObjectId(accessToken)})
+    admin_doc = await db.admins.find_one({"_id":ObjectId(accessToken_doc['userId'])})
+    return admin_doc
+    

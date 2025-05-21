@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException,Depends, Request
 from schemas.admin_schema import NewAdminCreate, AdminBase,NewAdminOut
-from services.admin_services import register_admin_func,login_admin_func
-from services.email_service import get_location
+from services.admin_services import register_admin_func,login_admin_func,invitation_process
+from services.email_service import get_location,send_invitation
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
 from schemas.email_schema import VerificationRequest
 from security.auth import verify_admin_token,verify_token,verify_token_and_refresh_token
@@ -9,6 +9,13 @@ from security.admin_otp import verify_otp
 from repositories.tokens_repo import delete_refresh_token
 router = APIRouter()
 
+@router.post("/invite",dependencies=[Depends(verify_admin_token)])
+async def invite_new_admin(invitedPersonsEmail,accessToken:str = Depends(verify_admin_token)):
+    try:
+        await invitation_process(invitedEmail=invitedPersonsEmail,accessToken=accessToken['accessToken'])
+        return {"message":"success"}
+    except Exception as e:
+        raise e
 
 @router.post("/sign-up", response_model=NewAdminOut)
 async def register_admin(user: NewAdminCreate,request:Request):

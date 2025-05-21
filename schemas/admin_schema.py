@@ -7,6 +7,16 @@ class AdminBase(BaseModel):
     password:  str 
     
       
+class AllowedAdminCreate(BaseModel):
+    email:EmailStr
+    dateCreated:Optional[str]=None
+    invitedBy:EmailStr
+    @model_validator(mode='before')
+    def set_dates(cls,values):
+        now_str = datetime.now(timezone.utc).isoformat()
+        values['dateCreated']= now_str
+        return values
+    
 class NewAdminCreate(AdminBase):
     firstName:Optional[str]=None
     lastName:Optional[str]=None

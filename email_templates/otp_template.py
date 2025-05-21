@@ -352,12 +352,9 @@ er">
                                 <div class="footer-text">
                                     This email was intended for <span class=
 ="user-email">$user_email</span>. This message
-                                    is intended only for the personal and c=
-onfidential use of the designated recipient(s). If you
-                                    are not the intended recipient of this =
-message you are hereby notified that any review,
-                                    dissemination, distribution or copying =
-of this message is strictly prohibited.
+                                    is intended only for the personal and confidential use of the designated recipient(s). If you
+                                    are not the intended recipient of this message you are hereby notified that any review,
+                                    dissemination, distribution or copying of this message is strictly prohibited.
                                     
                                 </div>
                             </div>
@@ -373,6 +370,6 @@ of this message is strictly prohibited.
 
 """)
 
-def generate_email_from_template(otp_code,user_email):
+def generate_login_otp_email_from_template(otp_code,user_email):
     generated_email = otp_template_string.substitute(otp_code=otp_code,user_email=user_email)
     return generated_email

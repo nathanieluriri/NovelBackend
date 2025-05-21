@@ -72,6 +72,17 @@ async def create_jwt_admin_token(token):
 
 
 async def decode_jwt_token(token):
+    """_summary_
+
+    Args:
+        token (_type_): _description_
+
+    Raises:
+        Exception: _description_
+
+    Returns:
+        if decoded true: {'accessToken': '682c99f395ff4782fbea010f', 'role': 'admin', 'exp': 1747825460}
+    """
     SECRET_KEYS = await get_secret_dict()
     # Decode header to extract the `kid`
     unverified_header = jwt.get_unverified_header(token)

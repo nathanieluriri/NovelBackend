@@ -64,6 +64,7 @@ async def verify_token_and_refresh_token(token: str = Depends(token_auth_scheme)
            
 async def verify_admin_token(token: str = Depends(token_auth_scheme)):
     result = await validate_admin_accesstoken(accessToken=str(token.credentials))
+    
     if result==None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -74,3 +75,7 @@ async def verify_admin_token(token: str = Depends(token_auth_scheme)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Admin Token hasn't been activated"
         )
+    elif type(result)==type(accessTokenOut(userId="1",accesstoken="2")):
+        
+        decoded_access_token = await decode_jwt_token(token=token.credentials)
+        return decoded_access_token

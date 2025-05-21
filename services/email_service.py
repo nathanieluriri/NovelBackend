@@ -1,9 +1,11 @@
-from email_templates.otp_template import generate_email_from_template
+from email_templates.otp_template import generate_login_otp_email_from_template
 from email_templates.invitation_template import generate_invitation_from_template
 from schemas.email_schema import ClientData
+from schemas.admin_schema import AllowedAdminCreate
 from repositories.email_repo import create_email_log
+from repositories.admin_repo import create_allowed_admin
 import os
-import yagmail
+from datetime import datetime ,timezone
 from dotenv import load_dotenv
 from fastapi import  Request
 import httpx
@@ -27,7 +29,8 @@ async def get_location(request: Request)->ClientData:
         "latitude": data.get("latitude",None),
         "longitude": data.get("longitude",None),
         "Network":data.get("org",None),
-        "timezone":data.get("timezone",None)
+        "timezone":data.get("timezone",None),
+        "dateTime":datetime.now(timezone.utc).isoformat()
     }
     
         
@@ -132,7 +135,7 @@ def send_html_email_optimized(
 
 
 async def send_email(location:ClientData,receiver_email:str,otp:str):
-    email_body_content = generate_email_from_template(otp_code=otp,user_email=receiver_email)
+    email_body_content = generate_login_otp_email_from_template(otp_code=otp,user_email=receiver_email)
     sender_email = EMAIL_USERNAME
     sender_display_name = "Nat from Mei" # The display name for the sender
     subject = "OTP FOR ADMIN LOGIN"
@@ -170,12 +173,37 @@ async def send_email(location:ClientData,receiver_email:str,otp:str):
     # TODO: After logging email to database write script to send the templated email string to the user trying to login
     
     
-async def send_invitation(firstName,invitedEmail,lastName):
-    email_body_content = generate_invitation_from_template(first_name=firstName,email_of_person_you_are_inviting=invitedEmail,last_name=lastName,main_website_link="https://knowyourmeme.com/memes/05-gpa-activities-tiktok-trend",register_link="https://knowyourmeme.com/memes/05-gpa-activities-tiktok-trend",)
+async def send_invitation(firstName,invitedEmail,lastName,inviterEmail):
+    allowedAdmin = AllowedAdminCreate(email=invitedEmail,invitedBy=inviterEmail)
+    await create_allowed_admin(user_data=allowedAdmin)
+    email_body_content = generate_invitation_from_template(first_name=firstName,invitee_email_address=invitedEmail,last_name=lastName,main_website_link="https://knowyourmeme.com/memes/05-gpa-activities-tiktok-trend",register_link="https://knowyourmeme.com/memes/05-gpa-activities-tiktok-trend",)
     sender_email = EMAIL_USERNAME
     sender_display_name = f"{firstName} from MEI" # The display name for the sender
-    subject = "OTP FOR ADMIN LOGIN"
+    subject = "Admin Registration Invitation"
     smtp_server = EMAIL_HOST
     smtp_port = 465 
     smtp_login = EMAIL_USERNAME
     smtp_password = EMAIL_PASSWORD # Use your actual app password/email password here
+    try:
+      
+        email_body_content = email_body_content.replace('<br>','')
+        send_html_email_optimized(
+        sender_email=sender_email,
+        sender_display_name=sender_display_name,
+        receiver_email=invitedEmail,
+        subject=subject,
+        html_content=email_body_content,
+        plain_text_content="You have been invited to register as an admin",
+        smtp_server=smtp_server,
+        smtp_port=smtp_port,
+        smtp_login=smtp_login,
+        smtp_password=smtp_password
+    )
+
+
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return 1
+   
+        
+    # TODO: Log this invitation and send warning message to the person that sent the invitation incase they didn't knowingly invite this new admin 
