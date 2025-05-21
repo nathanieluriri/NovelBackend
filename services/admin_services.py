@@ -1,10 +1,12 @@
-from repositories.admin_repo import get_admin_by_email, create_admin,delete_admin_by_email_and_provider, get_allowd_admin_emails,get_admin_by_email_return_dict,get_admin_details_with_accessToken
+from repositories.admin_repo import get_admin_by_email, create_admin,get_allowd_admin_emails,get_admin_by_email_return_dict,get_admin_details_with_accessToken,replace_password_admin
+from repositories.tokens_repo import delete_all_tokens_with_user_id
 from schemas.admin_schema import NewAdminCreate,NewAdminOut,AdminBase
 from fastapi import HTTPException,status
 from schemas.email_schema import ClientData
-from security.hash import check_password
+from security.hash import check_password,hash_password
 from security.tokens import generate_admin_access_tokens,generate_refresh_tokens
-from security.admin_otp import generate_otp,send_otp
+
+from security.admin_otp import generate_otp,send_otp,send_otp_admin,verify_otp_admin,generate_otp_admin_password
 from services.email_service import send_invitation
 
 async def register_admin_func(user_data: NewAdminCreate,location:ClientData):
@@ -85,12 +87,25 @@ async def invitation_process(accessToken:str,invitedEmail):
     
     
     
-async def change_password_process(otp,password):
-    # TODO: MAKE ALL ACCESS TOKENS AND REFRESH TOKENS OF SAID USER TO BE INVALID THEN START PROCESS
-    # TODO: STEP 1: SEND OTP
-    # TODO: STEP 2: SAVE OTP AND USERID IN REDIS
-    # TODO: STEP 3: IF OTP IS CORRECT USE THE USERID WITH THE OTP AND REPLACE WITH THE NEW PASSWORD THEY SENT 
-    # TODO: STEP 4: COMPLETE!
-    pass
-
+async def change_of_admin_password_flow1(email):
+    if await get_admin_by_email(email=email):
+        otp = generate_otp_admin_password(email=email)
+        await send_otp_admin(otp=otp,user_email=email)
+    else:
+        raise HTTPException(status_code=404,detail="Admin Doesn't exist")
+    
+    
+    
+async def change_of_admin_password_flow2(email,otp,password):
+    isValid = await verify_otp_admin(email=email,otp=otp)
+    if isValid:
+        hashed_password= hash_password(password=password)
+        admin = await get_admin_by_email(email=email)
+        await replace_password_admin(userId=admin.userId,hashedPassword=hashed_password)
+        
+        await delete_all_tokens_with_user_id(userId=admin.userId)
+        return True
+    elif isValid==False:
+        return False
+        
     

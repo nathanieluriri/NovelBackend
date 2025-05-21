@@ -7,6 +7,7 @@ async def get_admin_by_email(email: str)->NewAdminOut|None:
     admin = await db.admins.find_one({"email": email})
     try:
         newAdmin = NewAdminOut(**admin)
+        print(newAdmin)
         return newAdmin
     except TypeError:
         print("no admin user for the email")
@@ -81,3 +82,12 @@ async def get_location_details_for_admin(user_id:str)->ClientData:
     except Exception as e:
         print(e)
         raise e
+    
+    
+    
+async def replace_password_admin(userId: str, hashedPassword: str):
+    await db.admins.find_one_and_update(
+        filter={"_id": ObjectId(userId)},
+        update={"$set": {"password": hashedPassword}}
+    )
+    
