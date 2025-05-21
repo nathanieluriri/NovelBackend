@@ -85,6 +85,12 @@ async def invitation_process(accessToken:str,invitedEmail):
     
     
     
-
+async def change_password_process(otp,password):
+    # TODO: MAKE ALL ACCESS TOKENS AND REFRESH TOKENS OF SAID USER TO BE INVALID THEN START PROCESS
+    # TODO: STEP 1: SEND OTP
+    # TODO: STEP 2: SAVE OTP AND USERID IN REDIS
+    # TODO: STEP 3: IF OTP IS CORRECT USE THE USERID WITH THE OTP AND REPLACE WITH THE NEW PASSWORD THEY SENT 
+    # TODO: STEP 4: COMPLETE!
+    pass
 
     

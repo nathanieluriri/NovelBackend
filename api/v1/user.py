@@ -1,6 +1,6 @@
-from fastapi import APIRouter, HTTPException,Depends
+from fastapi import APIRouter, HTTPException,Depends, Body
 from schemas.user_schema import NewUserBase, NewUserCreate,NewUserOut,OldUserBase,OldUserOut,OldUserCreate
-from services.user_service import register_user,verify_google_access_token,login_credentials,login_google,generate_refresh_tokens
+from services.user_service import register_user,verify_google_access_token,login_credentials,login_google,get_user_details_with_accessToken,change_of_user_password_flow1,change_of_user_password_flow2
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
 from security.auth import verify_admin_token,verify_token,verify_token_and_refresh_token
 from repositories.tokens_repo import delete_refresh_token
@@ -44,9 +44,6 @@ async def login(user_data:OldUserBase):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-    
-
-
 
 @router.post("/refresh")
 async def refresh_access_token(refreshObj:refreshTokenRequest, dep=Depends(verify_token_and_refresh_token)):
@@ -56,14 +53,26 @@ async def refresh_access_token(refreshObj:refreshTokenRequest, dep=Depends(verif
     else:
         raise HTTPException(status_code=404,detail="Refresh Token is Invalid")
 
-@router.post("/get-details")
-async def get_user_details():
-    return {"message":"success"}
 
-@router.post("/protected-member",dependencies=[Depends(verify_token)])
-async def protected_route():
-    return {"message":"success"} 
+@router.get("/details",response_model_exclude_none=True,dependencies=[Depends(verify_token)])
+async def get_user_details(accessToken:str=Depends(verify_token) )->NewUserOut:
+    user= await get_user_details_with_accessToken(token=accessToken['accessToken'])
+    if user:
+        return user
+    else:
+        raise HTTPException(status_code=404,detail="Details not found")
 
-@router.post("/protected-admin",dependencies=[Depends(verify_admin_token)])
-async def protected_route_admin():
-    return {"message":"success"} 
+
+@router.post("/initiate/change-password")
+async def initiate_change_of_user_password_process(email= Body(title="email",description="Enter your email",alias="email")):
+    try:
+        await change_of_user_password_flow1(email=email['email'])
+        return {"message":"Success"}
+    except Exception as e:
+        raise e
+
+@router.post("/conclude/change-password")
+async def conclude_change_of_user_password_process(email=  Body(title="email",description="Enter your email",alias="email"),otp =  Body(title="otp",description="Enter your otp",alias="otp"),password=  Body(title="password",description="Enter your password",alias="password")):
+    result = await change_of_user_password_flow2(email=email,otp=otp,password=password)
+    return {"message": result}
+

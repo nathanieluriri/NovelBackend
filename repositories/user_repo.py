@@ -14,3 +14,14 @@ async def create_user(user_data: NewUserCreate):
 
 async def get_user_by_email_and_provider(email: str,provider:str):
     return await db.users.find_one({"email": email,"provider":provider})
+
+
+async def get_user_by_userId(userId: str):
+    return await db.users.find_one({"_id": ObjectId(userId)})
+
+async def replace_password(userId: str, hashedPassword: str):
+    await db.users.find_one_and_update(
+        filter={"_id": ObjectId(userId)},
+        update={"$set": {"password": hashedPassword}}
+    )
+    

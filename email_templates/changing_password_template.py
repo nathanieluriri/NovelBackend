@@ -21,7 +21,25 @@ changing_password_template_string=Template("""
     @media screen and (min-width: 600px) {
       .mdv2rw { padding: 40px 40px; }
     }
+     .dark-mode-image {
+    display: none; /* Hide the dark mode image by default */
+  }
+  img {
+      filter: invert(100%); /* Inverts colors */
+      /* You might need brightness, contrast, hue-rotate etc. */
+    }
+
+  /* When the user prefers dark mode */
+  @media (prefers-color-scheme: dark) {
+    .light-mode-image {
+      display: none; /* Hide the light mode image */
+    }
+    .dark-mode-image {
+      display: inline-block; /* Show the dark mode image */
+    }
+  }
   </style>
+  
   <link href="//fonts.googleapis.com/css?family=Google+Sans" rel="stylesheet" type="text/css" nonce="DoEqAMc5wqGswLpJhSuEWA" />
 </head>
 <body style="margin: 0; padding: 0;" bgcolor="#FFFFFF">
@@ -65,7 +83,20 @@ changing_password_template_string=Template("""
               </div>
 
               <div style="border-style: solid; border-width: thin; border-color:#dadce0; border-radius: 8px; padding: 40px 20px;" align="center" class="mdv2rw">
-                <img src="https://res.cloudinary.com/dgpv2mqzr/image/upload/fl_preserve_transparency/v1747818082/mei-name-link_qldjgp.jpg?_s=public-apps" width="90" height="50" aria-hidden="true" style="margin-bottom: 16px;" alt="Google" />
+              <img class="dark-mode-image" src="https://res.cloudinary.com/dgpv2mqzr/image/upload/v1747836971/mei-name-link-light-mode_vqqgj7.png"
+              
+     width="90"
+     height="50"
+     aria-hidden="true"
+     style="margin-bottom: 16px; background-color: rgba(0, 0, 0, 1); border-radius: 10%;"
+     alt="Mei" />
+                   <img class="light-mode-image" src="https://res.cloudinary.com/dgpv2mqzr/image/upload/v1747836971/mei-name-link-light-mode_vqqgj7.png"
+              
+     width="90"
+     height="50"
+     aria-hidden="true"
+     style="margin-bottom: 16px; background-color: rgba(0, 0, 0, 1); border-radius: 10%;"
+     alt="Mei" />
                 <div style="font-family: 'Google Sans', Roboto, RobotoDraft, Helvetica, Arial, sans-serif; border-bottom: thin solid #dadce0; color: rgba(0,0,0,0.87); line-height: 32px; padding-bottom: 24px; text-align: center; word-break: break-word;">
                   <div style="font-size: 24px;">$otp_code</div>
                   <table align="center" style="margin-top: 8px;">

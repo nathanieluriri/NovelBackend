@@ -9,6 +9,8 @@ from security.admin_otp import verify_otp
 from repositories.tokens_repo import delete_refresh_token
 router = APIRouter()
 
+
+
 @router.post("/invite",dependencies=[Depends(verify_admin_token)])
 async def invite_new_admin(invitedPersonsEmail,accessToken:str = Depends(verify_admin_token)):
     try:
@@ -61,10 +63,15 @@ async def refresh_access_token(refreshObj:refreshTokenRequest, dep=Depends(verif
         raise HTTPException(status_code=404,detail="Refresh Token is Invalid")
 
 
-@router.post("/protected-member",dependencies=[Depends(verify_token)])
-async def protected_route():
-    return {"message":"success"} 
+# @router.post("/protected-member",dependencies=[Depends(verify_token)])
+# async def protected_route():
+#     return {"message":"success"} 
 
-@router.post("/protected-admin",dependencies=[Depends(verify_admin_token)])
-async def protected_route_admin():
-    return {"message":"success"} 
+# @router.post("/protected-admin",dependencies=[Depends(verify_admin_token)])
+# async def protected_route_admin():
+#     return {"message":"success"} 
+
+
+@router.post("/change-password")
+async def change_admin_password():
+    pass

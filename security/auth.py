@@ -17,8 +17,10 @@ async def verify_token(token: str = Depends(token_auth_scheme)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
-
-    
+    else:
+        decoded_access_token = await decode_jwt_token(token=token.credentials)
+        return decoded_access_token
+            
         
         
         

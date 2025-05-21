@@ -1,9 +1,10 @@
-from repositories.user_repo import get_user_by_email, create_user,get_user_by_email_and_provider
+from repositories.user_repo import get_user_by_email, create_user,get_user_by_email_and_provider,get_user_by_userId,replace_password
+from repositories.tokens_repo import get_access_tokens,delete_all_tokens_with_user_id
 from schemas.user_schema import NewUserCreate,NewUserOut,OldUserBase,OldUserCreate,OldUserOut
 from fastapi import HTTPException,status
-from security.hash import check_password
+from security.hash import check_password,hash_password
 from security.tokens import generate_member_access_tokens,generate_refresh_tokens
-
+from security.user_otp import generate_otp, verify_otp, send_otp_user
 
 def verify_google_access_token(google_access_token:str):
     import requests
@@ -86,3 +87,36 @@ async def login_google(user_data:OldUserBase):
         else:raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User Not Found")
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User Not Found")
+    
+    
+    
+async def get_user_details_with_accessToken(token:str):
+    tokenOut = await get_access_tokens(accessToken=token)
+    if tokenOut:
+        userDetails = await get_user_by_userId(userId=tokenOut.userId)
+        if userDetails:
+            return NewUserOut(**userDetails)
+        
+        
+async def change_of_user_password_flow1(email):
+    if await get_user_by_email(email=email):
+        otp = generate_otp(email=email)
+        await send_otp_user(otp=otp,user_email=email)
+    else:
+        raise HTTPException(status_code=404,detail="User Doesn't exist")
+    
+    
+    
+async def change_of_user_password_flow2(email,otp,password):
+    isValid = await verify_otp(email=email,otp=otp)
+    if isValid:
+        hashed_password= hash_password(password=password)
+        user = await get_user_by_email(email=email)
+        await replace_password(userId=str(user['_id']),hashedPassword=hashed_password)
+        
+        await delete_all_tokens_with_user_id(userId=str(user['_id']))
+        return True
+    elif isValid==False:
+        return False
+        
+    

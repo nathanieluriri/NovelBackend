@@ -1,6 +1,7 @@
 from email_templates.otp_template import generate_login_otp_email_from_template
 from email_templates.invitation_template import generate_invitation_from_template
 from email_templates.new_sign_in_warning import generate_new_signin_warning_email_from_template
+from email_templates.changing_password_template import generate_changing_password_email_from_template
 from schemas.email_schema import ClientData
 from schemas.admin_schema import AllowedAdminCreate
 from repositories.email_repo import create_email_log
@@ -114,8 +115,10 @@ def send_html_email_optimized(
 
         server.login(smtp_login, smtp_password)
         logging.info(f"Successfully logged in to {smtp_login}.")
+        
         server.sendmail(sender_email, receiver_email, msg.as_string())
         logging.info(f"Email sent successfully to {receiver_email} from {sender_email} (Display: {sender_display_name}).")
+  
     except smtplib.SMTPAuthenticationError as e:
         logging.error(f"Authentication failed. Check username and password: {e}")
         raise # Re-raise for caller to handle
@@ -170,7 +173,7 @@ async def send_email(location:ClientData,receiver_email:str,otp:str):
     except Exception as e:
         print(f"couldn't save logs because {e}")
         
-    # TODO: After logging email to database write script to send the templated email string to the user trying to login
+ 
     
     
 async def send_invitation(firstName,invitedEmail,lastName,inviterEmail):
@@ -234,6 +237,45 @@ async def send_warning_about_ip_change(firstName,time_data,lastName,ip,location,
         subject=subject,
         html_content=email_body_content,
         plain_text_content=f"Security Alert for {firstName} {lastName} ",
+        smtp_server=smtp_server,
+        smtp_port=smtp_port,
+        smtp_login=smtp_login,
+        smtp_password=smtp_password
+    )
+
+
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return 1
+   
+   
+   
+   
+   
+   
+
+
+
+async def send_change_of_password_otp_email(receiver_email:str,otp:str):
+    email_body_content = generate_changing_password_email_from_template(otp_code=otp,user_email=receiver_email,avatar_image_link="https://banner2.cleanpng.com/20180330/cue/avicnrp87.webp")
+    sender_email = EMAIL_USERNAME
+    sender_display_name = "ADMIN FROM MEI" # The display name for the sender
+    subject = "Reset Password?"
+    smtp_server = EMAIL_HOST
+    smtp_port = 465 
+    smtp_login = EMAIL_USERNAME
+    smtp_password = EMAIL_PASSWORD # Use your actual app password/email password here
+
+    try:
+      
+        email_body_content = email_body_content.replace('<br>','')
+        send_html_email_optimized(
+        sender_email=sender_email,
+        sender_display_name=sender_display_name,
+        receiver_email=receiver_email,
+        subject=subject,
+        html_content=email_body_content,
+        plain_text_content=f"Enter this {otp} to log in",
         smtp_server=smtp_server,
         smtp_port=smtp_port,
         smtp_login=smtp_login,
