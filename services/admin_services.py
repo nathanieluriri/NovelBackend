@@ -9,6 +9,7 @@ from services.email_service import send_invitation
 
 async def register_admin_func(user_data: NewAdminCreate,location:ClientData):
     proceed = await get_allowd_admin_emails(user_data.email)
+    
     if proceed:
         existing = await get_admin_by_email(user_data.email)
         if existing:
@@ -16,7 +17,9 @@ async def register_admin_func(user_data: NewAdminCreate,location:ClientData):
         new_user =await create_admin(user_data)
         
         new_user = NewAdminOut(**new_user)
+        
         accessToken= await generate_admin_access_tokens(new_user.userId)
+        location['userId']=new_user.userId
         new_user.accessToken=accessToken.accesstoken
         # generate and send otp
         otp = generate_otp(admin_access_token=new_user.accessToken)
@@ -43,7 +46,7 @@ async def login_admin_func(user_data:AdminBase,location:ClientData):
             
             if check_password(regular,hashed=hashed):
                 accessToken=await generate_admin_access_tokens(str(existing['_id']))
-                
+                location['userId']=str(existing['_id'])
                 existing['accessToken']= accessToken.accesstoken 
                 
 
@@ -55,7 +58,6 @@ async def login_admin_func(user_data:AdminBase,location:ClientData):
                 refreshToken=await generate_refresh_tokens(userId=str(existing['_id']),accessToken=accessToken.accesstoken)
                 
                 existing['refreshToken']= refreshToken.refreshtoken
-                print("refresh token ", refreshToken.refreshtoken)
                 
                 return NewAdminOut(**existing)
             else:

@@ -1,5 +1,6 @@
 from email_templates.otp_template import generate_login_otp_email_from_template
 from email_templates.invitation_template import generate_invitation_from_template
+from email_templates.new_sign_in_warning import generate_new_signin_warning_email_from_template
 from schemas.email_schema import ClientData
 from schemas.admin_schema import AllowedAdminCreate
 from repositories.email_repo import create_email_log
@@ -15,7 +16,7 @@ from email.mime.text import MIMEText
 from email.utils import formataddr # To properly format sender name and email
 import logging
 
-async def get_location(request: Request)->ClientData:
+async def get_location(request: Request,clientType:str,user_id:str)->ClientData:
     client_ip = request.client.host
     # use your public IP for testing instead of 127.0.0.1
     async with httpx.AsyncClient() as client:
@@ -30,7 +31,9 @@ async def get_location(request: Request)->ClientData:
         "longitude": data.get("longitude",None),
         "Network":data.get("org",None),
         "timezone":data.get("timezone",None),
-        "dateTime":datetime.now(timezone.utc).isoformat()
+        "dateTime":datetime.now(timezone.utc).isoformat(),
+        "clientType":clientType,
+        "userId":user_id
     }
     
         
@@ -111,10 +114,8 @@ def send_html_email_optimized(
 
         server.login(smtp_login, smtp_password)
         logging.info(f"Successfully logged in to {smtp_login}.")
-
         server.sendmail(sender_email, receiver_email, msg.as_string())
         logging.info(f"Email sent successfully to {receiver_email} from {sender_email} (Display: {sender_display_name}).")
-
     except smtplib.SMTPAuthenticationError as e:
         logging.error(f"Authentication failed. Check username and password: {e}")
         raise # Re-raise for caller to handle
@@ -137,7 +138,7 @@ def send_html_email_optimized(
 async def send_email(location:ClientData,receiver_email:str,otp:str):
     email_body_content = generate_login_otp_email_from_template(otp_code=otp,user_email=receiver_email)
     sender_email = EMAIL_USERNAME
-    sender_display_name = "Nat from Mei" # The display name for the sender
+    sender_display_name = "MEI SIGN IN OTP" # The display name for the sender
     subject = "OTP FOR ADMIN LOGIN"
     smtp_server = EMAIL_HOST
     smtp_port = 465 
@@ -166,7 +167,6 @@ async def send_email(location:ClientData,receiver_email:str,otp:str):
         return 1
     try:
         data = await save_log_of_sent_emails(location=location)
-        print(data)
     except Exception as e:
         print(f"couldn't save logs because {e}")
         
@@ -207,3 +207,41 @@ async def send_invitation(firstName,invitedEmail,lastName,inviterEmail):
    
         
     # TODO: Log this invitation and send warning message to the person that sent the invitation incase they didn't knowingly invite this new admin 
+    
+    
+    
+    
+    
+    
+async def send_warning_about_ip_change(firstName,time_data,lastName,ip,location,extra_data,receiver_email):
+    
+    email_body_content = generate_new_signin_warning_email_from_template(firstName=firstName,lastName=lastName,time_data=time_data,ip_address=ip,location=location,extra_data=extra_data)
+    sender_email = EMAIL_USERNAME
+    sender_display_name = "MEI SECURITY " # The display name for the sender
+    subject = f"Security Alert for {receiver_email}"
+    smtp_server = EMAIL_HOST
+    smtp_port = 465 
+    smtp_login = EMAIL_USERNAME
+    smtp_password = EMAIL_PASSWORD # Use your actual app password/email password here
+    
+    try:
+      
+        email_body_content = email_body_content.replace('<br>','')
+        send_html_email_optimized(
+        sender_email=sender_email,
+        sender_display_name=sender_display_name,
+        receiver_email=receiver_email,
+        subject=subject,
+        html_content=email_body_content,
+        plain_text_content=f"Security Alert for {firstName} {lastName} ",
+        smtp_server=smtp_server,
+        smtp_port=smtp_port,
+        smtp_login=smtp_login,
+        smtp_password=smtp_password
+    )
+
+
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return 1
+   

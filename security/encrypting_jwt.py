@@ -124,7 +124,6 @@ async def decode_jwt_token_without_expiration(token):
     except jwt.exceptions.ExpiredSignatureError:
         print("expired token")
         payload = decoded = jwt.decode(token, key, algorithms=['HS256'],options={"verify_exp": False})
-        print(payload)
         return payload
 
 

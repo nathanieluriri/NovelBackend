@@ -1,5 +1,6 @@
 from core.database import db
 from schemas.admin_schema import AdminBase,NewAdminCreate,NewAdminOut,AllowedAdminCreate
+from schemas.email_schema import ClientData
 from bson import ObjectId
 
 async def get_admin_by_email(email: str)->NewAdminOut|None:
@@ -40,7 +41,6 @@ async def delete_admin_by_email_and_provider(email: str,provider:str):
 
 async def get_allowd_admin_emails(email: str):
     admin = await db.AllowedAdmins.find_one({"email": email})
-    print(admin)
     if not admin:
         print("this email isn't allowed to register as an admin")
         return False
@@ -68,3 +68,16 @@ async def get_admin_details_with_accessToken(accessToken:str):
     admin_doc = await db.admins.find_one({"_id":ObjectId(accessToken_doc['userId'])})
     return admin_doc
     
+    
+async def get_location_details_for_admin(user_id:str)->ClientData:
+    try:
+        location_docs = await db.LoginAttempts.find_one({"userId": user_id})
+        if location_docs:
+            await db.LoginAttempts.find_one_and_delete({"userId": user_id})
+            locationObj= ClientData(**location_docs)
+            return locationObj
+        else:
+            return None
+    except Exception as e:
+        print(e)
+        raise e

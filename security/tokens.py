@@ -84,7 +84,6 @@ async def validate_member_accesstoken(accessToken:str):
         validatedAccessToken= await get_access_tokens(accessToken=decodedAccessToken['accessToken'])
         print(validatedAccessToken)
         if validatedAccessToken:
-            print("heree ohh")
             return validatedAccessToken
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Couldn't Find Access Tokens While Validating Member Access Tokens")

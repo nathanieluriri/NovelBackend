@@ -12,7 +12,6 @@ async def add_page(bookId,chapterId,textContent):
     page_ids = [str(ids.get("_id")) for ids in pages]
     await update_chapter(chapter_id=chapterId,update_data=ChapterUpdate(pageCount=len(pages),pages=page_ids))
     created_page = PageOut(**page)
-    print(created_page)
     return created_page
     
     
@@ -28,7 +27,6 @@ async def update_page_content(pageId,textContent):
 
 async def delete_page(pageId):
     page = await get_page_by_page_id(pageId)
-    print(page)
     if page!=None:
         result=await delete_page_with_page_id(pageId=pageId)
         update = await update_page_order_after_delete(deleted_position=page['number'],chapterId=page['chapterId'])

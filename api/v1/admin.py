@@ -20,7 +20,7 @@ async def invite_new_admin(invitedPersonsEmail,accessToken:str = Depends(verify_
 @router.post("/sign-up", response_model=NewAdminOut)
 async def register_admin(user: NewAdminCreate,request:Request):
     try:
-        location_details = await get_location(request=request)
+        location_details = await get_location(request=request,clientType="admin",user_id="ss")
     except:
         raise
     try:
@@ -37,7 +37,7 @@ async def register_admin(user: NewAdminCreate,request:Request):
 @router.post("/sign-in",response_model=NewAdminOut)
 async def login_admin(user_data:AdminBase,request:Request):
     try:
-        location_details = await get_location(request=request)
+        location_details = await get_location(request=request,clientType="admin",user_id="ss")
         user= await login_admin_func(user_data=user_data,location=location_details)
         return user
     except Exception as e:

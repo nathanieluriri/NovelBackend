@@ -1,6 +1,8 @@
 from core.redis_cache import cache_db
 import random
-from services.email_service import send_email
+from datetime import datetime
+from services.email_service import send_email,send_warning_about_ip_change
+from repositories.admin_repo import get_location_details_for_admin,get_admin_by_email
 from schemas.email_schema import ClientData
 from security.encrypting_jwt import decode_jwt_token
 from repositories.tokens_repo import update_admin_access_tokens
@@ -15,11 +17,25 @@ def generate_otp(admin_access_token):
     cache_db.setex(name=admin_access_token,value=otp_digit,time=380)
     return otp_digit
     
-    # TODO: write function for sending otp
 async def send_otp(otp:str,location:ClientData,user_email:str):
-    await send_email(location=location,receiver_email=user_email,otp=otp)
-    
-    
+    old_location_data = await get_location_details_for_admin(user_id=location['userId'])
+    if old_location_data:
+        if old_location_data.ip==location['ip']:
+            
+            await send_email(location=location,receiver_email=user_email,otp=otp)
+            return 0
+        else:
+            now = datetime.now()
+            formatted = now.strftime("%A, %B %d, %Y at %I:%M %p")
+            admin_data=await get_admin_by_email(email=user_email)
+            await send_warning_about_ip_change(firstName=admin_data.firstName,lastName=admin_data.lastName,time_data=formatted,location=f"{location['city']}, {location['region']}, {location['country']} ",extra_data=f"Network-{location['Network'] } lon: {location['longitude']} ,lat: {location['latitude']}" ,receiver_email=user_email,ip=location['ip'])
+            await send_email(location=location,receiver_email=user_email,otp=otp)
+    else:
+        now = datetime.now()
+        formatted = now.strftime("%A, %B %d, %Y at %I:%M %p")
+        admin_data=await get_admin_by_email(email=user_email)
+        await send_warning_about_ip_change(firstName=admin_data.firstName,lastName=admin_data.lastName,time_data=formatted,location=f"{location['city']}, {location['region']}, {location['country']} ",extra_data=f"Network-{location['Network'] } lon: {location['longitude']} ,lat: {location['latitude']}" ,receiver_email=user_email,ip=location['ip'])
+        await send_email(location=location,receiver_email=user_email,otp=otp)
     
 async def verify_otp(accessToken,otp):
     exists = cache_db.exists(accessToken)

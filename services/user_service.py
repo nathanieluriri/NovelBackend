@@ -19,7 +19,6 @@ def verify_google_access_token(google_access_token:str):
     response = requests.request("GET", url, headers=headers, data=payload)
 
     response = response.json()
-    print(response)
     if response.get('error',None)!=None:
         raise HTTPException(status_code=401,detail="Invalid Google Access Token")
         return None
@@ -64,7 +63,6 @@ async def login_credentials(user_data:OldUserBase):
                 refreshToken=await generate_refresh_tokens(userId=str(existing['_id']),accessToken=accessToken.accesstoken)
                 
                 existing['refreshToken']= refreshToken.refreshtoken
-                print("refresh token ", refreshToken.refreshtoken)
                 
                 return OldUserOut(**existing)
             else:
@@ -84,7 +82,6 @@ async def login_google(user_data:OldUserBase):
             existing['accessToken']= accessToken.accesstoken
             refreshToken =await generate_refresh_tokens(userId=str(existing['_id']),accessToken=existing['accessToken'])
             existing['refreshToken']= refreshToken.refreshtoken
-            print(existing)
             return OldUserOut(**existing)
         else:raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User Not Found")
     else:

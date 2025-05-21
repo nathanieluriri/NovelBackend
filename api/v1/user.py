@@ -12,7 +12,6 @@ async def register(user: NewUserBase):
         other_values = verify_google_access_token(google_access_token=user.googleAccessToken)
         if other_values:
             user = NewUserCreate(firstName=other_values['firstName'],email=other_values['email'],lastName=other_values['lastName'],avatar=other_values['avatar'],provider=user.provider,password="None",googleAccessToken=None)
-            print(user)
     elif user.provider=="credentials":
         user = NewUserCreate(**user.model_dump())
     try:
@@ -30,7 +29,6 @@ async def login(user_data:OldUserBase):
     try:
         if user_data.provider=="credentials":
             data = await login_credentials(user_data=user_data)
-            print("data",data)
             response = TokenOut(userId=data.userId,accesstoken=data.accessToken,refreshtoken=data.refreshToken)
             return response
         elif user_data.provider=="google":
