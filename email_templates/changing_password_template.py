@@ -83,20 +83,20 @@ changing_password_template_string=Template("""
               </div>
 
               <div style="border-style: solid; border-width: thin; border-color:#dadce0; border-radius: 8px; padding: 40px 20px;" align="center" class="mdv2rw">
-              <img class="dark-mode-image" src="https://res.cloudinary.com/dgpv2mqzr/image/upload/v1747836971/mei-name-link-light-mode_vqqgj7.png"
+              <img class="dark-mode-image" src="https://res.cloudinary.com/dgpv2mqzr/image/upload/v1747836971/Mie-name-link-light-mode_vqqgj7.png"
               
      width="90"
      height="50"
      aria-hidden="true"
      style="margin-bottom: 16px; background-color: rgba(0, 0, 0, 1); border-radius: 10%;"
-     alt="Mei" />
-                   <img class="light-mode-image" src="https://res.cloudinary.com/dgpv2mqzr/image/upload/v1747836971/mei-name-link-light-mode_vqqgj7.png"
+     alt="Mie" />
+                   <img class="light-mode-image" src="https://res.cloudinary.com/dgpv2mqzr/image/upload/v1747836971/Mie-name-link-light-mode_vqqgj7.png"
               
      width="90"
      height="50"
      aria-hidden="true"
      style="margin-bottom: 16px; background-color: rgba(0, 0, 0, 1); border-radius: 10%;"
-     alt="Mei" />
+     alt="Mie" />
                 <div style="font-family: 'Google Sans', Roboto, RobotoDraft, Helvetica, Arial, sans-serif; border-bottom: thin solid #dadce0; color: rgba(0,0,0,0.87); line-height: 32px; padding-bottom: 24px; text-align: center; word-break: break-word;">
                   <div style="font-size: 24px;">$otp_code</div>
                   <table align="center" style="margin-top: 8px;">

@@ -41,7 +41,7 @@ async def send_otp(otp:str,location:ClientData,user_email:str):
             now = datetime.now()
             formatted = now.strftime("%A, %B %d, %Y at %I:%M %p")
             admin_data=await get_admin_by_email(email=user_email)
-            await send_warning_about_ip_change(firstName=admin_data.firstName,lastName=admin_data.lastName,time_data=formatted,location=f"{location['city']}, {location['region']}, {location['country']} ",extra_data=f"Network-{location['Network'] } lon: {location['longitude']} ,lat: {location['latitude']}" ,receiver_email=user_email,ip=location['ip'])
+            await send_warning_about_ip_change(firstName=admin_data.firstName,lastName=admin_data.lastName,time_data=formatted,location=f"{location['city']}, {location['region']}, {location['country']} ",extra_data=f"Network-{location['Network'] }, Longitude: {location['longitude']}, latitude: {location['latitude']}" ,receiver_email=user_email,ip=location['ip'])
             await send_email(location=location,receiver_email=user_email,otp=otp)
     else:
         now = datetime.now()

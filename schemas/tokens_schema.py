@@ -5,7 +5,7 @@ class refreshedTokenRequest(BaseModel):
     refreshToken:str
 class refreshedToken(BaseModel):
     userId:str
-    dateCreated:Optional[str]=None
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     refreshToken:str
     accessToken:str
     @model_validator(mode='before')
@@ -19,7 +19,7 @@ class accessTokenBase(BaseModel):
 
     
 class accessTokenCreate(accessTokenBase):
-    dateCreated:Optional[str]=None
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     @model_validator(mode='before')
     def set_dates(cls,values):
         now_str = datetime.now(timezone.utc).isoformat()
@@ -28,7 +28,7 @@ class accessTokenCreate(accessTokenBase):
 
     
 class accessTokenOut(accessTokenBase):
-    dateCreated:Optional[str]=None
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     accesstoken: Optional[str] =None
     @model_validator(mode='before')
     def set_values(cls,values):
@@ -53,7 +53,7 @@ class refreshTokenBase(BaseModel):
 
     
 class refreshTokenCreate(refreshTokenBase):
-    dateCreated:Optional[str]=None
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     @model_validator(mode='before')
     def set_dates(cls,values):
         now_str = datetime.now(timezone.utc).isoformat()
@@ -80,7 +80,7 @@ class TokenOut(BaseModel):
     userId:str
     accesstoken: Optional[str] =None
     refreshtoken: Optional[str] =None
-    dateCreated:Optional[str]=None
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     @model_validator(mode='before')
     def set_dates(cls,values):
         now_str = datetime.now(timezone.utc).isoformat()

@@ -12,8 +12,8 @@ class PageUpdateRequest(BaseModel):
     textContent:str
 
 class PageCreate(PageBase):
-    dateCreated: Optional[str]=None
-    dateUpdated: Optional[str]=None
+    dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
+    dateUpdated: Optional[str]=datetime.now(timezone.utc).isoformat()
     textCount: Optional[int]=0
 
     @model_validator(mode='before')

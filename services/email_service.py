@@ -141,7 +141,7 @@ def send_html_email_optimized(
 async def send_email(location:ClientData,receiver_email:str,otp:str):
     email_body_content = generate_login_otp_email_from_template(otp_code=otp,user_email=receiver_email)
     sender_email = EMAIL_USERNAME
-    sender_display_name = "MEI SIGN IN OTP" # The display name for the sender
+    sender_display_name = "Mie SIGN IN OTP" # The display name for the sender
     subject = "OTP FOR ADMIN LOGIN"
     smtp_server = EMAIL_HOST
     smtp_port = 465 
@@ -181,7 +181,7 @@ async def send_invitation(firstName,invitedEmail,lastName,inviterEmail):
     await create_allowed_admin(user_data=allowedAdmin)
     email_body_content = generate_invitation_from_template(first_name=firstName,invitee_email_address=invitedEmail,last_name=lastName,main_website_link="https://knowyourmeme.com/memes/05-gpa-activities-tiktok-trend",register_link="https://knowyourmeme.com/memes/05-gpa-activities-tiktok-trend",)
     sender_email = EMAIL_USERNAME
-    sender_display_name = f"{firstName} from MEI" # The display name for the sender
+    sender_display_name = f"{firstName} from Mie" # The display name for the sender
     subject = "Admin Registration Invitation"
     smtp_server = EMAIL_HOST
     smtp_port = 465 
@@ -220,7 +220,7 @@ async def send_warning_about_ip_change(firstName,time_data,lastName,ip,location,
     
     email_body_content = generate_new_signin_warning_email_from_template(firstName=firstName,lastName=lastName,time_data=time_data,ip_address=ip,location=location,extra_data=extra_data)
     sender_email = EMAIL_USERNAME
-    sender_display_name = "MEI SECURITY " # The display name for the sender
+    sender_display_name = "MIE SECURITY " # The display name for the sender
     subject = f"Security Alert for {receiver_email}"
     smtp_server = EMAIL_HOST
     smtp_port = 465 
@@ -259,7 +259,7 @@ async def send_warning_about_ip_change(firstName,time_data,lastName,ip,location,
 async def send_change_of_password_otp_email(receiver_email:str,otp:str):
     email_body_content = generate_changing_password_email_from_template(otp_code=otp,user_email=receiver_email,avatar_image_link="https://banner2.cleanpng.com/20180330/cue/avicnrp87.webp")
     sender_email = EMAIL_USERNAME
-    sender_display_name = "ADMIN FROM MEI" # The display name for the sender
+    sender_display_name = "ADMIN FROM Mie" # The display name for the sender
     subject = "Reset Password?"
     smtp_server = EMAIL_HOST
     smtp_port = 465 

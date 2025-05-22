@@ -22,7 +22,7 @@ class NewUserCreate(NewUserBase):
     lastName:Optional[str]=None
     avatar:Optional[str]=None
     password: Union[str ,bytes]
-    dateCreated:Optional[str]=None
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     subscriptionStartDate:Optional[str]="None"
     subscriptionEndDate:Optional[str]="None"
     googleAccessToken:None
@@ -44,7 +44,7 @@ class NewUserOut(BaseModel):
     firstName:Optional[str]=None
     lastName:Optional[str]=None
     avatar:Optional[str]=None
-    dateCreated:Optional[str]=None
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     subscriptionStartDate:Optional[str]=None
     subscriptionEndDate:Optional[str]=None   
     @model_validator(mode='before')
@@ -70,7 +70,7 @@ class OldUserCreate(OldUserBase):
     firstName:Optional[str]=None
     lastName:Optional[str]=None
     avatar:Optional[str]=None
-    dateCreated:Optional[str]=None
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     subscriptionStartDate:Optional[str]=None
     subscriptionEndDate:Optional[str]=None
     @model_validator(mode='before')

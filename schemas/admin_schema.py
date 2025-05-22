@@ -9,7 +9,7 @@ class AdminBase(BaseModel):
       
 class AllowedAdminCreate(BaseModel):
     email:EmailStr
-    dateCreated:Optional[str]=None
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     invitedBy:EmailStr
     @model_validator(mode='before')
     def set_dates(cls,values):
@@ -18,11 +18,11 @@ class AllowedAdminCreate(BaseModel):
         return values
     
 class NewAdminCreate(AdminBase):
-    firstName:Optional[str]=None
-    lastName:Optional[str]=None
+    firstName:Optional[str]
+    lastName:Optional[str]
     avatar:Optional[str]=None
     password: Union[str ,bytes]
-    dateCreated:Optional[str]=None
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
 
     @model_validator(mode='before')
     def set_dates(cls,values):
@@ -41,7 +41,7 @@ class NewAdminOut(BaseModel):
     firstName:Optional[str]=None
     lastName:Optional[str]=None
     avatar:Optional[str]=None
-    dateCreated:Optional[str]=None 
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
     @model_validator(mode='before')
     def set_values(cls,values):
         values['userId']= str(values.get('_id'))

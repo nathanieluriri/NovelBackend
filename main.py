@@ -2,7 +2,7 @@ from fastapi import FastAPI,Depends
 from security.auth import verify_admin_token
 from api.v1 import user,book,bookmark,like,chapter,page,admin
 from security.auth import verify_token
-app = FastAPI(title="Mei Novel-app FastAPI Backend",
+app = FastAPI(title="Mie Novel-app FastAPI Backend",
               servers=
     [
         {"url": "https://novel-backend-eight.vercel.app/", "description": "Production server"},
@@ -11,9 +11,18 @@ app = FastAPI(title="Mei Novel-app FastAPI Backend",
         {"url": "https://novelbackend.onrender.com/", "description": "Sandbox server"},
         
     ],
-    summary="""Backend for the "Mei Novel-app", providing RESTful endpoints to manage users, novel content (books, chapters, pages), bookmarks, and likes. Features JWT-based authentication supporting both traditional credentials and Google sign-in, including token refresh capabilities."""
+    summary="""Backend for the "Mie Novel-app", providing RESTful endpoints to manage users, novel content (books, chapters, pages), bookmarks, and likes. Features JWT-based authentication supporting both traditional credentials and Google sign-in, including token refresh capabilities."""
     
     )
+
+@app.on_event("startup")
+async def startup_app():
+    # TODO: START UP PROCESS 
+    # STEP 1: create a default admin
+    # STEP 2: send the email to the default admin
+    pass 
+    
+    
 dependencies=[Depends(verify_token)]
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
 app.include_router(user.router, prefix="/api/v1/user", tags=["User"])
@@ -22,3 +31,4 @@ app.include_router(bookmark.router,prefix="/api/v1/bookmark", tags=["Bookmark"],
 app.include_router(like.router,prefix="/api/v1/like", tags=["Like"],dependencies=[Depends(verify_token)])
 app.include_router(chapter.router,prefix="/api/v1/chapter", tags=["Chapter"],dependencies=[Depends(verify_token)])
 app.include_router(page.router,prefix="/api/v1/page", tags=["Page"],dependencies=[Depends(verify_token)])
+

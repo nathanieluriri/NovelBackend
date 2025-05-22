@@ -107,7 +107,7 @@ new_signin_warning_template_string=Template("""
 
   <body style="background-color: #ffffff">
     <div style="display: none; font-size: 1px; color: #ffffff; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
-      Your Mei account has been accessed from a new IP address
+      Your Mie account has been accessed from a new IP address
     </div>
 
     <div style="background-color: #ffffff">
@@ -133,7 +133,7 @@ new_signin_warning_template_string=Template("""
                           <tbody>
                             <tr>
                               <td style="width: 54px; border-radius: 100%; ">
-                                <img style=" width: 100%; height: 100%;  border-radius: 20%; transform-origin: center center; transform: scale(1.0); " alt="Mei logo"  height="auto" src="https://res.cloudinary.com/dfmzougki/image/upload/fl_preserve_transparency/v1747719299/mei-logo_sfv8nl.jpg?_s=public-apps" style="border: 0; display: block; outline: none; text-decoration: none; height: auto; width: 100%;" width="24" />
+                                <img style=" width: 100%; height: 100%;  border-radius: 20%; transform-origin: center center; transform: scale(1.0); " alt="Mie logo"  height="auto" src="https://res.cloudinary.com/dfmzougki/image/upload/fl_preserve_transparency/v1747719299/Mie-logo_sfv8nl.jpg?_s=public-apps" style="border: 0; display: block; outline: none; text-decoration: none; height: auto; width: 100%;" width="24" />
                               </td>
                             </tr>
                           </tbody>
@@ -146,12 +146,12 @@ new_signin_warning_template_string=Template("""
                         <div style="font-family: -apple-system, system-ui, BlinkMacSystemFont; font-size: 15px; font-weight: 300; line-height: 24px; text-align: left; color: #333333;">
                           <h1>We've noticed a new login</h1>
                           <p>Hi $firstName $lastName,</p>
-                          <p>This is a routine security alert. Someone logged into your Mei account from a new IP address:</p>
+                          <p>This is a routine security alert. Someone logged into your Mie account from a new IP address:</p>
                           <p>
                             <strong>Time:</strong> $time_data<br />
                             <strong>IP address:</strong> $ip_address<br />
                             <strong>Location:</strong> $location<br />
-                            <strong>More Information:</strong>$extra_data
+                            <strong>More Information:</strong> $extra_data
                           </p>
                           <p>If this was you, you can ignore this alert. If you noticed any suspicious activity on your account, please change your password on your email login and on your account page.</p>
                         </div>
@@ -162,7 +162,7 @@ new_signin_warning_template_string=Template("""
                       <td align="left" style="font-size: 0px; padding: 10px 25px; word-break: break-word;">
                         <div style="font-family: -apple-system, system-ui, BlinkMacSystemFont; font-size: 15px; font-weight: 300; line-height: 24px; text-align: left; color: #333333;">
                           So long, and thanks for all the fish,<br />
-                          <strong>The Mei Team</strong>
+                          <strong>The Mie Team</strong>
                         </div>
                       </td>
                     </tr>
@@ -182,7 +182,7 @@ new_signin_warning_template_string=Template("""
                       <td align="left" style="font-size: 0px; padding: 10px 25px; word-break: break-word;">
                         <div style="font-family: -apple-system, system-ui, BlinkMacSystemFont; font-size: 12px; font-weight: 300; line-height: 24px; text-align: left; color: #888888;">
                           Somewhere Between Coffee & Code, Quiet Meadows, Earth 00000<br />
-                          © 2025 MEI. LLC
+                          © 2025 Mie. LLC
                         </div>
                       </td>
                     </tr>
@@ -190,7 +190,7 @@ new_signin_warning_template_string=Template("""
                     <tr>
                       <td align="left" style="font-size: 0px; padding: 10px 25px; word-break: break-word;">
                         <div style="font-family: -apple-system, system-ui, BlinkMacSystemFont; font-size: 12px; font-weight: 300; line-height: 24px; text-align: left; color: #888888;">
-                          For questions contact <a href="mailto:support@x.ai" class="footer-link">support@mei.com.ng</a>
+                          For questions contact <a href="mailto:support@x.ai" class="footer-link">support@Mie.com.ng</a>
                         </div>
                       </td>
                     </tr>

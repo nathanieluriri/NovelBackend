@@ -6,7 +6,7 @@ class LikeBase(BaseModel):
 
 
 class LikeCreate(LikeBase):
-    dateCreated: Optional[str]=None
+    dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
     @model_validator(mode='before')
     def set_dates(cls,values):
         now_str = datetime.now(timezone.utc).isoformat()
@@ -16,7 +16,7 @@ class LikeCreate(LikeBase):
     
 class LikeOut(LikeBase):
     id: Optional[str] =None
-    dateCreated: Optional[str]=None
+    dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
     @model_validator(mode='before')
     def set_dynamic_values(cls,values):
         values['id']= str(values.get('_id'))

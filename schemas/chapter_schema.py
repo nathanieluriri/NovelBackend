@@ -9,7 +9,7 @@ class ChapterBase(BaseModel):
 
 
 class ChapterCreate(ChapterBase):
-    dateCreated: Optional[str]=None
+    dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
     dateUpdated: Optional[str]=None
     pageCount: Optional[int]=0
     pages: Optional[List[str]] = None

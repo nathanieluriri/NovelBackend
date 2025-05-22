@@ -9,7 +9,7 @@ class BookBase(BaseModel):
 
 
 class BookCreate(BookBase):
-    dateCreated: Optional[str]=None
+    dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
     dateUpdated: Optional[str]=None
     chapterCount: Optional[int]=0
     chapters: Optional[List[str]] = None

@@ -9,7 +9,7 @@ otp_template_string=Template("""
     <meta name="viewport" content="width=device-width, initial-scale=
 =1.0"/>
 
-    <title>Mei</title>
+    <title>Mie</title>
 </head>
 
 <head>
@@ -65,17 +65,17 @@ otp_template_string=Template("""
             overflow: hidden;
         }
 
-        .mei-email-template--header {
+        .Mie-email-template--header {
             padding: 48px 0 20px;
             text-align: center;
             border-bottom: 2px solid #f7f5f5;
         }
 
-        .mei-email-template--header > img {
+        .Mie-email-template--header > img {
             width: 200px;
         }
 
-        .mei-email-template--body-wrapper {
+        .Mie-email-template--body-wrapper {
             margin: 28px auto;
             padding: 24px 36px 0;
             width: 100%;
@@ -89,18 +89,18 @@ otp_template_string=Template("""
             color: #393939 !important;
         }
 
-        .mei-email-template--body-wrapper > h4 {
+        .Mie-email-template--body-wrapper > h4 {
             text-align: left;
             margin-bottom: 0;
         }
 
-        .mei-email-template--body-wrapper > p {
+        .Mie-email-template--body-wrapper > p {
             text-align: justify;
             width: 100%;
             max-width: 630px;
         }
 
-        .mei-email-template--body-wrapper > p > a {
+        .Mie-email-template--body-wrapper > p > a {
             color: #365899;
         }
 
@@ -108,7 +108,7 @@ otp_template_string=Template("""
             margin: 50px 0 16px;
         }
 
-        .mei-email-template--otp-code {
+        .Mie-email-template--otp-code {
             width: 100%;
             max-width: 772px;
             margin: 20px auto 32px;
@@ -120,7 +120,7 @@ otp_template_string=Template("""
             border-image: linear-gradient(45deg, #405896, #4a8eb9) 1;
         }
 
-        .mei-email-template--otp-code > p {
+        .Mie-email-template--otp-code > p {
             font-family: 'Mori Gothic', sans-serif;
             font-style: normal;
             font-weight: 400;
@@ -131,7 +131,7 @@ otp_template_string=Template("""
             text-align: center;
         }
 
-        .mei-email-template--app-and-sales {
+        .Mie-email-template--app-and-sales {
             margin: 16px auto 48px;
             padding: 0 36px;
             width: 100%;
@@ -157,21 +157,21 @@ otp_template_string=Template("""
             width: 194px;
         }
 
-        .mei-email-template--app-and-sales > span {
+        .Mie-email-template--app-and-sales > span {
             margin: 16px 0 0;
         }
 
-        .mei-email-template--app-and-sales > div {
+        .Mie-email-template--app-and-sales > div {
             margin: 8px 0;
         }
 
-        .mei-email-template--app-and-sales > a,
-        .mei-email-template--app-and-sales > div > a {
+        .Mie-email-template--app-and-sales > a,
+        .Mie-email-template--app-and-sales > div > a {
             color: #393939;
         }
 
 
-        .mei-email-template--footer {
+        .Mie-email-template--footer {
             width: 100%;
             padding: 0 0 36px;
             text-align: center;
@@ -187,11 +187,11 @@ otp_template_string=Template("""
             background: linear-gradient(45deg, #405896, #4a8eb9);
         }
 
-        .mei-email-template--footer > img {
+        .Mie-email-template--footer > img {
             width: 78px;
         }
 
-        .mei-email-template--footer > p {
+        .Mie-email-template--footer > p {
             font-family: 'Mori Gothic', sans-serif;
             font-style: normal;
             font-weight: 400;
@@ -236,27 +236,27 @@ otp_template_string=Template("""
                 font-size: 14px;
             }
 
-            .mei-email-template--header {
+            .Mie-email-template--header {
                 margin: 0 12px;
                 padding: 16px 0;
                 border-bottom: 1px solid #f7f5f5;
             }
 
-            .mei-email-template--header > img {
+            .Mie-email-template--header > img {
                 width: 100px;
             }
 
-            .mei-email-template--body-wrapper {
+            .Mie-email-template--body-wrapper {
                 margin: 20px 0 0;
                 font-size: 14px;
                 padding: 30px 12px 0;
             }
 
-            .mei-email-template--body-wrapper > .thank-you-text {
+            .Mie-email-template--body-wrapper > .thank-you-text {
                 margin: 30px 0 16px;
             }
 
-            .mei-email-template--app-and-sales {
+            .Mie-email-template--app-and-sales {
                 margin: 20px 0;
                 font-size: 14px;
                 padding: 0 12px;
@@ -274,15 +274,15 @@ otp_template_string=Template("""
                 width: 120px;
             }
 
-            .mei-email-template--footer {
+            .Mie-email-template--footer {
                 border: none;
             }
 
-            .mei-email-template--footer > img {
+            .Mie-email-template--footer > img {
                 width: 45px;
             }
 
-            .mei-email-template--footer > p {
+            .Mie-email-template--footer > p {
                 font-size: 16px;
             }
 
@@ -299,14 +299,14 @@ otp_template_string=Template("""
             <td>
                 <table>
                     <tr>
-                        <td class="mei-email-template--header">
+                        <td class="Mie-email-template--header">
                         </td>
                     </tr>
                 </table>
                 <table>
                     <tr>
                         <td>
-                            <div style="align-items: center; justify-self: center;" class="mei-email-template--body-wrapp=
+                            <div style="align-items: center; justify-self: center;" class="Mie-email-template--body-wrapp=
 er">
                                 <h4>Hello <strong>there</strong>, </h4>
                                 <p>
@@ -320,7 +320,7 @@ er">
                 <table>
                     <tr>
                         <td>
-                            <div class="mei-email-template--otp-code">
+                            <div class="Mie-email-template--otp-code">
                                 <p>$otp_code</p>
                             </div>
                         </td>
@@ -330,7 +330,7 @@ er">
                 <table >
                     <tr>
                         <td>
-                            <div style="justify-self: center;" class="mei-email-template--body-wrapp=
+                            <div style="justify-self: center;" class="Mie-email-template--body-wrapp=
 er">
                                 <p>
                                     DO NOT SHARE OR SEND THIS CODE TO ANYONE!
@@ -343,12 +343,12 @@ er">
                 <table style="height: 300px;">
                     <tr>
                         <td>
-                            <div class="mei-email-template--footer">
+                            <div class="Mie-email-template--footer">
                                 <div class="footer-border-gradient"></div=
 >
-                                <img  style="width: 50px; height: 50px; border-radius: 25%; margin-top:10px ;"  src="https://res.cloudinary.com/dfmzougki/image/upload/fl_preserve_transparency/v1747719299/mei-logo_sfv8nl.jpg?_s=public-apps" alt=
-="mei Logo"/>
-                                <p style="padding: 0 22px">Mei. All rights reserved.</p>
+                                <img  style="width: 50px; height: 50px; border-radius: 25%; margin-top:10px ;"  src="https://res.cloudinary.com/dfmzougki/image/upload/fl_preserve_transparency/v1747719299/Mie-logo_sfv8nl.jpg?_s=public-apps" alt=
+="Mie Logo"/>
+                                <p style="padding: 0 22px">Mie. All rights reserved.</p>
                                 <div class="footer-text">
                                     This email was intended for <span class=
 ="user-email">$user_email</span>. This message

@@ -4,7 +4,7 @@ invitation_template_string = Template("""
 <html lang="en">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
-    <title>${first_name} ${last_name} invited you to collaborate on the MEI Project </title>
+    <title>${first_name} ${last_name} invited you to collaborate on the Mie Project </title>
   </head>
 <body bgcolor="#fafafa" topmargin="0" leftmargin="0" marginheight="0" marginwidth="0" style="width: 100% !important; min-width: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; background-color: #fafafa; color: #333333; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: normal; text-align: center; line-height: 20px; font-size: 14px; margin: 0; padding: 0;">
   <table class="body" style="border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: center; height: 100%; width: 100%; background-color: #fafafa; color: #333333; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: normal; line-height: 20px; font-size: 14px; margin: 0; padding: 0;" bgcolor="#fafafa">
@@ -43,11 +43,11 @@ invitation_template_string = Template("""
                           <tr style="vertical-align: top; text-align: center; padding: 0;" align="center">
                             <td style="word-break: break-word; -webkit-hyphens: auto; -moz-hyphens: auto; hyphens: auto; border-collapse: collapse !important; vertical-align: top; text-align: center; color: #333333; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: normal; line-height: 20px; font-size: 14px; margin: 0; padding: 0px 0px 0;" align="center" valign="top">
                               <div class="email-content">
-                                <h1 class="primary-heading" style="color: #333; font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; font-weight: 300; text-align: center; line-height: 1.2; word-break: normal; font-size: 24px; margin: 10px 0 25px; padding: 0;" align="center">${first_name} ${last_name} Invited you to Use<br><strong> MEI </strong> Story App As an Admin</h1>
+                                <h1 class="primary-heading" style="color: #333; font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; font-weight: 300; text-align: center; line-height: 1.2; word-break: normal; font-size: 24px; margin: 10px 0 25px; padding: 0;" align="center">${first_name} ${last_name} Invited you to Use<br><strong> Mie </strong> Story App As an Admin</h1>
                                 <hr class="rule" style="color: #d9d9d9; background-color: #d9d9d9; height: 1px; margin: 20px 0; border-style: none;">
                                 <p style="word-wrap: normal; hyphens: none; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: normal; color: #333; line-height: 20px; text-align: left; margin: 15px 0 5px; padding: 0;" align="left">
                                   You can <a href="${register_link}" style="color: #4183C4; text-decoration: none;">accept or Ignore</a> this invitation.
-                                    You can also visit <a href="${main_website_link}" style="color: #4183C4; text-decoration: none;">Mei Story App</a> to learn a bit more about them.
+                                    You can also visit <a href="${main_website_link}" style="color: #4183C4; text-decoration: none;">Mie Story App</a> to learn a bit more about them.
                                 </p>
                                 <p style="word-wrap: normal; hyphens: none; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: normal; color: #333; line-height: 20px; text-align: left; margin: 15px 0 5px; padding: 0;" align="left">
                                   This invitation will expire in 7 days.

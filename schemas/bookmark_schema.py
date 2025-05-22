@@ -6,7 +6,7 @@ class BookMarkBase(BaseModel):
 
 
 class BookMarkCreate(BookMarkBase):
-    dateCreated: Optional[str]=None
+    dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
     @model_validator(mode='before')
     def set_dates(cls,values):
         now_str = datetime.now(timezone.utc).isoformat()
@@ -16,7 +16,7 @@ class BookMarkCreate(BookMarkBase):
     
 class BookMarkOut(BookMarkBase):
     id: Optional[str] =None
-    dateCreated: Optional[str]=None
+    dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
     @model_validator(mode='before')
     def set_dynamic_values(cls,values):
         values['id']= str(values.get('_id'))
