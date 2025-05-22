@@ -17,6 +17,16 @@ class AllowedAdminCreate(BaseModel):
         values['dateCreated']= now_str
         return values
     
+class DefaultAllowedAdminCreate(BaseModel):
+    email:EmailStr
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
+    
+    @model_validator(mode='before')
+    def set_dates(cls,values):
+        now_str = datetime.now(timezone.utc).isoformat()
+        values['dateCreated']= now_str
+        return values
+    
 class NewAdminCreate(AdminBase):
     firstName:Optional[str]
     lastName:Optional[str]

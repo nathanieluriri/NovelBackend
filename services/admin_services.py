@@ -1,13 +1,16 @@
-from repositories.admin_repo import get_admin_by_email, create_admin,get_allowd_admin_emails,get_admin_by_email_return_dict,get_admin_details_with_accessToken,replace_password_admin
+from repositories.admin_repo import get_admin_by_email, create_admin,get_allowd_admin_emails,get_admin_by_email_return_dict,get_admin_details_with_accessToken,replace_password_admin,create_default_admin
 from repositories.tokens_repo import delete_all_tokens_with_user_id
-from schemas.admin_schema import NewAdminCreate,NewAdminOut,AdminBase
+from schemas.admin_schema import NewAdminCreate,NewAdminOut,AdminBase,DefaultAllowedAdminCreate
 from fastapi import HTTPException,status
 from schemas.email_schema import ClientData
 from security.hash import check_password,hash_password
 from security.tokens import generate_admin_access_tokens,generate_refresh_tokens
-
+import os
 from security.admin_otp import generate_otp,send_otp,send_otp_admin,verify_otp_admin,generate_otp_admin_password
 from services.email_service import send_invitation
+from dotenv import load_dotenv
+load_dotenv()
+EMAIL_USERNAME = os.getenv("EMAIL_USERNAME")
 
 async def register_admin_func(user_data: NewAdminCreate,location:ClientData):
     proceed = await get_allowd_admin_emails(user_data.email)
@@ -109,3 +112,11 @@ async def change_of_admin_password_flow2(email,otp,password):
         return False
         
     
+    
+async def setup_default_admin(admin_details:DefaultAllowedAdminCreate):
+    result = await create_default_admin(user_data=admin_details)
+    if result==0:
+        return 0
+    else:
+        print("sending invite")
+        await send_invitation(firstName="Default",lastName="Admin",invitedEmail=admin_details.email,inviterEmail=EMAIL_USERNAME)

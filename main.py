@@ -2,6 +2,7 @@ from fastapi import FastAPI,Depends
 from security.auth import verify_admin_token
 from api.v1 import user,book,bookmark,like,chapter,page,admin
 from security.auth import verify_token
+
 app = FastAPI(title="Mie Novel-app FastAPI Backend",
               servers=
     [
@@ -15,13 +16,6 @@ app = FastAPI(title="Mie Novel-app FastAPI Backend",
     
     )
 
-@app.on_event("startup")
-async def startup_app():
-    # TODO: START UP PROCESS 
-    # STEP 1: create a default admin
-    # STEP 2: send the email to the default admin
-    pass 
-    
     
 dependencies=[Depends(verify_token)]
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])

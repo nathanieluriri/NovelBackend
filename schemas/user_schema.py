@@ -95,3 +95,11 @@ class OldUserOut(NewUserOut):
         'populate_by_name': True,
         'arbitrary_types_allowed': True,
     }
+
+
+
+class UserUpdate(BaseModel):
+    firstName:Optional[str] =None
+    lastName:Optional[str] =None
+    avatar:Optional[str] =None
+    provider:Optional[Provider] =None

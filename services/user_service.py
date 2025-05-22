@@ -1,6 +1,6 @@
-from repositories.user_repo import get_user_by_email, create_user,get_user_by_email_and_provider,get_user_by_userId,replace_password
+from repositories.user_repo import get_user_by_email, create_user,get_user_by_email_and_provider,get_user_by_userId,replace_password,update_user_profile
 from repositories.tokens_repo import get_access_tokens,delete_all_tokens_with_user_id
-from schemas.user_schema import NewUserCreate,NewUserOut,OldUserBase,OldUserCreate,OldUserOut
+from schemas.user_schema import NewUserCreate,NewUserOut,OldUserBase,OldUserCreate,OldUserOut,UserUpdate
 from fastapi import HTTPException,status
 from security.hash import check_password,hash_password
 from security.tokens import generate_member_access_tokens,generate_refresh_tokens
@@ -119,4 +119,12 @@ async def change_of_user_password_flow2(email,otp,password):
     elif isValid==False:
         return False
         
-    
+async def update_user(token:str,update:UserUpdate):
+    try:
+        user= await get_user_details_with_accessToken(token=token)
+        if user:
+            await update_user_profile(userId=user.userId,update=update.model_dump(exclude=None))
+        else:
+            raise HTTPException(status_code=404,detail="User Doesn't exist")
+    except Exception as e:
+        raise HTTPException(status_code=500,detail=f"{e}")

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException,Depends, Body
-from schemas.user_schema import NewUserBase, NewUserCreate,NewUserOut,OldUserBase,OldUserOut,OldUserCreate
-from services.user_service import register_user,verify_google_access_token,login_credentials,login_google,get_user_details_with_accessToken,change_of_user_password_flow1,change_of_user_password_flow2
+from schemas.user_schema import NewUserBase, NewUserCreate,NewUserOut,OldUserBase,OldUserOut,OldUserCreate,UserUpdate
+from services.user_service import register_user,verify_google_access_token,login_credentials,login_google,get_user_details_with_accessToken,change_of_user_password_flow1,change_of_user_password_flow2,update_user
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
 from security.auth import verify_admin_token,verify_token,verify_token_and_refresh_token
 from repositories.tokens_repo import delete_refresh_token
@@ -76,3 +76,13 @@ async def conclude_change_of_user_password_process(email=  Body(title="email",de
     result = await change_of_user_password_flow2(email=email,otp=otp,password=password)
     return {"message": result}
 
+@router.patch("/update",response_model_exclude_none=True,dependencies=[Depends(verify_token)])
+async def update(update:UserUpdate,accessToken:str=Depends(verify_token))->NewUserOut:
+    try:
+        await update_user(token=accessToken['accessToken'])
+        user= await get_user_details_with_accessToken(token=accessToken['accessToken'])
+        if user:
+            return user
+        
+    except Exception as e:
+        raise e

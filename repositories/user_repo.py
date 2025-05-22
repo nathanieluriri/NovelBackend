@@ -25,3 +25,10 @@ async def replace_password(userId: str, hashedPassword: str):
         update={"$set": {"password": hashedPassword}}
     )
     
+    
+async def update_user_profile(userId: str, update: dict):
+    await db.users.find_one_and_update(
+        filter={"_id": ObjectId(userId)},
+        update={"$set": update}
+    )
+    

@@ -1,15 +1,27 @@
 from fastapi import APIRouter, HTTPException,Depends, Request,Body
-from schemas.admin_schema import NewAdminCreate, AdminBase,NewAdminOut
-from services.admin_services import register_admin_func,login_admin_func,invitation_process,change_of_admin_password_flow1,change_of_admin_password_flow2
+from schemas.admin_schema import NewAdminCreate, AdminBase,NewAdminOut,DefaultAllowedAdminCreate
+from services.admin_services import register_admin_func,login_admin_func,invitation_process,change_of_admin_password_flow1,change_of_admin_password_flow2, setup_default_admin
 from services.email_service import get_location,send_invitation
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
 from schemas.email_schema import VerificationRequest
 from security.auth import verify_admin_token,verify_token,verify_token_and_refresh_token
 from security.admin_otp import verify_otp
 from repositories.tokens_repo import delete_refresh_token
+from dotenv import load_dotenv
+import os
+load_dotenv()
+DEFAULT_ADMIN_EMAIL = os.getenv("DEFAULT_ADMIN_EMAIL")
+
+
 router = APIRouter()
 
 
+@router.on_event("startup")
+async def startup_app():
+    default_admin = DefaultAllowedAdminCreate(email=DEFAULT_ADMIN_EMAIL)
+    await setup_default_admin(admin_details=default_admin)
+    print("Admin Setup complete")
+     
 
 @router.post("/invite",dependencies=[Depends(verify_admin_token)])
 async def invite_new_admin(invitedPersonsEmail,accessToken:str = Depends(verify_admin_token)):

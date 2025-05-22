@@ -1,5 +1,5 @@
 from core.database import db
-from schemas.admin_schema import AdminBase,NewAdminCreate,NewAdminOut,AllowedAdminCreate
+from schemas.admin_schema import AdminBase,NewAdminCreate,NewAdminOut,AllowedAdminCreate,DefaultAllowedAdminCreate
 from schemas.email_schema import ClientData
 from bson import ObjectId
 
@@ -91,3 +91,16 @@ async def replace_password_admin(userId: str, hashedPassword: str):
         update={"$set": {"password": hashedPassword}}
     )
     
+    
+    
+async def create_default_admin(user_data: DefaultAllowedAdminCreate):
+    user = user_data.model_dump()
+
+    already_here =await db.AllowedAdmins.find_one({"email": user['email']})
+    if already_here:
+        return 0
+    else:
+
+        result = await db.AllowedAdmins.insert_one(user)
+        created_user = await db.AllowedAdmins.find_one({"_id": result.inserted_id})
+        return created_user
