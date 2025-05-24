@@ -16,20 +16,21 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr # To properly format sender name and email
 import logging
-
+LOCATION_API=os.getenv("LOCATION_API")
 async def get_location(request: Request,clientType:str,user_id:str)->ClientData:
     client_ip = request.client.host
+    location_api_token=LOCATION_API
     # use your public IP for testing instead of 127.0.0.1
     async with httpx.AsyncClient() as client:
-        response = await client.get(f"https://ipapi.co/{client_ip}/json/")
+        response = await client.get(f"https://ipinfo.io/{client_ip}/json/?token={location_api_token}")
         data = response.json()
     return {
         "ip": client_ip,
         "city": data.get("city",None),
         "region": data.get("region",None),
-        "country": data.get("country_name",None),
-        "latitude": f'{data.get("latitude",None)}',
-        "longitude": f'{data.get("longitude",None)}',
+        "country": data.get("country",None),
+        "latitude": f'{data.get("loc",None)}',
+        "longitude": f'{data.get("loc",None)}',
         "Network":data.get("org",None),
         "timezone":data.get("timezone",None),
         "dateTime":datetime.now(timezone.utc).isoformat(),
