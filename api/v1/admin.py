@@ -53,7 +53,6 @@ async def login_admin(user_data:AdminBase,request:Request):
    try:
         location_details = await get_location(request=request,clientType="admin",user_id="ss")
    except:
-        print(e)
         raise 
    try:
        
