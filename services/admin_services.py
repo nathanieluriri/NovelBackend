@@ -50,14 +50,18 @@ async def login_admin_func(user_data:AdminBase,location:ClientData):
             regular=user_data.password
             
             if check_password(regular,hashed=hashed):
+                
                 accessToken=await generate_admin_access_tokens(str(existing['_id']))
+                print("accesstoken: ",accessToken)
                 location['userId']=str(existing['_id'])
+                print("location",location,end="\n")
                 existing['accessToken']= accessToken.accesstoken 
                 
 
 
                 # generate and send otp 
                 otp = generate_otp(admin_access_token=existing["accessToken"])
+                print("otp",otp)
                 await send_otp(otp=otp,location=location,user_email=user_data.email)
                 
                 refreshToken=await generate_refresh_tokens(userId=str(existing['_id']),accessToken=accessToken.accesstoken)

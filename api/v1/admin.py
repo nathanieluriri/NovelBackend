@@ -50,12 +50,18 @@ async def register_admin(user: NewAdminCreate,request:Request):
 
 @router.post("/sign-in",response_model=NewAdminOut)
 async def login_admin(user_data:AdminBase,request:Request):
-    try:
+   try:
         location_details = await get_location(request=request,clientType="admin",user_id="ss")
+   except:
+        print(e)
+        raise 
+   try:
+       
         user= await login_admin_func(user_data=user_data,location=location_details)
         return user
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+   except Exception as e:
+        print("login function",e)
+        raise 
 
 @router.post('/verify/')
 async def verify_otp_and_activate_accessToken(verify:VerificationRequest):
