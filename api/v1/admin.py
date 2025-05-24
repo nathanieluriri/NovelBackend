@@ -68,7 +68,8 @@ async def verify_otp_and_activate_accessToken(verify:VerificationRequest):
         result =await verify_otp(accessToken=verify.access_token,otp=verify.otp)
         return {"message":result}
     except Exception as e:
-        raise e
+        print
+        raise 
 
 
 @router.post("/refresh")

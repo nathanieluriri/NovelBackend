@@ -50,7 +50,6 @@ changing_password_template_string=Template("""
       <td>
         <div itemscope itemtype="//schema.org/EmailMessage">
           <div itemprop="action" itemscope itemtype="//schema.org/ViewAction">
-            <link itemprop="url" href="https://accounts.google.com/AccountChooser?Email=uririnathaniel@gmail.com&continue=https://myaccount.google.com/alert/nt/1741767890000?rfn%3D325%26rfnc%3D1%26eid%3D-2175556869831022904%26et%3D1" />
             <meta itemprop="name" content="Review Activity" />
           </div>
         </div>
@@ -83,14 +82,14 @@ changing_password_template_string=Template("""
               </div>
 
               <div style="border-style: solid; border-width: thin; border-color:#dadce0; border-radius: 8px; padding: 40px 20px;" align="center" class="mdv2rw">
-              <img class="dark-mode-image" src="https://res.cloudinary.com/dgpv2mqzr/image/upload/v1747836971/Mie-name-link-light-mode_vqqgj7.png"
+              <img class="dark-mode-image" src="https://freeimage.host/i/3DBDnYg"
               
      width="90"
      height="50"
      aria-hidden="true"
      style="margin-bottom: 16px; background-color: rgba(0, 0, 0, 1); border-radius: 10%;"
      alt="Mie" />
-                   <img class="light-mode-image" src="https://res.cloudinary.com/dgpv2mqzr/image/upload/v1747836971/Mie-name-link-light-mode_vqqgj7.png"
+                   <img class="light-mode-image" src="https://freeimage.host/i/3DBDnYg"
               
      width="90"
      height="50"

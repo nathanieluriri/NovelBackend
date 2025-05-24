@@ -1,6 +1,7 @@
 from core.redis_cache import cache_db
 import random
 from datetime import datetime
+from fastapi import HTTPException
 from services.email_service import send_email,send_warning_about_ip_change,send_change_of_password_otp_email
 from repositories.admin_repo import get_location_details_for_admin,get_admin_by_email
 from schemas.email_schema import ClientData
@@ -60,8 +61,11 @@ async def verify_otp(accessToken,otp):
             decoded = await decode_jwt_token(accessToken)
             await update_admin_access_tokens(token=decoded['accessToken'])
             return True
-        else: return False
-        
+        else:
+            raise HTTPException(status_code=401, detail="Incorrect OTP") 
+    else:
+        raise HTTPException(status_code=401, detail="Invalid Access Token")
+                
         
         
         
