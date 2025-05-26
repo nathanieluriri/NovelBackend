@@ -1,6 +1,6 @@
-from repositories.admin_repo import get_admin_by_email, create_admin,get_allowd_admin_emails,get_admin_by_email_return_dict,get_admin_details_with_accessToken,replace_password_admin,create_default_admin
+from repositories.admin_repo import get_admin_by_email, create_admin,get_allowd_admin_emails,get_admin_by_email_return_dict,get_admin_details_with_accessToken,replace_password_admin,create_default_admin, update_admin_profile
 from repositories.tokens_repo import delete_all_tokens_with_user_id,get_access_tokens
-from schemas.admin_schema import NewAdminCreate,NewAdminOut,AdminBase,DefaultAllowedAdminCreate
+from schemas.admin_schema import NewAdminCreate,NewAdminOut,AdminBase,DefaultAllowedAdminCreate,AdminUpdate
 from fastapi import HTTPException,status
 from schemas.email_schema import ClientData
 from security.hash import check_password,hash_password
@@ -134,3 +134,15 @@ async def get_admin_details_with_accessToken_service(token:str):
         return NewAdminOut(**adminOut)
         
         
+        
+        
+        
+async def update_admin(token:str,update:AdminUpdate):
+    try:
+        admin= await get_admin_details_with_accessToken_service(token=token)
+        if admin:
+            await update_admin_profile(userId=admin.userId,update=update.model_dump(exclude=None))
+        else:
+            raise HTTPException(status_code=404,detail="User Doesn't exist")
+    except Exception as e:
+        raise HTTPException(status_code=500,detail=f"{e}")

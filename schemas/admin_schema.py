@@ -64,3 +64,10 @@ class NewAdminOut(BaseModel):
     }
 
 
+
+
+
+class AdminUpdate(BaseModel):
+    firstName:Optional[str] =None
+    lastName:Optional[str] =None
+    avatar:Optional[str] =None

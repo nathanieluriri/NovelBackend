@@ -104,3 +104,12 @@ async def create_default_admin(user_data: DefaultAllowedAdminCreate):
         result = await db.AllowedAdmins.insert_one(user)
         created_user = await db.AllowedAdmins.find_one({"_id": result.inserted_id})
         return created_user
+
+
+
+async def update_admin_profile(userId: str, update: dict):
+    await db.admins.find_one_and_update(
+        filter={"_id": ObjectId(userId)},
+        update={"$set": update}
+    )
+    

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException,Depends, Request,Body
-from schemas.admin_schema import NewAdminCreate, AdminBase,NewAdminOut,DefaultAllowedAdminCreate
-from services.admin_services import get_admin_details_with_accessToken_service,register_admin_func,login_admin_func,invitation_process,change_of_admin_password_flow1,change_of_admin_password_flow2, setup_default_admin
+from schemas.admin_schema import NewAdminCreate, AdminBase,NewAdminOut,DefaultAllowedAdminCreate,AdminUpdate
+from services.admin_services import get_admin_details_with_accessToken_service,register_admin_func,login_admin_func,invitation_process,change_of_admin_password_flow1,change_of_admin_password_flow2, setup_default_admin,update_admin
 from services.email_service import get_location,send_invitation
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
 from schemas.email_schema import VerificationRequest
@@ -102,3 +102,16 @@ async def get_admin_details(accessToken:str=Depends(verify_token) )->NewAdminOut
         return user
     else:
         raise HTTPException(status_code=404,detail="Details not found")
+
+
+
+@router.patch("/update",response_model_exclude_none=True,dependencies=[Depends(verify_token)])
+async def update(update:AdminUpdate,accessToken:str=Depends(verify_token))->NewAdminOut:
+    try:
+        await update_admin(token=accessToken['accessToken'],update=update)
+        user= await get_admin_details_with_accessToken_service(token=accessToken['accessToken'])
+        if user:
+            return user
+        
+    except Exception as e:
+        raise e

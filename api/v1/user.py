@@ -79,7 +79,7 @@ async def conclude_change_of_user_password_process(email=  Body(title="email",de
 @router.patch("/update",response_model_exclude_none=True,dependencies=[Depends(verify_token)])
 async def update(update:UserUpdate,accessToken:str=Depends(verify_token))->NewUserOut:
     try:
-        await update_user(token=accessToken['accessToken'])
+        await update_user(token=accessToken['accessToken'],update=update)
         user= await get_user_details_with_accessToken(token=accessToken['accessToken'])
         if user:
             return user
