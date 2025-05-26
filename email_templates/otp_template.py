@@ -346,7 +346,7 @@ er">
                             <div class="Mie-email-template--footer">
                                 <div class="footer-border-gradient"></div=
 >
-                                <img  style="width: 50px; height: 50px; border-radius: 25%; margin-top:10px ;"  src="https://freeimage.host/i/3DKqndN" alt=
+                                <img  style="width: 50px; height: 50px; border-radius: 25%; margin-top:10px ;"  src="https://iili.io/3DKqndN.jpg" alt=
 ="Mie Logo"/>
                                 <p style="padding: 0 22px">Mie. All rights reserved.</p>
                                 <div class="footer-text">

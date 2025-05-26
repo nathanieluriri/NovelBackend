@@ -133,7 +133,7 @@ new_signin_warning_template_string=Template("""
                           <tbody>
                             <tr>
                               <td style="width: 54px; border-radius: 100%; ">
-                                <img style=" width: 100%; height: 100%;  border-radius: 20%; transform-origin: center center; transform: scale(1.0); " alt="Mie logo"  height="auto" src="https://freeimage.host/i/3DKqndN" style="border: 0; display: block; outline: none; text-decoration: none; height: auto; width: 100%;" width="24" />
+                                <img style=" width: 100%; height: 100%;  border-radius: 20%; transform-origin: center center; transform: scale(1.0); " alt="Mie logo"  height="auto" src="https://iili.io/3DKqndN.jpg" style="border: 0; display: block; outline: none; text-decoration: none; height: auto; width: 100%;" width="24" />
                               </td>
                             </tr>
                           </tbody>

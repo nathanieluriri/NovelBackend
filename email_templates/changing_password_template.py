@@ -82,14 +82,14 @@ changing_password_template_string=Template("""
               </div>
 
               <div style="border-style: solid; border-width: thin; border-color:#dadce0; border-radius: 8px; padding: 40px 20px;" align="center" class="mdv2rw">
-              <img class="dark-mode-image" src="https://freeimage.host/i/3DBDnYg"
+              <img class="dark-mode-image" src="https://iili.io/3DBDnYg.png"
               
      width="90"
      height="50"
      aria-hidden="true"
      style="margin-bottom: 16px; background-color: rgba(0, 0, 0, 1); border-radius: 10%;"
      alt="Mie" />
-                   <img class="light-mode-image" src="https://freeimage.host/i/3DBDnYg"
+                   <img class="light-mode-image" src="https://iili.io/3DBDnYg.png"
               
      width="90"
      height="50"
