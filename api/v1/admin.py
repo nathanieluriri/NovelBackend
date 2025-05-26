@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException,Depends, Request,Body
 from schemas.admin_schema import NewAdminCreate, AdminBase,NewAdminOut,DefaultAllowedAdminCreate
-from services.admin_services import register_admin_func,login_admin_func,invitation_process,change_of_admin_password_flow1,change_of_admin_password_flow2, setup_default_admin
+from services.admin_services import get_admin_details_with_accessToken_service,register_admin_func,login_admin_func,invitation_process,change_of_admin_password_flow1,change_of_admin_password_flow2, setup_default_admin
 from services.email_service import get_location,send_invitation
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
 from schemas.email_schema import VerificationRequest
@@ -93,3 +93,12 @@ async def initiate_change_of_user_password_process(email= Body(title="email",des
 async def conclude_change_of_user_password_process(email=  Body(title="email",description="Enter your email",alias="email"),otp =  Body(title="otp",description="Enter your otp",alias="otp"),password=  Body(title="password",description="Enter your password",alias="password")):
     result = await change_of_admin_password_flow2(email=email,otp=otp,password=password)
     return {"message": result}
+
+
+@router.get("/details",response_model_exclude_none=True,dependencies=[Depends(verify_token)])
+async def get_admin_details(accessToken:str=Depends(verify_token) )->NewAdminOut:
+    user= await get_admin_details_with_accessToken_service(token=accessToken['accessToken'])
+    if user:
+        return user
+    else:
+        raise HTTPException(status_code=404,detail="Details not found")

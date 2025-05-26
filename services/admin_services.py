@@ -1,5 +1,5 @@
 from repositories.admin_repo import get_admin_by_email, create_admin,get_allowd_admin_emails,get_admin_by_email_return_dict,get_admin_details_with_accessToken,replace_password_admin,create_default_admin
-from repositories.tokens_repo import delete_all_tokens_with_user_id
+from repositories.tokens_repo import delete_all_tokens_with_user_id,get_access_tokens
 from schemas.admin_schema import NewAdminCreate,NewAdminOut,AdminBase,DefaultAllowedAdminCreate
 from fastapi import HTTPException,status
 from schemas.email_schema import ClientData
@@ -124,3 +124,13 @@ async def setup_default_admin(admin_details:DefaultAllowedAdminCreate):
     else:
         print("sending invite")
         await send_invitation(firstName="Default",lastName="Admin",invitedEmail=admin_details.email,inviterEmail=EMAIL_USERNAME)
+        
+        
+        
+        
+async def get_admin_details_with_accessToken_service(token:str):
+    adminOut = await get_admin_details_with_accessToken(accessToken=token)
+    if adminOut:
+        return NewAdminOut(**adminOut)
+        
+        
