@@ -9,12 +9,16 @@ from security.admin_otp import verify_otp
 from repositories.tokens_repo import delete_refresh_token
 from dotenv import load_dotenv
 import os
+from pydantic import BaseModel,EmailStr
+
 load_dotenv()
 DEFAULT_ADMIN_EMAIL = os.getenv("DEFAULT_ADMIN_EMAIL")
 
 
 router = APIRouter()
 
+class invitedPersonsEmail(BaseModel):
+    email:EmailStr
 
 @router.on_event("startup")
 async def startup_app():
@@ -24,9 +28,9 @@ async def startup_app():
      
 
 @router.post("/invite",dependencies=[Depends(verify_admin_token)])
-async def invite_new_admin(invitedPersonsEmail,accessToken:str = Depends(verify_admin_token)):
+async def invite_new_admin(invitedPersonsEmail:invitedPersonsEmail,accessToken:str = Depends(verify_admin_token)):
     try:
-        await invitation_process(invitedEmail=invitedPersonsEmail,accessToken=accessToken['accessToken'])
+        await invitation_process(invitedEmail=invitedPersonsEmail.email,accessToken=accessToken['accessToken'])
         return {"message":"success"}
     except Exception as e:
         raise e
