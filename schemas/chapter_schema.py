@@ -3,7 +3,7 @@ from schemas.imports import *
 
 class ChapterBase(BaseModel):
     bookId:str
-    number: int
+    number: Optional[int]=0
     chapterLabel:str
     status:str
 
