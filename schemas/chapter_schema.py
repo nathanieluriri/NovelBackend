@@ -55,3 +55,9 @@ class ChapterUpdate(ChapterBase):
         values['id']= str(values.get('_id'))
         return values
     
+    
+    
+    
+class ChapterUpdateStatusOrLabel(BaseModel):
+    chapterLabel:Optional[str]=None
+    status:Optional[str]=None

@@ -1,8 +1,8 @@
-from repositories.chapter_repo import get_chapter_by_bookId,create_chapter,delete_chapter_with_chapter_id,get_chapter_by_chapter_id,update_chapter_order_after_delete
+from repositories.chapter_repo import get_chapter_by_bookId,create_chapter,delete_chapter_with_chapter_id,get_chapter_by_chapter_id,update_chapter_order_after_delete,update_chapter
 from repositories.page_repo import delete_pages_by_chapter_id
 from repositories.book_repo import update_book
 from schemas.book_schema import BookUpdate
-from schemas.chapter_schema import ChapterOut,ChapterCreate
+from schemas.chapter_schema import ChapterOut,ChapterCreate,ChapterUpdate
 
 async def add_chapter(chapter:ChapterCreate):
     retrieved_chapters = await get_chapter_by_bookId(bookId=chapter.bookId)
@@ -35,3 +35,11 @@ async def fetch_chapters(bookId:str):
     chapters = await get_chapter_by_bookId(bookId=bookId)
     returnable_chapters = [ChapterOut(**chapter) for chapter in chapters]
     return returnable_chapters
+
+
+
+async def update_chapter_status_or_label(chapterId:str,chapter:ChapterUpdate):
+    await update_chapter(chapter_id=chapterId,update_data=chapter)
+    updated_chapter =await get_chapter_by_chapter_id(chapterId=chapterId)
+    returnable_chapter =ChapterOut(**updated_chapter) 
+    return returnable_chapter
