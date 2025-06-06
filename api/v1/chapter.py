@@ -5,6 +5,8 @@ from typing import List
 from services.chapter_services import add_chapter,delete_chapter,fetch_chapters
 
 router = APIRouter()
+
+
 @router.get("/get/{bookId}", response_model=List[ChapterOut])
 async def get_all_available_chapters(bookId:str):
     try:
@@ -19,7 +21,7 @@ async def get_all_available_chapters(bookId:str):
 async def create_a_new_chapter(chapter: ChapterBase):
     chapter= ChapterCreate(**chapter.model_dump())
     try:
-        new_chapter = await add_chapter(bookId=chapter.bookId)
+        new_chapter = await add_chapter(chapter=chapter)
         return new_chapter
     except Exception as e:
         print(e)
