@@ -7,7 +7,7 @@ from schemas.chapter_schema import ChapterOut,ChapterCreate,ChapterUpdate
 async def add_chapter(chapter:ChapterCreate):
     retrieved_chapters = await get_chapter_by_bookId(bookId=chapter.bookId)
     
-    created_chapter =await create_chapter(chapter_data=ChapterCreate(bookId=chapter.bookId,chapterLabel=chapter.chapterLabel,status=chapter.status,number=len(retrieved_chapters)+1))
+    created_chapter =await create_chapter(chapter_data=ChapterCreate(coverImage=chapter.coverImage,bookId=chapter.bookId,chapterLabel=chapter.chapterLabel,status=chapter.status,number=len(retrieved_chapters)+1))
     
     retrieved_chapters = await get_chapter_by_bookId(bookId=chapter.bookId)
     retrieved_chapters_id = [str(ids.get('_id') ) for ids in retrieved_chapters]

@@ -50,7 +50,6 @@ async def verify_token_and_refresh_token(token: str = Depends(token_auth_scheme)
             )
         elif type(result) ==type(accessTokenOut(userId="sa",accesstoken="sa",)):
             accessTokenObj = await generate_admin_access_tokens(userId=result.userId)
-            # TODO: decode then update to active here 
             NewDecodedT = await decode_jwt_token(token=accessTokenObj.accesstoken)
             
             await update_admin_access_tokens(token=NewDecodedT['accessToken'])
@@ -65,8 +64,9 @@ async def verify_token_and_refresh_token(token: str = Depends(token_auth_scheme)
             )
            
 async def verify_admin_token(token: str = Depends(token_auth_scheme)):
+    print("here")
     result = await validate_admin_accesstoken(accessToken=str(token.credentials))
-    
+    print("here")
     if result==None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -42,6 +42,7 @@ async def create_chapter(chapter_data: ChapterCreate):
 
 async def update_chapter(chapter_id: str, update_data: ChapterUpdate):
     update_dict = {k: v for k, v in update_data.model_dump(exclude_none=True).items() if v is not None}
+    print(update_dict)
     update_dict.pop("id",None)
     result = await db.chapters.update_one(
         {

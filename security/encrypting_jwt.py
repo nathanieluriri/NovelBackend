@@ -104,6 +104,9 @@ async def decode_jwt_token(token):
     except jwt.exceptions.InvalidSignatureError:
         print("invalid signature")
         return None
+    except jwt.exceptions.DecodeError:
+        print("Malformed Token")
+        return None
 
 async def decode_jwt_token_without_expiration(token):
     SECRET_KEYS = await get_secret_dict()
@@ -126,7 +129,9 @@ async def decode_jwt_token_without_expiration(token):
         payload = decoded = jwt.decode(token, key, algorithms=['HS256'],options={"verify_exp": False})
         return payload
 
-
+    except jwt.exceptions.DecodeError:
+        print("Malformed Token")
+        return None
 
 
 
