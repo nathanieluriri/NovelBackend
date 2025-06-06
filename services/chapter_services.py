@@ -4,14 +4,14 @@ from repositories.book_repo import update_book
 from schemas.book_schema import BookUpdate
 from schemas.chapter_schema import ChapterOut,ChapterCreate
 
-async def add_chapter(bookId:str):
-    retrieved_chapters = await get_chapter_by_bookId(bookId=bookId)
+async def add_chapter(chapter:ChapterCreate):
+    retrieved_chapters = await get_chapter_by_bookId(bookId=chapter.bookId)
     
-    created_chapter =await create_chapter(chapter_data=ChapterCreate(bookId=bookId,number=len(retrieved_chapters)+1))
+    created_chapter =await create_chapter(chapter_data=ChapterCreate(bookId=chapter.bookId,chapterLabel=chapter.chapterLabel,status=chapter.status,number=len(retrieved_chapters)+1))
     
-    retrieved_chapters = await get_chapter_by_bookId(bookId=bookId)
+    retrieved_chapters = await get_chapter_by_bookId(bookId=chapter.bookId)
     retrieved_chapters_id = [str(ids.get('_id') ) for ids in retrieved_chapters]
-    await update_book(book_id=bookId,update_data=BookUpdate(chapterCount=len(retrieved_chapters),chapters=retrieved_chapters_id))
+    await update_book(book_id=chapter.bookId,update_data=BookUpdate(chapterCount=len(retrieved_chapters),chapters=retrieved_chapters_id))
     chap =ChapterOut(**created_chapter)
     return chap
     
