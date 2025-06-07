@@ -1,6 +1,6 @@
 from fastapi import FastAPI,Depends
 from security.auth import verify_admin_token
-from api.v1 import user,book,bookmark,like,chapter,page,admin
+from api.v1 import user,book,bookmark,like,chapter,page,admin,comments
 from security.auth import verify_token
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -22,4 +22,5 @@ app.include_router(bookmark.router,prefix="/api/v1/bookmark", tags=["Bookmark"])
 app.include_router(like.router,prefix="/api/v1/like", tags=["Like"])
 app.include_router(chapter.router,prefix="/api/v1/chapter", tags=["Chapter"],)
 app.include_router(page.router,prefix="/api/v1/page", tags=["Page"])
+app.include_router(comments.router,prefix="/api/v1/comment",tags=['Comment'])
 
