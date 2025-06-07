@@ -2,8 +2,8 @@ from schemas.likes_schema import LikeOut,LikeCreate
 from repositories.like_repo import create_like ,delete_like_with_like_id,get_all_user_likes,get_all_chapter_likes
 import asyncio
 
-async def add_like(userId:str,chapterId:str):
-    result = await create_like(like_data=LikeCreate(userId=userId,chapterId=chapterId))
+async def add_like(likeData:LikeCreate):
+    result = await create_like(like_data=likeData)
     return result
     
 

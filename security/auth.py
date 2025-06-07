@@ -64,9 +64,8 @@ async def verify_token_and_refresh_token(token: str = Depends(token_auth_scheme)
             )
            
 async def verify_admin_token(token: str = Depends(token_auth_scheme)):
-    print("here")
     result = await validate_admin_accesstoken(accessToken=str(token.credentials))
-    print("here")
+
     if result==None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -77,7 +76,26 @@ async def verify_admin_token(token: str = Depends(token_auth_scheme)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Admin Token hasn't been activated"
         )
-    elif type(result)==type(accessTokenOut(userId="1",accesstoken="2")):
+    elif isinstance(result, accessTokenOut):
         
         decoded_access_token = await decode_jwt_token(token=token.credentials)
         return decoded_access_token
+
+
+async def verify_any_token(token:str=Depends(token_auth_scheme)):
+    token_type = await decode_jwt_token(token=token.credentials)
+    if isinstance(token_type,dict):
+        if token_type['role']=='admin':
+            return await verify_admin_token(token=token)
+        elif token_type["role"]=='user':
+            return await verify_token(token=token)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token Type"
+            )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Token"
+        )

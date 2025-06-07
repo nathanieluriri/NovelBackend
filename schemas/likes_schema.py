@@ -1,11 +1,19 @@
 from schemas.imports import *
 
+
+class LikeBaseRequest(BaseModel):
+    chapterId: str
+
+
 class LikeBase(BaseModel):
     userId:str
+    role:str
     chapterId: str
 
 
 class LikeCreate(LikeBase):
+    userId:Optional[str]=None
+    role:Optional[str]=None
     dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
     @model_validator(mode='before')
     def set_dates(cls,values):
@@ -16,6 +24,7 @@ class LikeCreate(LikeBase):
     
 class LikeOut(LikeBase):
     id: Optional[str] =None
+    
     dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
     @model_validator(mode='before')
     def set_dynamic_values(cls,values):
