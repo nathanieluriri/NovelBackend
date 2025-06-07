@@ -45,9 +45,12 @@ async def delete_likes_with_user_id(userId: list):
 
 async def create_like(like_data: LikeCreate):
     like = like_data.model_dump()
-    result = await db.likes.insert_one(like)
-    created_like = await db.likes.find_one({"_id": result.inserted_id})
-    return created_like
+    already_liked = await db.likes.find_one(filter={"userId":like_data.userId,"chapterId":like_data.chapterId})
+    if already_liked==None:
+        result = await db.likes.insert_one(like)
+        created_like = await db.likes.find_one({"_id": result.inserted_id})
+        return created_like
+    else:return already_liked
 
 
 

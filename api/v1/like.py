@@ -8,11 +8,19 @@ from services.admin_services import get_admin_details_with_accessToken_service
 
 
 router = APIRouter()
-@router.get("/get/{userId}", response_model=List[LikeOut])
-async def get_all_available_likes(userId:str):
+@router.get("/get", response_model=List[LikeOut],dependencies=[Depends(verify_any_token)])
+async def get_user_likes(dep= Depends(verify_any_token)):
     try:
-        likes = await retrieve_user_likes(userId=userId)
-        return likes
+        if dep['role']=='admin':
+            userDetails =await get_admin_details_with_accessToken_service(token= dep['accessToken'])
+           
+            likes = await retrieve_user_likes(userId=userDetails.userId)
+            return likes
+        if dep['role']=='user':
+            userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
+           
+            likes = await retrieve_user_likes(userId=userDetails.userId)
+            return likes
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -28,23 +36,24 @@ async def get_all_chapter_likes(chapterId:str):
 
 
 @router.post("/create", response_model=LikeOut,dependencies=[Depends(verify_any_token)])
-async def like_Page(like: LikeBaseRequest,dep= Depends(verify_any_token)):
+async def like_chapter(like: LikeBaseRequest,dep= Depends(verify_any_token)):
     created_like = LikeCreate(**like.model_dump())
     if dep['role']=='admin':
-        userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
+        userDetails =await get_admin_details_with_accessToken_service(token= dep['accessToken'])
         created_like.userId=userDetails.userId 
         created_like.role=dep['role']
         try:
-            new_like = await add_like(likeData=like)
+            new_like = await add_like(likeData=created_like)
             return new_like
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
     elif dep['role'] == 'user':
-        userDetails =await get_admin_details_with_accessToken_service(token= dep['accessToken'])
+        userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
+        
         created_like.userId= userDetails.userId
         created_like.role=dep['role']
         try:
-            new_like = await add_like(likeData=like)
+            new_like = await add_like(likeData=created_like)
             return new_like
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))

@@ -34,23 +34,23 @@ async def get_all_chapter_Comments(chapterId:str):
 
 
 @router.post("/create", response_model=CommentOut,dependencies=[Depends(verify_any_token)])
-async def Comment_Page(Comment: CommentBaseRequest,dep= Depends(verify_any_token)):
+async def Comment_on_a_chapter(Comment: CommentBaseRequest,dep= Depends(verify_any_token)):
     created_Comment = CommentCreate(**Comment.model_dump())
-    if dep['role']=='admin':
+    if dep['role']=='user':
         userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
         created_Comment.userId=userDetails.userId 
         created_Comment.role=dep['role']
         try:
-            new_Comment = await add_Comment(CommentData=Comment)
+            new_Comment = await add_Comment(CommentData=created_Comment)
             return new_Comment
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-    elif dep['role'] == 'user':
+    elif dep['role'] == 'admin':
         userDetails =await get_admin_details_with_accessToken_service(token= dep['accessToken'])
         created_Comment.userId= userDetails.userId
         created_Comment.role=dep['role']
         try:
-            new_Comment = await add_Comment(CommentData=Comment)
+            new_Comment = await add_Comment(CommentData=created_Comment)
             return new_Comment
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))

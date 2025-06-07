@@ -4,7 +4,8 @@ import asyncio
 
 async def add_like(likeData:LikeCreate):
     result = await create_like(like_data=likeData)
-    return result
+    
+    return LikeOut(**result)
     
 
 async def remove_like(likeId:str):

@@ -52,6 +52,7 @@ async def update_chapter_status_or_label(chapterId:str,chapter:ChapterUpdate):
 async def fetch_chapter_with_chapterId(chapterId: str):
     chapter = await get_chapter_by_chapter_id(chapterId=chapterId)
     chap = ChapterOut(**chapter)
+    
     await chap.model_async_validate()
     return chap
 
