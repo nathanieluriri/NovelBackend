@@ -21,6 +21,16 @@ async def get_chapter_by_chapter_id(chapterId:str):
         return None
     return await db.chapters.find_one({"_id": ObjectId(chapterId)})
 
+
+async def get_chapter_by_bookid_and_chapter_numer(bookId:str,chapterNumber:int):
+    try:
+        obj_id = ObjectId(bookId)
+    except errors.InvalidId:
+        return None
+    return await db.chapters.find_one({"bookId": bookId,"number":chapterNumber})
+
+
+
 async def get_chapter_by_number(number: int,chapters:list):
     chapter = [chapter_by_number  for chapter_by_number in chapters if chapter_by_number.get('number')==number ]
     return chapter[0]

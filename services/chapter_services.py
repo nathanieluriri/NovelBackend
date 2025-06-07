@@ -1,4 +1,4 @@
-from repositories.chapter_repo import get_chapter_by_bookId,create_chapter,delete_chapter_with_chapter_id,get_chapter_by_chapter_id,update_chapter_order_after_delete,update_chapter
+from repositories.chapter_repo import get_chapter_by_bookId,create_chapter,delete_chapter_with_chapter_id,get_chapter_by_chapter_id,update_chapter_order_after_delete,update_chapter,get_chapter_by_bookid_and_chapter_numer
 from repositories.page_repo import delete_pages_by_chapter_id
 from repositories.book_repo import update_book
 from schemas.book_schema import BookUpdate
@@ -47,3 +47,18 @@ async def update_chapter_status_or_label(chapterId:str,chapter:ChapterUpdate):
     updated_chapter =await get_chapter_by_chapter_id(chapterId=chapterId)
     returnable_chapter =ChapterOut(**updated_chapter) 
     return await returnable_chapter.model_async_validate()
+
+
+async def fetch_chapter_with_chapterId(chapterId: str):
+    chapter = await get_chapter_by_chapter_id(chapterId=chapterId)
+    chap = ChapterOut(**chapter)
+    await chap.model_async_validate()
+    return chap
+
+
+
+async def fetch_chapter_with_chapterNumber_and_bookId(bookId: str,chapterNumber:int):
+    chapter = await get_chapter_by_bookid_and_chapter_numer(bookId=bookId,chapterNumber=chapterNumber)
+    chap = ChapterOut(**chapter)
+    await chap.model_async_validate()
+    return chap
