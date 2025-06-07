@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException,Depends, Request,Body
 from schemas.admin_schema import NewAdminCreate, AdminBase,NewAdminOut,DefaultAllowedAdminCreate,AdminUpdate
-from services.admin_services import get_admin_details_with_accessToken_service,register_admin_func,login_admin_func,invitation_process,change_of_admin_password_flow1,change_of_admin_password_flow2, setup_default_admin,update_admin
+from services.admin_services import get_admin_details_with_accessToken_service,register_admin_func,login_admin_func,invitation_process,change_of_admin_password_flow1,change_of_admin_password_flow2, setup_default_admin,update_admin,get_all_admin_details
 from services.email_service import get_location,send_invitation
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
 from schemas.email_schema import VerificationRequest
@@ -10,6 +10,8 @@ from repositories.tokens_repo import delete_refresh_token
 from dotenv import load_dotenv
 import os
 from pydantic import BaseModel,EmailStr
+from typing import List
+
 
 load_dotenv()
 DEFAULT_ADMIN_EMAIL = os.getenv("DEFAULT_ADMIN_EMAIL")
@@ -106,6 +108,16 @@ async def get_admin_details(accessToken:str=Depends(verify_token) )->NewAdminOut
         return user
     else:
         raise HTTPException(status_code=404,detail="Details not found")
+
+
+@router.get("/all/details",response_model_exclude_none=True,dependencies=[Depends(verify_token)])
+async def get_admin_details(accessToken:str=Depends(verify_token) )->List[NewAdminOut]:
+    user= await get_all_admin_details()
+    if user:
+        return user
+    else:
+        raise HTTPException(status_code=404,detail="Details not found")
+
 
 
 

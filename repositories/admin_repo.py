@@ -2,6 +2,8 @@ from core.database import db
 from schemas.admin_schema import AdminBase,NewAdminCreate,NewAdminOut,AllowedAdminCreate,DefaultAllowedAdminCreate
 from schemas.email_schema import ClientData
 from bson import ObjectId
+from typing import List
+
 
 async def get_admin_by_email(email: str)->NewAdminOut|None:
     admin = await db.admins.find_one({"email": email})
@@ -12,6 +14,19 @@ async def get_admin_by_email(email: str)->NewAdminOut|None:
     except TypeError:
         print("no admin user for the email")
         return None
+    
+    
+async def get_all_admins()->List[NewAdminOut]:
+    admins_cursor = db.admins.find()
+    admins = await admins_cursor.to_list(length=None) 
+    try:
+        newAdmins =[ NewAdminOut(**admin) for admin in admins ]
+        
+        return newAdmins
+    except TypeError:
+        print("no admin user for the email")
+        return None
+    
     
 async def get_admin_by_email_return_dict(email: str)->dict:
     admin = await db.admins.find_one({"email": email})

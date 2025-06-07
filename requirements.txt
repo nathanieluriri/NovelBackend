@@ -1,5 +1,6 @@
 fastapi[all]
 pydantic
+pydantic-async-validation
 bcrypt
 requests
 pyjwt

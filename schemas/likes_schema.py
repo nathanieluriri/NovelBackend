@@ -2,7 +2,7 @@ from schemas.imports import *
 
 class LikeBase(BaseModel):
     userId:str
-    pageId: str
+    chapterId: str
 
 
 class LikeCreate(LikeBase):

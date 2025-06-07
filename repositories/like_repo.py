@@ -9,18 +9,24 @@ async def get_all_user_likes(userId):
     return retrieved_likes
 
 
-async def delete_likes_with_page_id(pageId: list):
+async def get_all_chapter_likes(chapterId):
+    cursor= db.likes.find({"chapterId":chapterId})
+    retrieved_likes= [chapters async for chapters in cursor]
+    return retrieved_likes
+
+
+async def delete_likes_with_page_id(chapterId: list):
     """_summary_
     
     Accepts a list of page Id's and deletes likes with it
     
     Args:
-        pageId (list): _description_
+        chapterId (list): _description_
 
     Returns:
         _type_: _description_
     """
-    result = await db.likes.delete_many({"pageId": {"$in": pageId}})
+    result = await db.likes.delete_many({"chapterId": {"$in": chapterId}})
     return result
 
 async def delete_likes_with_user_id(userId: list):

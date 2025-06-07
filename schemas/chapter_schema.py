@@ -1,21 +1,19 @@
 from schemas.imports import *
-from fastapi import Form
+from core.database import db
+from pydantic_async_validation import async_field_validator, AsyncValidationModelMixin, ValidationInfo
 
-class ChapterBase(BaseModel):
+class ChapterBaseRequest(BaseModel):
     bookId:str
-    number: Optional[int]=0
     chapterLabel:str
     status:str
-    @classmethod
-    def as_form(
-        cls,
-        bookId: str = Form(...),
-        chapterLabel: str = Form(...),
-        status: str = Form(...)
-    ) -> "ChapterBase":
-        return cls(bookId=bookId, chapterLabel=chapterLabel, status=status)
-class ChapterCreate(ChapterBase):
     coverImage: Optional[str]=None
+    
+class ChapterBase(ChapterBaseRequest):
+    number: Optional[int]=0
+
+    
+    
+class ChapterCreate(ChapterBase):
     dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
     dateUpdated: Optional[str]=None
     pageCount: Optional[int]=0
@@ -28,7 +26,9 @@ class ChapterCreate(ChapterBase):
         return values
 
     
-class ChapterOut(ChapterBase):
+    
+
+class ChapterOut(AsyncValidationModelMixin,ChapterBase):
     id: Optional[str] =None
     coverImage: Optional[str]=None
     lastAccessed: Optional[str]=datetime.now(timezone.utc).isoformat()
@@ -36,11 +36,32 @@ class ChapterOut(ChapterBase):
     dateUpdated: Optional[str]=None
     pageCount: Optional[int]=0
     pages: Optional[List[str]] = None
+    commentsCount:Optional[int]=0
+    likesCount:Optional[int]=0
+    @async_field_validator('commentsCount','likesCount')
+    async def set_counts(self,config: ValidationInfo):
+        # Comments Count
+        comments_count = await db.comments.aggregate([
+            {"$match": {"chapterId": self.id}},
+            {"$count": "total"}
+        ]).to_list(length=1)
+
+        # Likes Count
+        likes_count = await db.likes.aggregate([
+            {"$match": {"chapterId": self.id}},
+            {"$count": "total"}
+        ]).to_list(length=1)
+
+        # Extract count
+        comments_count = comments_count[0]["total"] if comments_count else 0
+        likes_count = likes_count[0]["total"] if likes_count else 0
+        self.commentsCount=comments_count
+        self.likesCount=likes_count
+
     @model_validator(mode='before')
     def set_dynamic_values(cls,values):
         values['id']= str(values.get('_id'))
         return values
-    
 
     model_config = {
         'populate_by_name': True,
@@ -71,8 +92,6 @@ class ChapterUpdateStatusOrLabel(BaseModel):
     status: Optional[str] = None
     dateUpdated: Optional[str] = datetime.now(timezone.utc).isoformat()  # This is a fixed value at class load time
     coverImage:Optional[str] = None
-    # Better solution: make it callable so it generates a fresh timestamp each time
-    dateUpdated: Optional[str] = None  # Remove the default value from here
 
     def __init__(self, **kwargs):
         # If dateUpdated is not provided, set the current time
@@ -80,10 +99,3 @@ class ChapterUpdateStatusOrLabel(BaseModel):
             kwargs['dateUpdated'] = datetime.now(timezone.utc).isoformat()
         super().__init__(**kwargs)
         
-    @classmethod
-    def as_form(
-        cls,
-        chapterLabel: Optional[str] = Form(...),
-        status: Optional[str] = Form(...)
-    ) -> "ChapterBase":
-        return cls(chapterLabel=chapterLabel, status=status)

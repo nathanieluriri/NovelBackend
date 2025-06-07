@@ -4,6 +4,11 @@ from bson import ObjectId,errors
 import asyncio
 
 async def get_chapter_by_bookId(bookId:str):
+    try:
+        obj_id= ObjectId(bookId)
+    except errors.InvalidId:
+        return None
+    
     cursor= db.chapters.find({"bookId":bookId})
     retrieved_chapters= [chapters async for chapters in cursor]
 

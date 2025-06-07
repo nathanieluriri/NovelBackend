@@ -3,8 +3,13 @@ from schemas.chapter_schema import ChapterOut
 from schemas.imports import *
 
 
-class BookBase(BaseModel):
+class BookBaseRequest(BaseModel):
     name: str
+
+
+
+
+class BookBase(BookBaseRequest):
     number:int
 
 

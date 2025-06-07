@@ -45,6 +45,8 @@ class NewAdminCreate(AdminBase):
         return self
 
 class NewAdminOut(BaseModel):
+    email:EmailStr
+    invitedBy:Optional[EmailStr]=None
     userId: Optional[str] =None
     accessToken: Optional[str]=None
     refreshToken:Optional[str]=None
