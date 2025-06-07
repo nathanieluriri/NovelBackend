@@ -4,7 +4,7 @@ from schemas.utils import clean_html
 
 class PageBase(BaseModel):
     chapterId:str
-    number: int
+   
     textContent:str
     status:str
     
