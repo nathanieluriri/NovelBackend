@@ -116,6 +116,32 @@ async def validate_admin_accesstoken(accessToken:str):
         return None 
     
     
+async def validate_expired_admin_accesstoken(accessToken:str):
+    
+    decodedAccessToken = await decode_jwt_token_without_expiration(token=accessToken)
+    try:
+        obj_id = ObjectId(decodedAccessToken['accessToken'])
+    except errors.InvalidId:
+        return None  # or raise an error / log it    
+
+    
+    if decodedAccessToken:
+        if decodedAccessToken['role']=="admin":
+            validatedAccessToken= await get_access_tokens(accessToken=decodedAccessToken['accessToken'])
+            if type(validatedAccessToken) == type(accessTokenOut(userId="12",accesstoken="sa")):
+                return validatedAccessToken
+            elif validatedAccessToken=="None":
+                return None
+            else:
+                return "inactive" 
+        else:
+            return None  
+        
+    else:
+        return None 
+    
+    
+    
     
     
     

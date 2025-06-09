@@ -14,7 +14,9 @@ async def add_chapter(chapter:ChapterCreate):
         retrieved_chapters_id = [str(ids.get('_id') ) for ids in retrieved_chapters]
         await update_book(book_id=chapter.bookId,update_data=BookUpdate(chapterCount=len(retrieved_chapters),chapters=retrieved_chapters_id))
         chap =ChapterOut(**created_chapter)
-        return await chap.model_async_validate()
+        await chap.model_async_validate()
+        print(chap)
+        return chap
     else:
         raise HTTPException(status_code=404,detail="Coudn't find a book with such book Id")
 
@@ -45,8 +47,9 @@ async def fetch_chapters(bookId: str):
 async def update_chapter_status_or_label(chapterId:str,chapter:ChapterUpdate):
     await update_chapter(chapter_id=chapterId,update_data=chapter)
     updated_chapter =await get_chapter_by_chapter_id(chapterId=chapterId)
-    returnable_chapter =ChapterOut(**updated_chapter) 
-    return await returnable_chapter.model_async_validate()
+    returnable_chapter =ChapterOut(**updated_chapter)
+    await returnable_chapter.model_async_validate() 
+    return returnable_chapter
 
 
 async def fetch_chapter_with_chapterId(chapterId: str):

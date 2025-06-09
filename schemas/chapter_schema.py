@@ -99,3 +99,15 @@ class ChapterUpdateStatusOrLabel(BaseModel):
             kwargs['dateUpdated'] = datetime.now(timezone.utc).isoformat()
         super().__init__(**kwargs)
         
+class ChapterUpdateStatusOrLabelRequest(BaseModel):
+    chapterLabel: Optional[str] = None
+    status: Optional[str] = None
+    dateUpdated: Optional[str] = datetime.now(timezone.utc).isoformat()  # This is a fixed value at class load time
+    coverImage:Optional[str] = None
+
+    def __init__(self, **kwargs):
+        # If dateUpdated is not provided, set the current time
+        if 'dateUpdated' not in kwargs:
+            kwargs['dateUpdated'] = datetime.now(timezone.utc).isoformat()
+        super().__init__(**kwargs)
+        
