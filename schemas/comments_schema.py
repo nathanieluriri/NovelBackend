@@ -4,6 +4,10 @@ from schemas.imports import *
 class CommentBaseRequest(BaseModel):
     chapterId: str
     text:str
+    
+class UpdateCommentBaseRequest(BaseModel):
+    commentId: str
+    text:str
 
 
 class CommentBase(BaseModel):

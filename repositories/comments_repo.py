@@ -16,7 +16,7 @@ async def get_all_chapter_comments(chapterId):
     return retrieved_comments
 
 
-async def delete_comments_with_page_id(chapterId: list):
+async def delete_comments_with_chapter_id(chapterId: list):
     """_summary_
     
     Accepts a list of page Id's and deletes comments with it
@@ -58,5 +58,28 @@ async def delete_comment_with_comment_id(commentId: str):
     except errors.InvalidId:
         return None  # or raise an error / log it
     return await db.comments.find_one_and_delete({"_id": obj_id})
+
+
+async def update_comment_with_comment_id(commentId: str, userId: str, text: str):
+    try:
+        obj_id = ObjectId(commentId)
+    except errors.InvalidId:
+        return None  # You might also want to log this
+
+    result = await db.comments.update_one(
+        {"_id": obj_id, "userId": userId},
+        {"$set": {"text": text}}
+    )
+    data = await db.comments.find_one(filter={"_id":obj_id})
+    return data
+
+
+async def delete_comment_with_comment_id_userId(userId,commentId: str):
+    try:
+        obj_id = ObjectId(commentId)
+    except errors.InvalidId:
+        return None  # or raise an error / log it
+    return await db.comments.find_one_and_delete({"_id": obj_id,"userId":userId})
+
 
 
