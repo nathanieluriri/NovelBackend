@@ -10,7 +10,7 @@ class PageBase(BaseModel):
     
 class PageUpdateRequest(BaseModel):
     textContent:str
-
+    status:Optional[str]=None
 class PageCreate(PageBase):
     dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
     dateUpdated: Optional[str]=datetime.now(timezone.utc).isoformat()
@@ -47,6 +47,7 @@ class PageOut(PageCreate):
 
 class PageUpdate(BaseModel):
     textContent:str
+    status:Optional[str]=None
     dateUpdated: Optional[str]=None
     textCount: Optional[int]=0
     @model_validator(mode='before')

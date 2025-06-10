@@ -18,12 +18,12 @@ async def get_all_available_pages(chapterId:str):
 async def create_a_new_page(page: PageBase,bookId:str):
    
     try:
-        new_page = await add_page(textContent=page.textContent,chapterId=page.chapterId,bookId=bookId)
+        new_page = await add_page(status=page.status,textContent=page.textContent,chapterId=page.chapterId,bookId=bookId)
         return new_page
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.delete("/delete/{pageId}",response_model=PageOut,dependencies=[Depends(verify_admin_token)])
+@router.delete("/delete/{pageId}",dependencies=[Depends(verify_admin_token)])
 async def delete_a_page(pageId:str ):
     try:
         deleted_page = await delete_page(pageId=pageId)
@@ -35,13 +35,14 @@ async def delete_a_page(pageId:str ):
         # re-raise known exceptions (like 404s) without changing them
         raise
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.patch("/update/{pageId}",response_model=PageOut,dependencies=[Depends(verify_admin_token)])
 async def update_a_page(pageId:str ,page: PageUpdateRequest):
     try:
-        updated_ = await update_page_content(pageId=pageId,textContent=page.textContent)
+        updated_ = await update_page_content(status=page.status,pageId=pageId,textContent=page.textContent)
         if updated_:
             return updated_
         else:
@@ -53,11 +54,11 @@ async def update_a_page(pageId:str ,page: PageUpdateRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/get/{chapterId}/{pageNumber}", response_model=PageOut)
-async def get_page_details(chapterId,pageNumber:int):
-    try:
-        pages = await fetch_page(chapterId=chapterId)
-        return pages
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+# @router.get("/get/{chapterId}/{pageNumber}", response_model=PageOut)
+# async def get_page_details(chapterId,pageNumber:int):
+#     try:
+#         pages = await fetch_page(chapterId=chapterId)
+#         return pages
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
 

@@ -10,7 +10,8 @@ class ChapterBaseRequest(BaseModel):
     
 class ChapterBase(ChapterBaseRequest):
     number: Optional[int]=0
-
+    chapterLabel:Optional[str]=None
+    status:Optional[str]=None
     
     
 class ChapterCreate(ChapterBase):
@@ -111,3 +112,8 @@ class ChapterUpdateStatusOrLabelRequest(BaseModel):
             kwargs['dateUpdated'] = datetime.now(timezone.utc).isoformat()
         super().__init__(**kwargs)
         
+
+
+class RecentChapterOut(ChapterBase):
+    dateUpdated: Optional[str]=None
+    wordCount: Optional[int]=0

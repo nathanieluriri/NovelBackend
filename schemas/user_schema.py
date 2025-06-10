@@ -44,9 +44,26 @@ class NewUserOut(BaseModel):
     firstName:Optional[str]=None
     lastName:Optional[str]=None
     avatar:Optional[str]=None
-    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
-    subscriptionStartDate:Optional[str]=None
-    subscriptionEndDate:Optional[str]=None   
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
+    @model_validator(mode='before')
+    def set_values(cls,values):
+        values['userId']= str(values.get('_id'))
+        return values
+        
+
+    model_config = {
+        'populate_by_name': True,
+        'arbitrary_types_allowed': True,
+    }
+
+
+class UserOut(BaseModel):
+    userId: Optional[str] =None
+    email:Optional[EmailStr]=None
+    firstName:Optional[str]=None
+    lastName:Optional[str]=None
+    avatar:Optional[str]=None
+    dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
     @model_validator(mode='before')
     def set_values(cls,values):
         values['userId']= str(values.get('_id'))

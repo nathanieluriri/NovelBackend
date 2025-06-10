@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException,Depends, Request,Body
-from schemas.admin_schema import NewAdminCreate, AdminBase,NewAdminOut,DefaultAllowedAdminCreate,AdminUpdate
-from services.admin_services import get_admin_details_with_accessToken_service,register_admin_func,login_admin_func,invitation_process,change_of_admin_password_flow1,change_of_admin_password_flow2, setup_default_admin,update_admin,get_all_admin_details
+from schemas.admin_schema import NewAdminCreate, AdminBase,NewAdminOut,DefaultAllowedAdminCreate,AdminUpdate,AdminDashboardAnalytics
+from services.admin_services import  get_admin_details_with_accessToken_service,register_admin_func,login_admin_func,invitation_process,change_of_admin_password_flow1,change_of_admin_password_flow2, setup_default_admin,update_admin,get_all_admin_details
 from services.email_service import get_location,send_invitation
+from services.dashboard_analytics_service import perform_analytics
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
 from schemas.email_schema import VerificationRequest
 from security.auth import verify_admin_token,verify_token,verify_token_and_refresh_token
@@ -101,8 +102,8 @@ async def conclude_change_of_user_password_process(email=  Body(title="email",de
     return {"message": result}
 
 
-@router.get("/details",response_model_exclude_none=True,dependencies=[Depends(verify_token)])
-async def get_admin_details(accessToken:str=Depends(verify_token) )->NewAdminOut:
+@router.get("/details",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
+async def get_admin_details(accessToken:str=Depends(verify_admin_token) )->NewAdminOut:
     user= await get_admin_details_with_accessToken_service(token=accessToken['accessToken'])
     if user:
         return user
@@ -110,8 +111,8 @@ async def get_admin_details(accessToken:str=Depends(verify_token) )->NewAdminOut
         raise HTTPException(status_code=404,detail="Details not found")
 
 
-@router.get("/all/details",response_model_exclude_none=True,dependencies=[Depends(verify_token)])
-async def get_admin_details(accessToken:str=Depends(verify_token) )->List[NewAdminOut]:
+@router.get("/all/details",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
+async def get_admin_details(accessToken:str=Depends(verify_admin_token) )->List[NewAdminOut]:
     user= await get_all_admin_details()
     if user:
         return user
@@ -121,13 +122,25 @@ async def get_admin_details(accessToken:str=Depends(verify_token) )->List[NewAdm
 
 
 
-@router.patch("/update",response_model_exclude_none=True,dependencies=[Depends(verify_token)])
-async def update(update:AdminUpdate,accessToken:str=Depends(verify_token))->NewAdminOut:
+@router.patch("/update",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
+async def update(update:AdminUpdate,accessToken:str=Depends(verify_admin_token))->NewAdminOut:
     try:
         await update_admin(token=accessToken['accessToken'],update=update)
         user= await get_admin_details_with_accessToken_service(token=accessToken['accessToken'])
         if user:
             return user
+        
+    except Exception as e:
+        raise e
+    
+    
+@router.get("/dashboardAnalytics",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
+async def analytics():
+    try:
+        result  = await perform_analytics()
+       
+        if result:
+            return result
         
     except Exception as e:
         raise e
