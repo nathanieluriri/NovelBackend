@@ -45,7 +45,7 @@ async def create_jwt_member_token(token):
     payload = {
         'accessToken': token,
         'role':'member',
-        'exp': datetime.datetime.now(timezone.utc) + datetime.timedelta(hours=20)
+        'exp': datetime.datetime.now(timezone.utc) + datetime.timedelta(minutes=15)
     }
     
     
@@ -61,7 +61,7 @@ async def create_jwt_admin_token(token):
     payload = {
         'accessToken': token,
         'role':'admin',
-        'exp': datetime.datetime.now(timezone.utc) + datetime.timedelta(hours=20)
+        'exp': datetime.datetime.now(timezone.utc) + datetime.timedelta(minutes=20)
     }
 
     
