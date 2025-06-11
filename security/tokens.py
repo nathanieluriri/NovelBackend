@@ -45,7 +45,7 @@ async def generate_refresh_tokens(userId,accessToken)->refreshTokenOut:
 
     accessToken = await decode_jwt_token(accessToken)
     if accessToken==None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Failed to decode the accesstoken while trying to create a refreshtoken")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Failed to decode the accesstoken while trying to create a refreshtoken")
     try:
         obj_id = ObjectId(accessToken['accessToken'])
     except errors.InvalidId:

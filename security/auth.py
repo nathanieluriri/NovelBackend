@@ -82,7 +82,7 @@ async def verify_admin_token(token: str = Depends(token_auth_scheme)):
             decoded_access_token = await decode_jwt_token(token=token.credentials)
             return decoded_access_token
     except TypeError:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Access Token Expired")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Access Token Expired")
 
 async def verify_any_token(token:str=Depends(token_auth_scheme)):
     token_type = await decode_jwt_token(token=token.credentials)
