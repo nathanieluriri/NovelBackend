@@ -14,17 +14,10 @@ async def get_all_available_pages(chapterId:str):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/get/{chapterId}/{pageNumber}", response_model=PageOut)
-async def get_particular_page(chapterId:str,pageNumber:int):
-    try:
-        pages = await fetch_single_page(chapterId=chapterId,pageNumber=pageNumber)
-        return pages
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    
+
     
 
-@router.get("/get/{pageId}", response_model=PageOut)
+@router.get("/get/page/{pageId}", response_model=PageOut)
 async def get_particular_page(pageId:str):
     try:
         pages = await fetch_single_page_by_pageId(pageId=pageId)
