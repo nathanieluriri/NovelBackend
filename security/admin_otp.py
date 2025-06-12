@@ -59,8 +59,11 @@ async def verify_otp(accessToken,otp):
         if value == otp:
             cache_db.delete(accessToken)
             decoded = await decode_jwt_token(accessToken)
-            await update_admin_access_tokens(token=decoded['accessToken'])
-            return True
+            if decoded:
+                await update_admin_access_tokens(token=decoded['accessToken'])
+                return True
+            else:
+                raise HTTPException(status_code=401, detail="Invalid Access Token (token expired)")
         else:
             raise HTTPException(status_code=401, detail="Incorrect OTP") 
     else:

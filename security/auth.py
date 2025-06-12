@@ -43,12 +43,14 @@ async def verify_token_and_refresh_token(token: str = Depends(token_auth_scheme)
             return refreshedTokens
     elif decodedT['role']=="admin":
         result = await validate_expired_admin_accesstoken(accessToken=str(token.credentials))
+        print("result",result)
         if result =="inactive":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="You Can't Make Use of an Inactive AccessToken"
             )
-        elif type(result) ==type(accessTokenOut(userId="sa",accesstoken="sa",)):
+        
+        elif isinstance(result,accessTokenOut):
             accessTokenObj = await generate_admin_access_tokens(userId=result.userId)
             NewDecodedT = await decode_jwt_token(token=accessTokenObj.accesstoken)
             
