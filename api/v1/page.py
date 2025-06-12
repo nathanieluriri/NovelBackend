@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException,Depends
 from security.auth import verify_admin_token
 from schemas.page_schema import PageOut,PageBase,PageUpdateRequest
 from typing import List
-from services.page_services import add_page,delete_page,fetch_page,update_page_content,fetch_single_page
+from services.page_services import add_page,delete_page,fetch_page,update_page_content,fetch_single_page,fetch_single_page_by_pageId
 
 router = APIRouter()
 @router.get("/get/{chapterId}", response_model=List[PageOut])
@@ -14,7 +14,7 @@ async def get_all_available_pages(chapterId:str):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/get/{chapterId}/{pageNumber}", response_model=List[PageOut])
+@router.get("/get/{chapterId}/{pageNumber}", response_model=PageOut)
 async def get_particular_page(chapterId:str,pageNumber:int):
     try:
         pages = await fetch_single_page(chapterId=chapterId,pageNumber=pageNumber)
@@ -23,6 +23,17 @@ async def get_particular_page(chapterId:str,pageNumber:int):
         raise HTTPException(status_code=400, detail=str(e))
     
     
+
+@router.get("/get/{pageId}", response_model=PageOut)
+async def get_particular_page(pageId:str):
+    try:
+        pages = await fetch_single_page_by_pageId(pageId=pageId)
+        return pages
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    
+
 
 @router.post("/create/{bookId}", response_model=PageOut,dependencies=[Depends(verify_admin_token)])
 async def create_a_new_page(page: PageBase,bookId:str):

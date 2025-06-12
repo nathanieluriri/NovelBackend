@@ -47,3 +47,7 @@ async def fetch_page(chapterId):
 async def fetch_single_page(chapterId,pageNumber):
     page = await get_page_by_page_number(number=pageNumber,chapterId=chapterId)
     return PageOut(**page)
+
+async def fetch_single_page_by_pageId(pageId):
+    page = await get_page_by_page_id(pageId=pageId)
+    return PageOut(**page)
