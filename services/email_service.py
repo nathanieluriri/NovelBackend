@@ -181,7 +181,7 @@ async def send_invitation(firstName,invitedEmail,lastName,inviterEmail):
     if firstName!="Default":
         allowedAdmin = AllowedAdminCreate(email=invitedEmail,invitedBy=inviterEmail)
         await create_allowed_admin(user_data=allowedAdmin)
-    email_body_content = generate_invitation_from_template(first_name=firstName,invitee_email_address=invitedEmail,last_name=lastName,main_website_link="https://knowyourmeme.com/memes/05-gpa-activities-tiktok-trend",register_link="https://knowyourmeme.com/memes/05-gpa-activities-tiktok-trend",)
+    email_body_content = generate_invitation_from_template(first_name=firstName,invitee_email_address=invitedEmail,last_name=lastName,main_website_link="https://sandbox-mei.vercel.app/admin/",register_link="https://sandbox-mei.vercel.app/admin/accept-invite",)
     sender_email = EMAIL_USERNAME
     sender_display_name = f"{firstName} from Mie" # The display name for the sender
     subject = "Admin Registration Invitation"
