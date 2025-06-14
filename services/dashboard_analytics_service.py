@@ -38,7 +38,7 @@ async def get_recent_chapters_with_wordcount() -> List[RecentChapterOut]:
         },
         {
             "$project": {
-                "_id": 0,
+                "_id": 1,
                 "bookId": 1,
                 "number": 1,
                 "chapterLabel": 1,

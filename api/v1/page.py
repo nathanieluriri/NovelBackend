@@ -68,11 +68,3 @@ async def update_a_page(pageId:str ,page: PageUpdateRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# @router.get("/get/{chapterId}/{pageNumber}", response_model=PageOut)
-# async def get_page_details(chapterId,pageNumber:int):
-#     try:
-#         pages = await fetch_page(chapterId=chapterId)
-#         return pages
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail=str(e))
-

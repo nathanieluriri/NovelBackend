@@ -114,6 +114,6 @@ class ChapterUpdateStatusOrLabelRequest(BaseModel):
         
 
 
-class RecentChapterOut(ChapterBase):
+class RecentChapterOut(ChapterOut):
     dateUpdated: Optional[str]=None
     wordCount: Optional[int]=0

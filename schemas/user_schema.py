@@ -7,6 +7,11 @@ class Provider(str, Enum):
     CREDENTIALS = "credentials"
     GOOGLE = "google"
     
+    
+class UserStatus(str, Enum):
+    ACTIVE = "Active"
+    INACTIVE = "Inactive"
+    SUSPENDED = "Suspended"
 
 class NewUserBase(BaseModel):
     provider:Provider
@@ -20,11 +25,11 @@ class NewUserBase(BaseModel):
 class NewUserCreate(NewUserBase):
     firstName:Optional[str]=None
     lastName:Optional[str]=None
+    status:Optional[UserStatus]=UserStatus.ACTIVE
     avatar:Optional[str]=None
     password: Union[str ,bytes]
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
-    subscriptionStartDate:Optional[str]="None"
-    subscriptionEndDate:Optional[str]="None"
+    balance:Optional[int]=0
     googleAccessToken:None
     @model_validator(mode='before')
     def set_dates(cls,values):
@@ -59,10 +64,12 @@ class NewUserOut(BaseModel):
 
 class UserOut(BaseModel):
     userId: Optional[str] =None
+    status:Optional[UserStatus]=None
     email:Optional[EmailStr]=None
     firstName:Optional[str]=None
     lastName:Optional[str]=None
     avatar:Optional[str]=None
+    balance:Optional[int]=0
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
     @model_validator(mode='before')
     def set_values(cls,values):
@@ -120,3 +127,4 @@ class UserUpdate(BaseModel):
     lastName:Optional[str] =None
     avatar:Optional[str] =None
     provider:Optional[Provider] =None
+    status:Optional[UserStatus]=None
