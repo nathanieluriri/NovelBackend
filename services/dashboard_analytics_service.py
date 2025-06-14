@@ -9,7 +9,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List
 
 
-async def get_newest_users(limit: int = 10) -> List[UserOut]:
+async def get_newest_users(limit: int = 8) -> List[UserOut]:
     cursor = db.users.find(
         {}
     ).sort("dateCreated", -1).limit(limit)
@@ -20,7 +20,7 @@ async def get_newest_users(limit: int = 10) -> List[UserOut]:
 async def get_recent_chapters_with_wordcount() -> List[RecentChapterOut]:
     pipeline = [
         {"$sort": {"dateUpdated": -1}},
-        {"$limit": 10},
+        {"$limit": 8},
         {
             "$lookup": {
                 "from": "pages",
