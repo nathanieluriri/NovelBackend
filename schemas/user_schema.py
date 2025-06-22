@@ -95,8 +95,7 @@ class OldUserCreate(OldUserBase):
     lastName:Optional[str]=None
     avatar:Optional[str]=None
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
-    subscriptionStartDate:Optional[str]=None
-    subscriptionEndDate:Optional[str]=None
+
     @model_validator(mode='before')
     def set_dates(cls,values):
         now_str = datetime.now(timezone.utc).isoformat()
@@ -126,5 +125,4 @@ class UserUpdate(BaseModel):
     firstName:Optional[str] =None
     lastName:Optional[str] =None
     avatar:Optional[str] =None
-    provider:Optional[Provider] =None
     status:Optional[UserStatus]=None

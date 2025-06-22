@@ -2,6 +2,9 @@ from repositories.admin_repo import get_admin_by_email, create_admin,get_allowd_
 from repositories.tokens_repo import delete_all_tokens_with_user_id,get_access_tokens
 from schemas.admin_schema import NewAdminCreate,NewAdminOut,AdminBase,DefaultAllowedAdminCreate,AdminUpdate
 from fastapi import HTTPException,status
+from schemas.user_schema import UserOut
+from repositories.user_repo import get_all_users,update_user_profile
+from typing import List
 from schemas.email_schema import ClientData
 from security.hash import check_password,hash_password
 from security.tokens import generate_admin_access_tokens,generate_refresh_tokens
@@ -157,3 +160,15 @@ async def get_all_admin_details()->list:
         return adminOut
         
         
+        
+async def get_all_user_details()->List[UserOut]:
+    users = await get_all_users()
+    usersOut =[]
+    for user in users:
+        usersOut.append(UserOut(**user))
+    return usersOut
+
+
+async def update_user_details(userId,updateData)->UserOut:
+    users = await update_user_profile(userId=userId,update=updateData.model_dump())
+    return UserOut(**users)

@@ -5,6 +5,12 @@ from bson import ObjectId
 async def get_user_by_email(email: str):
     return await db.users.find_one({"email": email})
 
+
+async def get_all_users():
+    user_cursor = db.users.find()
+    users = await user_cursor.to_list(length=None)
+    return users
+
 async def create_user(user_data: NewUserCreate):
     user = user_data.model_dump()
     result = await db.users.insert_one(user)
@@ -27,8 +33,9 @@ async def replace_password(userId: str, hashedPassword: str):
     
     
 async def update_user_profile(userId: str, update: dict):
-    await db.users.find_one_and_update(
+    updated_doc = await db.users.find_one_and_update(
         filter={"_id": ObjectId(userId)},
-        update={"$set": update}
+        update={"$set": update},
+        return_document=True  # or ReturnDocument.AFTER if using pymongo
     )
-    
+    return updated_doc
