@@ -1,14 +1,20 @@
 from schemas.imports import *
+from enum import Enum
+
+class LikeType(str,Enum):
+    Like_chapter="Liked Chapter"
+    Like_comment ="Liked Comment"
+    Like_comment_reply ="Liked Comment Reply"
+    Like_reply_reply ="Liked Reply To Reply"
 
 
 class LikeBaseRequest(BaseModel):
     chapterId: str
+    likeType:Optional[LikeType]=LikeType.Like_chapter
 
-
-class LikeBase(BaseModel):
+class LikeBase(LikeBaseRequest):
     userId:str
     role:str
-    chapterId: str
 
 
 class LikeCreate(LikeBase):

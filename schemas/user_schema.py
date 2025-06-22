@@ -2,7 +2,14 @@ from schemas.imports import *
 from security.hash import hash_password
 from typing import Union
 from enum import Enum
+from core.database import db
+from pydantic_async_validation import async_field_validator, AsyncValidationModelMixin, ValidationInfo
+from schemas.chapter_schema import ChapterOut
 
+async def get_chapter_one_id():
+    chapter = await db.chapters.find_one({"number":1})
+    chapterOut = ChapterOut(**chapter)
+    return chapterOut
 class Provider(str, Enum):
     CREDENTIALS = "credentials"
     GOOGLE = "google"
@@ -22,7 +29,7 @@ class NewUserBase(BaseModel):
       
         
         
-class NewUserCreate(NewUserBase):
+class NewUserCreate(AsyncValidationModelMixin,NewUserBase):
     firstName:Optional[str]=None
     lastName:Optional[str]=None
     status:Optional[UserStatus]=UserStatus.ACTIVE
@@ -30,7 +37,14 @@ class NewUserCreate(NewUserBase):
     password: Union[str ,bytes]
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     balance:Optional[int]=0
+    unlockedChapters:Optional[List[str]]=None
     googleAccessToken:None
+    
+    @async_field_validator('commentsCount','likesCount')
+    async def set_default_chapter(self,config: ValidationInfo):
+        chapter = await get_chapter_one_id()
+        self.unlockedChapters.append(chapter.id)
+        
     @model_validator(mode='before')
     def set_dates(cls,values):
         now_str = datetime.now(timezone.utc).isoformat()
@@ -70,6 +84,7 @@ class UserOut(BaseModel):
     lastName:Optional[str]=None
     avatar:Optional[str]=None
     balance:Optional[int]=0
+    unlockedChapters:Optional[List[str]]=None
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
     @model_validator(mode='before')
     def set_values(cls,values):

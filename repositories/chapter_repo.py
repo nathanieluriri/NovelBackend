@@ -1,5 +1,6 @@
 from core.database import db
 from schemas.chapter_schema import ChapterCreate, ChapterOut,ChapterUpdate
+from fastapi import HTTPException
 from bson import ObjectId,errors
 import asyncio
 
@@ -7,7 +8,8 @@ async def get_chapter_by_bookId(bookId:str):
     try:
         obj_id= ObjectId(bookId)
     except errors.InvalidId:
-        return None
+        raise HTTPException(status_code=500,detail="Invalid Book Id")
+
     
     cursor= db.chapters.find({"bookId":bookId})
     retrieved_chapters= [chapters async for chapters in cursor]

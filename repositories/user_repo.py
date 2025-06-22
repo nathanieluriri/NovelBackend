@@ -1,10 +1,41 @@
 from core.database import db
-from schemas.user_schema import NewUserCreate,NewUserOut
+from schemas.user_schema import NewUserCreate,UserOut
 from bson import ObjectId
 
 async def get_user_by_email(email: str):
     return await db.users.find_one({"email": email})
 
+async def checks_user_balance(userId:str):
+    try:
+        user = await db.users.find_one({"_id":ObjectId(userId)})
+        if user:
+            userOut = UserOut(**user)
+            return userOut.balance
+        else: return None
+    except:
+        return None
+    
+async def update_user_balance(userId,number_of_stars):
+    try:
+        user = await db.users.find_one({"_id":ObjectId(userId)})
+        if user:
+            userOut = UserOut(**user)
+            db.users.update_one(filter={"_id":ObjectId(userOut.userId)},update={"$set":{"balance":(userOut.balance-number_of_stars)}})
+        else: return None
+    except:
+        return None
+    
+    
+async def update_user_unlocked_chapters(userId,chapterId):
+    try:
+        user = await db.users.find_one({"_id":ObjectId(userId)})
+        if user:
+            userOut = UserOut(**user)
+            db.users.update_one(filter={"_id":ObjectId(userOut.userId)},update={"$set":{"unlockedChapters":userOut.unlockedChapters.append(chapterId)}})
+        else: return None
+    except:
+        return None
+    
 
 async def get_all_users():
     user_cursor = db.users.find()
