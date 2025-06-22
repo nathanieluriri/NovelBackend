@@ -58,7 +58,7 @@ def createLink(userId,email,amount,firstName=None,lastName=None,):
     try:
         response = requests.post(url, json=payload, headers=headers)
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx and 5xx)
-        print(response.json())
+        return response.json()['data']
     except requests.exceptions.RequestException as err:
         print("Request error:", err)
         if err.response is not None:
