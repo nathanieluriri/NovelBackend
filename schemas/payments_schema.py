@@ -37,6 +37,12 @@ class PaymentBundles(BaseModel):
     amount:int
     numberOfstars:int
     
+class PaymentLink(BaseModel):
+    userId:str 
+    email:str 
+    amount:str
+    firstName:str
+    lastName:str
     
 class PaymentBundlesUpdate(BaseModel):
     amount:Optional[int]=None
