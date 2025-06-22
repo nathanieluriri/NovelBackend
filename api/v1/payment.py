@@ -44,7 +44,7 @@ async def get_payment_bundle_route(bundleId:str,paymentBundle:PaymentBundlesUpda
 
     
 @router.post("/create-payment-link")
-async def create_payment_link(payment:PaymentLink)->PaymentBundlesOut:
+async def create_payment_link(payment:PaymentLink):
     try:
         newLink = createLink(userId=payment.userId,email=payment.email,amount=payment.amount,firstName=payment.firstName,lastName=payment.lastName)
         return newLink
