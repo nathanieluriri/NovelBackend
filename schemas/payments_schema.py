@@ -54,7 +54,8 @@ class PaymentBundlesOut(BaseModel):
     numberOfstars:int
     @model_validator(mode='before')
     def set_id(cls,values):
-        values['id'] = str(values.get('_id'))
+        
+        values['id'] = str(values.get('_id',""))
         return values
     
     
