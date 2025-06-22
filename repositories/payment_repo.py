@@ -4,6 +4,7 @@ from schemas.payments_schema import *
 
 bundle_collection =db.payments
 transaction_collection=db.transaction
+
 # CREATE
 async def create_payment_bundle(bundle: PaymentBundles)->PaymentBundlesOut:
     bundle_dict=bundle.model_dump()
