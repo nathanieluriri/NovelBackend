@@ -1,7 +1,11 @@
 from repositories.payment_repo import *
 from repositories.user_repo import checks_user_balance,update_user_balance,update_user_unlocked_chapters
-
-
+from dotenv import load_dotenv
+import os
+load_dotenv()
+FLUTTERWAVE_PUBLIC_KEY= os.getenv("FLUTTERWAVE_PUBLIC_KEY")
+FLUTTERWAVE_SECRET_KEY=os.getenv("FLUTTERWAVE_SECRET_KEY")
+FLUTTERWAVE_ENCRYPTION_KEY=os.getenv("FLUTTERWAVE_ENCRYPTION_KEY")
 async def create_transaction(user_id: str, tx_type: TransactionType, number_of_stars: Optional[int] = None, amount: Optional[float] = None):
     transaction = TransactionIn(userId=user_id,TransactionType=tx_type,numberOfStars=number_of_stars,amount=amount)
     if tx_type==TransactionType.chapter_purchase:
@@ -19,3 +23,43 @@ async def pay_for_chapter(user_id: str,bundle_id:str,chapter_id: str) -> Optiona
         return transaction
     else:
         return None
+    
+    
+def createLink(userId,email,amount,firstName=None,lastName=None,):
+    import time
+    import requests
+    
+    firstName = firstName if firstName is not None else "Stranger"
+    lastName = lastName if lastName is not None else "Stranger"
+    
+    epoch_time = int(time.time())
+    
+    url = 'https://api.flutterwave.com/v3/payments'
+
+    payload = {
+        "tx_ref": f"user_id:{userId}, time:{epoch_time}",
+        "amount": f"{amount}",
+        "currency": "NGN",
+        "redirect_url": "https://nattyboi-novelbackend.hf.space/success",
+        "customer": {
+            "email":email,
+            "name": f"{firstName} {lastName}"
+        },
+        "customizations": {
+            "title": "Star Purchase With Mei "
+        }
+    }
+
+    headers = {
+        "Authorization": f"Bearer {FLUTTERWAVE_SECRET_KEY}",  # Replace with your real secret key
+        "Content-Type": "application/json"
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx and 5xx)
+        print(response.json())
+    except requests.exceptions.RequestException as err:
+        print("Request error:", err)
+        if err.response is not None:
+            print("Error response:", err.response.text)

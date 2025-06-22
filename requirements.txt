@@ -4,6 +4,8 @@ pydantic-async-validation
 bcrypt
 requests
 pyjwt
+python-flutterwave
+
 python-dateutil 
 redis
 beautifulsoup4==4.13.4
