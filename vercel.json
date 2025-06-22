@@ -1,5 +1,11 @@
 {
-  "builds": [
-    { "src": "Dockerfile", "use": "@vercel/docker" }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "main.py": {
+      "runtime": "python3.9"
+    }
+  },
+  "routes": [
+    { "src": "/(.*)", "dest": "main.py" }
   ]
 }
