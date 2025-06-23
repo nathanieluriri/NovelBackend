@@ -60,44 +60,75 @@ async def create_payment_link(payment:PaymentLink,dep=Depends(verify_token)):
     
     
 import requests as r
+import json
+import requests as r
+
+
+WEBHOOK_LOG_URL = "https://webhook.site/aa908af2-2986-4ec1-b4aa-eb7d28c67dae"
+
 @router.post("/webhook")
 async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
-    # 1. Get raw body bytes
-    
-    import json
     raw_body = await request.body()
+    log_payload = {
+        "status": "start",
+        "error": None,
+        "tx_ref": None,
+        "step": "verifying",
+    }
 
-    # 2. Compute HMAC SHA256 using your secret hash
-    computed_hash = hmac.new(
-        FLW_WEBHOOK_SECRET_HASH.encode(),
-        raw_body,
-        hashlib.sha256
-    ).hexdigest()
+    try:
+        # Compute HMAC-SHA256 hash
+        computed_hash = hmac.new(
+            FLW_WEBHOOK_SECRET_HASH.encode(),
+            raw_body,
+            hashlib.sha256
+        ).hexdigest()
 
-    # 3. Compare computed hash with the header
-    if computed_hash != verif_hash:
-        raise HTTPException(status_code=403, detail="Invalid webhook signature")
+        if computed_hash != verif_hash:
+            log_payload["status"] = "rejected"
+            log_payload["error"] = "Invalid signature"
+            raise HTTPException(status_code=403, detail="Invalid webhook signature")
 
-    # 4. Parse payload and continue your logic
-    payload = await request.json()
-    event = payload.get("event")
-    data = payload.get("data", {})
+        # Parse payload
+        payload = await request.json()
+        event = payload.get("event")
+        data = payload.get("data", {})
 
-    if event == "charge.completed" and data.get("status") == "successful" and data.get("payment_type") == "bank_transfer":
-        tx_ref = data.get("tx_ref")
-        parts = dict(part.split(":") for part in tx_ref.split("|"))
-        user_id = parts.get("uid")
-        timestamp = parts.get("ts")
-        bundle_id = parts.get("bid")
-        webhook_url = "https://webhook.site/aa908af2-2986-4ec1-b4aa-eb7d28c67dae"
-        payload['uid']=user_id
-        payload['timestamp']=timestamp
-        payload['bid']=bundle_id
-        raw_body = json.dumps(payload).encode()
-        r.post(
-            url=webhook_url,
-            data= raw_body
-        )
-        return {"status": "verified"}
-    
-    return {"status": "ignored"}
+        if (
+            event == "charge.completed" and
+            data.get("status") == "successful" and
+            data.get("payment_type") == "bank_transfer"
+        ):
+            tx_ref = data.get("tx_ref")
+            log_payload["tx_ref"] = tx_ref
+            parts = dict(part.split(":") for part in tx_ref.split("|"))
+            payload["uid"] = parts.get("uid")
+            payload["timestamp"] = parts.get("ts")
+            payload["bid"] = parts.get("bid")
+            log_payload["status"] = "verified"
+            log_payload["step"] = "processed"
+            log_payload["data"] = payload
+
+            return {"status": "verified"}
+
+        log_payload["status"] = "ignored"
+        log_payload["step"] = "not_matching_criteria"
+
+        return {"status": "ignored"}
+
+    except Exception as e:
+        log_payload["status"] = "error"
+        log_payload["error"] = str(e)
+
+        raise  # Re-raise so FastAPI still throws the correct error
+
+    finally:
+        # Log to webhook.site no matter what
+        try:
+            r.post(
+                url=WEBHOOK_LOG_URL,
+                data=json.dumps(log_payload),
+                headers={"Content-Type": "application/json"}
+            )
+        except Exception as log_err:
+            print("Failed to log to webhook.site:", log_err)
