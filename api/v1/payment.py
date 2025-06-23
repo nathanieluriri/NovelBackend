@@ -59,16 +59,17 @@ async def create_payment_link(payment:PaymentLink,dep=Depends(verify_token)):
         raise    
     
     
-FLW_SECRET_HASH = "ba6fbf8a7da2c6fef0ff24ec4d4ef2262a1c5558eccbbb9c4051fa6d71368f7a"  # Not your API key
-
+import requests as r
 @router.post("/webhook")
 async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
     # 1. Get raw body bytes
+    
+    import json
     raw_body = await request.body()
 
     # 2. Compute HMAC SHA256 using your secret hash
     computed_hash = hmac.new(
-        FLW_SECRET_HASH.encode(),
+        FLW_WEBHOOK_SECRET_HASH.encode(),
         raw_body,
         hashlib.sha256
     ).hexdigest()
@@ -84,7 +85,16 @@ async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
 
     if event == "charge.completed" and data.get("status") == "successful" and data.get("payment_type") == "bank_transfer":
         tx_ref = data.get("tx_ref")
-        # Parse tx_ref if needed and fulfill the order
+        parts = dict(part.split(":") for part in tx_ref.split("|"))
+        user_id = parts.get("uid")
+        timestamp = parts.get("ts")
+        bundle_id = parts.get("bid")
+        webhook_url = "https://webhook.site/aa908af2-2986-4ec1-b4aa-eb7d28c67dae"
+        raw_body = json.dumps(payload).encode()
+        r.post(
+            url=webhook_url,
+            data= raw_body
+        )
         return {"status": "verified"}
     
     return {"status": "ignored"}
