@@ -90,6 +90,9 @@ async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
         timestamp = parts.get("ts")
         bundle_id = parts.get("bid")
         webhook_url = "https://webhook.site/aa908af2-2986-4ec1-b4aa-eb7d28c67dae"
+        payload['uid']=user_id
+        payload['timestamp']=timestamp
+        payload['bid']=bundle_id
         raw_body = json.dumps(payload).encode()
         r.post(
             url=webhook_url,
