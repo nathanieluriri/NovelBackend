@@ -12,5 +12,5 @@ COPY . /app
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"
 
-# CMD ["gunicorn", "-w", "10", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:7860", "--timeout", "120", "--graceful-timeout", "30", "main:app"]
-CMD ["uvicorn", "main:app", "--reload", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["gunicorn", "-w", "10", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:7860", "--timeout", "120", "--graceful-timeout", "30", "main:app"]
+# CMD ["uvicorn", "main:app", "--reload", "--host", "0.0.0.0", "--port", "7860"]
