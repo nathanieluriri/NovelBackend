@@ -1,6 +1,9 @@
 from schemas.imports import *
 from enum import Enum
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
+FLW_WEBHOOK_SECRET_HASH = os.getenv("FLW_WEBHOOK_SECRET_HASH")
 class TransactionType(str, Enum):
     real_cash = "cash"
     star_currency_transfer = "transfer of Star currency between accounts"
@@ -36,13 +39,10 @@ class TransactionOut(BaseModel):
 class PaymentBundles(BaseModel):
     amount:int
     numberOfstars:int
+    description:str
     
 class PaymentLink(BaseModel):
-    userId:str 
-    email:str 
-    amount:str
-    firstName:str
-    lastName:str
+    bundle_id:str
     
 class PaymentBundlesUpdate(BaseModel):
     amount:Optional[int]=None
@@ -52,6 +52,7 @@ class PaymentBundlesOut(BaseModel):
     id:str
     amount:int
     numberOfstars:int
+    description:str
     @model_validator(mode='before')
     def set_id(cls,values):
         

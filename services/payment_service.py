@@ -25,7 +25,7 @@ async def pay_for_chapter(user_id: str,bundle_id:str,chapter_id: str) -> Optiona
         return None
     
     
-def createLink(userId,email,amount,firstName=None,lastName=None,):
+def createLink(userId,email,amount,bundle_id,bundle_description,firstName=None,lastName=None,):
     import time
     import requests
     
@@ -37,7 +37,7 @@ def createLink(userId,email,amount,firstName=None,lastName=None,):
     url = 'https://api.flutterwave.com/v3/payments'
 
     payload = {
-        "tx_ref": f"user_id:{userId}, time:{epoch_time}",
+        "tx_ref": f"uid:{userId}|ts:{epoch_time}|bid:{bundle_id}",
         "amount": f"{amount}",
         "currency": "NGN",
         "redirect_url": "https://nattyboi-novelbackend.hf.space/success",
@@ -46,7 +46,18 @@ def createLink(userId,email,amount,firstName=None,lastName=None,):
             "name": f"{firstName} {lastName}"
         },
         "customizations": {
-            "title": "Star Purchase With Mei "
+            "title": "Star Purchase With Mei ",
+            "logo": "https://iili.io/3DKqndN.jpg",
+            "description":bundle_description
+        },
+        "configurations": {
+				"session_duration": 10,
+				"max_retry_attempt": 5, 
+			},
+        "meta":{
+            "userId":userId,
+            "bundleId":bundle_id,
+            "time":epoch_time
         }
     }
 

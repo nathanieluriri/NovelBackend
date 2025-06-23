@@ -1,6 +1,6 @@
 from repositories.user_repo import get_user_by_email, create_user,get_user_by_email_and_provider,get_user_by_userId,replace_password,update_user_profile
 from repositories.tokens_repo import get_access_tokens,delete_all_tokens_with_user_id
-from schemas.user_schema import NewUserCreate,NewUserOut,OldUserBase,OldUserCreate,OldUserOut,UserUpdate
+from schemas.user_schema import NewUserCreate,UserOut,OldUserBase,OldUserCreate,OldUserOut,UserUpdate
 from fastapi import HTTPException,status
 from security.hash import check_password,hash_password
 from security.tokens import generate_member_access_tokens,generate_refresh_tokens
@@ -37,7 +37,7 @@ async def register_user(user_data: NewUserCreate):
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="User already exists")
     new_user =await create_user(user_data)
-    new_user = NewUserOut(**new_user)
+    new_user = UserOut(**new_user)
     accessToken= await generate_member_access_tokens(new_user.userId)
     new_user.accessToken=accessToken.accesstoken
     refreshToken= await generate_refresh_tokens(userId=new_user.userId,accessToken=new_user.accessToken)
@@ -90,12 +90,12 @@ async def login_google(user_data:OldUserBase):
     
     
     
-async def get_user_details_with_accessToken(token:str):
+async def get_user_details_with_accessToken(token:str)->UserOut:
     tokenOut = await get_access_tokens(accessToken=token)
     if tokenOut:
         userDetails = await get_user_by_userId(userId=tokenOut.userId)
         if userDetails:
-            return NewUserOut(**userDetails)
+            return UserOut(**userDetails)
         
         
 async def change_of_user_password_flow1(email):

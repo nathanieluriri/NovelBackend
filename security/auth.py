@@ -91,7 +91,7 @@ async def verify_any_token(token:str=Depends(token_auth_scheme)):
     if isinstance(token_type,dict):
         if token_type['role']=='admin':
             return await verify_admin_token(token=token)
-        elif token_type["role"]=='user':
+        elif token_type["role"]=='member':
             return await verify_token(token=token)
         else:
             raise HTTPException(
