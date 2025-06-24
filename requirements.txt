@@ -5,7 +5,7 @@ bcrypt
 requests
 pyjwt
 python-flutterwave
-
+celery
 python-dateutil 
 redis
 beautifulsoup4==4.13.4
