@@ -1,5 +1,5 @@
 from repositories.payment_repo import create_payment_bundle,get_all_payment_bundles,update_payment_bundle,delete_payment_bundle
-from services.payment_service import createLink
+from services.payment_service import createLink,record_purchase_of_stars
 from fastapi import APIRouter, HTTPException,Depends,Request, Header
 from fastapi.responses import JSONResponse
 from security.auth import verify_admin_token,verify_token,verify_any_token
@@ -102,8 +102,7 @@ async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
 
         if (
             event == "charge.completed" and
-            data.get("status") == "successful" and
-            data.get("payment_type") == "bank_transfer"
+            data.get("status") == "successful"
         ):
             tx_ref = data.get("tx_ref")
             log_payload["tx_ref"] = tx_ref
@@ -115,6 +114,7 @@ async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
             log_payload["step"] = "processed"
             log_payload["data"] = payload
             data= {"status": "verified"}
+            record_purchase_of_stars.delay(userId=payload["uid"],tx_ref=tx_ref,bundleId=payload["bid"])
             return JSONResponse(status_code=200,content=data)
 
         log_payload["status"] = "ignored"
