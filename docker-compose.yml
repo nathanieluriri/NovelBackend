@@ -1,3 +1,6 @@
+version: "3.9"
+
+services:
   web:
     build: .
     command: gunicorn -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:7860 --timeout 120 --graceful-timeout 30 main:app
@@ -8,7 +11,7 @@
       - CELERY_RESULT_BACKEND=redis://localhost:6379/0
     volumes:
       - .:/app
-    network_mode: "host"   
+    network_mode: "host"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
       interval: 30s
@@ -24,4 +27,4 @@
       - CELERY_RESULT_BACKEND=redis://localhost:6379/0
     volumes:
       - .:/app
-    network_mode: "host"   
+    network_mode: "host"
