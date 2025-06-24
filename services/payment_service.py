@@ -1,17 +1,37 @@
 from repositories.payment_repo import *
-from repositories.user_repo import checks_user_balance,update_user_balance,update_user_unlocked_chapters
+from repositories.user_repo import checks_user_balance,subtract_from_user_balance,update_user_unlocked_chapters,add_to_user_balance
 from dotenv import load_dotenv
+from core.background_task import celery
 import os
+import asyncio
+import time
+
 load_dotenv()
 FLUTTERWAVE_PUBLIC_KEY= os.getenv("FLUTTERWAVE_PUBLIC_KEY")
 FLUTTERWAVE_SECRET_KEY=os.getenv("FLUTTERWAVE_SECRET_KEY")
 FLUTTERWAVE_ENCRYPTION_KEY=os.getenv("FLUTTERWAVE_ENCRYPTION_KEY")
-async def create_transaction(user_id: str, tx_type: TransactionType, number_of_stars: Optional[int] = None, amount: Optional[float] = None):
-    transaction = TransactionIn(userId=user_id,TransactionType=tx_type,numberOfStars=number_of_stars,amount=amount)
+
+
+
+
+async def create_transaction(user_id: str, bundleId:str,tx_ref:Optional[str] = None,tx_type: TransactionType=TransactionType.chapter_purchase):
+    epoch_time  = int(time.time())
     if tx_type==TransactionType.chapter_purchase:
+        payment = await get_payment_bundle(bundle_id=bundleId)
+        transaction = TransactionIn(userId=user_id,paymentId=f"uid:{user_id}||nos:{payment.numberOfstars}||ts:{epoch_time}", TransactionType=tx_type,numberOfStars=payment.numberOfstars,amount=payment.amount)
         transactionOut =await create_transaction_history(transaction)
-        await update_user_balance(userId= user_id,number_of_stars=number_of_stars)
+        await subtract_from_user_balance(userId= user_id,number_of_stars=payment.numberOfstars)
         return transactionOut
+    
+    elif tx_type==TransactionType.real_cash:
+        
+        payment = await get_payment_bundle(bundle_id=bundleId)
+        if payment:
+            transaction = TransactionIn(userId=user_id,paymentId=tx_ref, TransactionType=tx_type,numberOfStars=payment.numberOfstars,amount=payment.amount)
+            transactionOut =await create_transaction_history(transaction)
+            await add_to_user_balance(userId= user_id,number_of_stars=payment.numberOfstars)
+            return transactionOut
+
 
 
 async def pay_for_chapter(user_id: str,bundle_id:str,chapter_id: str) -> Optional[TransactionIn]:
@@ -74,3 +94,11 @@ def createLink(userId,email,amount,bundle_id,bundle_description,firstName=None,l
         print("Request error:", err)
         if err.response is not None:
             print("Error response:", err.response.text)
+
+
+@celery.task
+def record_purchase_of_stars(userId: str, tx_ref,bundleId: str,):
+    
+    return asyncio.run(
+        create_transaction(bundleId=bundleId,user_id=userId,tx_ref=tx_ref, tx_type=TransactionType.real_cash,)
+    )

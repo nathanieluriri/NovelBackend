@@ -70,7 +70,7 @@ async def login_admin(user_data:AdminBase,request:Request):
         print("login function",e)
         raise 
 
-@router.post('/verify/')
+@router.post('/verify')
 async def verify_otp_and_activate_accessToken(verify:VerificationRequest):
     try:
         result =await verify_otp(accessToken=verify.access_token,otp=verify.otp)
