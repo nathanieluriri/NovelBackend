@@ -19,7 +19,7 @@ services:
 
   worker:
     build: .
-    command: celery -A celery_app worker --loglevel=info
+    command: celery -A core.background_task worker --loglevel=info
     environment:
       - CELERY_BROKER_URL=redis://localhost:6379/0
       - CELERY_RESULT_BACKEND=redis://localhost:6379/0
