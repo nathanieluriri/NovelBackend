@@ -1,4 +1,5 @@
 from schemas.imports import *
+import time
 from enum import Enum
 import os
 from dotenv import load_dotenv
@@ -15,6 +16,7 @@ class TransactionIn(BaseModel):
     numberOfStars:Optional[int]=None
     TransactionType:TransactionType
     amount:Optional[int]=None
+    paymentId:str
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     @model_validator(mode='before')
     def set_dates(cls,values):
@@ -37,9 +39,11 @@ class TransactionOut(BaseModel):
 
     
 class PaymentBundles(BaseModel):
+    
     amount:int
     numberOfstars:int
     description:str
+    
     
 class PaymentLink(BaseModel):
     bundle_id:str
@@ -47,12 +51,13 @@ class PaymentLink(BaseModel):
 class PaymentBundlesUpdate(BaseModel):
     amount:Optional[int]=None
     numberOfstars:Optional[int]=None
-    
+    description:Optional[str]=None
 class PaymentBundlesOut(BaseModel):
     id:str
     amount:int
     numberOfstars:int
     description:str
+    dateCreated:int
     @model_validator(mode='before')
     def set_id(cls,values):
         

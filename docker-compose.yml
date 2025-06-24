@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    command: gunicorn -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:7860 --timeout 120 --graceful-timeout 30 main:app
+    ports:
+      - "7860:7860"
+    depends_on:
+      redis:
+        condition: service_healthy # Ensures redis is healthy before starting web
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # Add any other ENV your app needs
+    volumes:
+      - .:/app # Mount the current host directory to /app inside the container for development
+    healthcheck: # Added healthcheck for the web service
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"] # Assuming a /health endpoint in your app
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s # Give the app some time to start up before checking
+
+  worker:
+    build: .
+    command: celery -A celery_app worker --loglevel=info
+    depends_on:
+      redis:
+        condition: service_healthy # Ensures redis is healthy before starting worker
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # Same envs as above if needed
+    volumes:
+      - .:/app # Mount the current host directory to /app inside the container for development
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    healthcheck: # Added healthcheck for the redis service
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 5

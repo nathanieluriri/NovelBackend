@@ -8,6 +8,8 @@ transaction_collection=db.transaction
 # CREATE
 async def create_payment_bundle(bundle: PaymentBundles)->PaymentBundlesOut:
     bundle_dict=bundle.model_dump()
+    timestamp =  int(time.time())
+    bundle_dict['dateCreated']=timestamp
     result = await bundle_collection.insert_one(bundle_dict)
     paymentObj =await bundle_collection.find_one({"_id":ObjectId(result.inserted_id)})
     paymentOut = PaymentBundlesOut(**paymentObj)
@@ -30,6 +32,8 @@ async def get_all_payment_bundles()->List[PaymentBundlesOut]:
 # UPDATE
 async def update_payment_bundle(bundle_id: str, update_data: PaymentBundlesUpdate)->bool:
     update_data = update_data.model_dump(exclude=None)
+    timestamp =  int(time.time())
+    update_data['dateUpdated']=timestamp
     result = await bundle_collection.update_one(
         {"_id": ObjectId(bundle_id)},
         {"$set": update_data}

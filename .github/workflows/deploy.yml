@@ -1,0 +1,22 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [master]  # Change to your branch name if not using main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH & Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd /home/ubuntu/NovelBackend
+            git pull origin master
+            chmod +x deploy.sh
+            ./deploy.sh

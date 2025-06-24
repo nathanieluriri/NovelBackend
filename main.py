@@ -1,4 +1,5 @@
 from fastapi import FastAPI,Depends
+from fastapi.responses import JSONResponse
 from security.auth import verify_admin_token
 from api.v1 import user,book,bookmark,like,chapter,page,admin,comments,payment
 from security.auth import verify_token
@@ -13,6 +14,9 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
 )
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
     
 user_dependencies=[Depends(verify_token)]
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])

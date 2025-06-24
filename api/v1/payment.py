@@ -1,10 +1,10 @@
-from repositories.payment_repo import create_payment_bundle,get_all_payment_bundles,update_payment_bundle
+from repositories.payment_repo import create_payment_bundle,get_all_payment_bundles,update_payment_bundle,delete_payment_bundle
 from services.payment_service import createLink
-from fastapi import APIRouter, HTTPException,Depends
+from fastapi import APIRouter, HTTPException,Depends,Request, Header
+from fastapi.responses import JSONResponse
 from security.auth import verify_admin_token,verify_token,verify_any_token
 import hmac
 import hashlib
-from fastapi import  Request, Header, HTTPException
 from schemas.payments_schema import *
 from services.user_service import get_user_details_with_accessToken
 from repositories.payment_repo import get_payment_bundle
@@ -30,17 +30,30 @@ async def get_payment_bundle_route()->List[PaymentBundlesOut]:
     
     
     
-@router.patch("/update-payment-bundles/{bundleId}")
-async def get_payment_bundle_route(bundleId:str,paymentBundle:PaymentBundlesUpdate)->List[PaymentBundlesOut]:
+@router.patch("/update-payment-bundle/{bundleId}")
+async def update_payment_bundle_route(bundleId:str,paymentBundle:PaymentBundlesUpdate):
     if len(bundleId) != 24:
         raise HTTPException(status_code=400, detail="bundleId must be exactly 24 characters long")
 
     try:
         FixedBundle = await update_payment_bundle(bundle_id=bundleId,update_data=paymentBundle)
-        return FixedBundle
+        return JSONResponse(content={"message":FixedBundle}) 
     except:
         raise    
     
+    
+    
+@router.delete("/delete-payment-bundle/{bundleId}")
+async def delete_payment_bundle_route(bundleId:str):
+    if len(bundleId) != 24:
+        raise HTTPException(status_code=400, detail="bundleId must be exactly 24 characters long")
+
+    try:
+        FixedBundle = await delete_payment_bundle(bundle_id=bundleId)
+        
+        return JSONResponse(content={"message":FixedBundle}) 
+    except:
+        raise    
     
     
     
@@ -59,15 +72,15 @@ async def create_payment_link(payment:PaymentLink,dep=Depends(verify_token)):
         raise    
     
     
-import requests as r
-import json
-import requests as r
 
+ 
 
 WEBHOOK_LOG_URL = "https://webhook.site/aa908af2-2986-4ec1-b4aa-eb7d28c67dae"
 
 @router.post("/webhook")
 async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
+    import requests as r
+    import json
     raw_body = await request.body()
     log_payload = {
         "status": "start",
@@ -77,7 +90,6 @@ async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
     }
 
     try:
-        # Compute HMAC-SHA256 hash
         if verif_hash is None or verif_hash != FLW_WEBHOOK_SECRET_HASH:
             log_payload["status"] = "rejected"
             log_payload["error"] = "Invalid signature"
@@ -102,8 +114,8 @@ async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
             log_payload["status"] = "verified"
             log_payload["step"] = "processed"
             log_payload["data"] = payload
-
-            return {"status": "verified"}
+            data= {"status": "verified"}
+            return JSONResponse(status_code=200,content=data)
 
         log_payload["status"] = "ignored"
         log_payload["step"] = "not_matching_criteria"
