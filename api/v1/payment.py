@@ -78,13 +78,7 @@ async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
 
     try:
         # Compute HMAC-SHA256 hash
-        computed_hash = hmac.new(
-            FLW_WEBHOOK_SECRET_HASH.encode(),
-            raw_body,
-            hashlib.sha256
-        ).hexdigest()
-
-        if computed_hash != verif_hash:
+        if verif_hash is None or verif_hash != FLW_WEBHOOK_SECRET_HASH:
             log_payload["status"] = "rejected"
             log_payload["error"] = "Invalid signature"
             raise HTTPException(status_code=403, detail="Invalid webhook signature")
