@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException,Depends, Request,Body
 from schemas.admin_schema import NewAdminCreate, AdminBase,NewAdminOut,DefaultAllowedAdminCreate,AdminUpdate,AdminDashboardAnalytics
 from schemas.user_schema import UserStatus,UserUpdate
-from services.admin_services import  get_admin_details_with_accessToken_service,register_admin_func,login_admin_func,invitation_process,change_of_admin_password_flow1,change_of_admin_password_flow2, setup_default_admin,update_admin,get_all_admin_details,get_all_user_details,update_user_details
+from services.admin_services import  get_admin_details_with_accessToken_service,register_admin_func,login_admin_func,invitation_process,change_of_admin_password_flow1,change_of_admin_password_flow2, setup_default_admin,update_admin,get_all_admin_details_service,get_all_user_details,update_user_details
 from services.email_service import get_location,send_invitation
 from services.dashboard_analytics_service import perform_analytics
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
@@ -114,7 +114,7 @@ async def get_admin_details(accessToken:str=Depends(verify_admin_token) )->NewAd
 
 @router.get("/all/details",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
 async def get_all_admin_details(accessToken:str=Depends(verify_admin_token) )->List[NewAdminOut]:
-    user= await get_all_admin_details()
+    user= await get_all_admin_details_service()
     if user:
         return user
     else:

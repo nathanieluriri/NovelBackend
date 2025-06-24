@@ -15,7 +15,9 @@ click==8.1.8
 colorama==0.4.6
 dnspython==2.7.0
 dotenv==0.9.9
-
+gevent
+eventlet
+celery[redis]
 httpx==0.28.1
 
 MarkupSafe==3.0.2

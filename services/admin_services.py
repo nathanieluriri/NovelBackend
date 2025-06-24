@@ -154,7 +154,7 @@ async def update_admin(token:str,update:AdminUpdate):
     
     
         
-async def get_all_admin_details()->list:
+async def get_all_admin_details_service()->list:
     adminOut = await get_all_admins()
     if adminOut:
         return adminOut

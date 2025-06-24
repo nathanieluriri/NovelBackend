@@ -1,7 +1,9 @@
 from repositories.payment_repo import *
-from repositories.user_repo import checks_user_balance,subtract_from_user_balance,update_user_unlocked_chapters,add_to_user_balance
+from schemas.user_schema import UserOut
+from repositories.user_repo import get_user_by_userId,checks_user_balance,subtract_from_user_balance,update_user_unlocked_chapters,add_to_user_balance
 from dotenv import load_dotenv
 from core.background_task import celery
+from fastapi import HTTPException
 import os
 import asyncio
 import time
@@ -14,15 +16,23 @@ FLUTTERWAVE_ENCRYPTION_KEY=os.getenv("FLUTTERWAVE_ENCRYPTION_KEY")
 
 
 
-async def create_transaction(user_id: str, bundleId:str,tx_ref:Optional[str] = None,tx_type: TransactionType=TransactionType.chapter_purchase):
+async def create_transaction(user_id: str, bundleId:str,tx_ref:Optional[str] = None,chapterId:Optional[str] = None,tx_type: TransactionType=TransactionType.chapter_purchase)->UserOut:
     epoch_time  = int(time.time())
     if tx_type==TransactionType.chapter_purchase:
         payment = await get_payment_bundle(bundle_id=bundleId)
-        transaction = TransactionIn(userId=user_id,paymentId=f"uid:{user_id}||nos:{payment.numberOfstars}||ts:{epoch_time}", TransactionType=tx_type,numberOfStars=payment.numberOfstars,amount=payment.amount)
-        transactionOut =await create_transaction_history(transaction)
-        await subtract_from_user_balance(userId= user_id,number_of_stars=payment.numberOfstars)
-        return transactionOut
-    
+        balance = await checks_user_balance(userId=user_id)
+        
+        if balance >= payment.numberOfstars:
+            await update_user_unlocked_chapters(userId=user_id,chapterId=chapterId)
+            transaction = TransactionIn(userId=user_id,paymentId=f"uid:{user_id}||nos:{payment.numberOfstars}||ts:{epoch_time}", TransactionType=tx_type,numberOfStars=payment.numberOfstars,amount=payment.amount)
+            transactionOut =await create_transaction_history(transaction)
+            await subtract_from_user_balance(userId= user_id,number_of_stars=payment.numberOfstars)
+            User = await get_user_by_userId(userId=user_id)
+            userOut = UserOut(**User)
+            return userOut
+        else:
+            raise HTTPException(status_code=400, detail="Insufficient balance")
+        
     elif tx_type==TransactionType.real_cash:
         
         payment = await get_payment_bundle(bundle_id=bundleId)
@@ -30,21 +40,18 @@ async def create_transaction(user_id: str, bundleId:str,tx_ref:Optional[str] = N
             transaction = TransactionIn(userId=user_id,paymentId=tx_ref, TransactionType=tx_type,numberOfStars=payment.numberOfstars,amount=payment.amount)
             transactionOut =await create_transaction_history(transaction)
             await add_to_user_balance(userId= user_id,number_of_stars=payment.numberOfstars)
-            return transactionOut
+            User = await get_user_by_userId(userId=user_id)
+            userOut = UserOut(**User)
+            return userOut
 
 
 
 async def pay_for_chapter(user_id: str,bundle_id:str,chapter_id: str) -> Optional[TransactionIn]:
-    paymentBundle = await get_payment_bundle(bundle_id=bundle_id)
-    balance = await checks_user_balance(userId=user_id)
-    if balance >= paymentBundle.numberOfstars:
-        transaction = await create_transaction(user_id=user_id,tx_type=TransactionType.chapter_purchase,number_of_stars=paymentBundle.numberOfstars)
-        await update_user_unlocked_chapters(userId=user_id,chapterId=chapter_id)
-        return transaction
-    else:
-        return None
+    transaction = await create_transaction(user_id=user_id,tx_type=TransactionType.chapter_purchase,bundleId=bundle_id,chapterId=chapter_id)
+    return transaction
     
     
+
 def createLink(userId,email,amount,bundle_id,bundle_description,firstName=None,lastName=None,):
     import time
     import requests
@@ -97,8 +104,7 @@ def createLink(userId,email,amount,bundle_id,bundle_description,firstName=None,l
 
 
 @celery.task
-def record_purchase_of_stars(userId: str, tx_ref,bundleId: str,):
+async def record_purchase_of_stars(userId: str, tx_ref,bundleId: str,):
     
-    return asyncio.run(
-        create_transaction(bundleId=bundleId,user_id=userId,tx_ref=tx_ref, tx_type=TransactionType.real_cash,)
-    )
+    return await create_transaction(bundleId=bundleId,user_id=userId,tx_ref=tx_ref, tx_type=TransactionType.real_cash,)
+
