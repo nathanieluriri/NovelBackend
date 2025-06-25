@@ -38,7 +38,7 @@ async def create_transaction(user_id: str, bundleId:str,tx_ref:Optional[str] = N
         payment = await get_payment_bundle(bundle_id=bundleId)
         if payment:
             indempotent_check = await get_transaction_history_by_paymentId(paymentId=tx_ref)
-            if indempotent_check:
+            if indempotent_check==None:
                 transaction = TransactionIn(userId=user_id,paymentId=tx_ref, TransactionType=tx_type,numberOfStars=payment.numberOfstars,amount=payment.amount)
                 transactionOut =await create_transaction_history(transaction)
                 await add_to_user_balance(userId= user_id,number_of_stars=payment.numberOfstars)
