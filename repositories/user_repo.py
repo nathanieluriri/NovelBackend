@@ -41,7 +41,14 @@ async def update_user_unlocked_chapters(userId,chapterId):
         user = await db.users.find_one({"_id":ObjectId(userId)})
         if user:
             userOut = UserOut(**user)
-            db.users.update_one(filter={"_id":ObjectId(userOut.userId)},update={"$set":{"unlockedChapters":userOut.unlockedChapters.append(chapterId)}})
+            oldlist = userOut.unlockedChapters
+            for items in oldlist:
+                if items==chapterId:
+                    return None
+            oldlist.append(chapterId)
+            print("new List",oldlist)
+            db.users.update_one(filter={"_id":ObjectId(userOut.userId)},update={"$set":{"unlockedChapters":oldlist}})
+            return True
         else: return None
     except:
         return None

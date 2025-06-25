@@ -23,7 +23,10 @@ async def create_transaction(user_id: str, bundleId:str,tx_ref:Optional[str] = N
         balance = await checks_user_balance(userId=user_id)
         
         if balance >= payment.numberOfstars:
-            await update_user_unlocked_chapters(userId=user_id,chapterId=chapterId)
+            unlock_succes = await update_user_unlocked_chapters(userId=user_id,chapterId=chapterId)
+            if not unlock_succes:
+                raise HTTPException(status_code=500,detail="Most likely done before or user doesnt exist")
+            
             transaction = TransactionIn(userId=user_id,paymentId=f"uid:{user_id}||nos:{payment.numberOfstars}||ts:{epoch_time}", TransactionType=tx_type,numberOfStars=payment.numberOfstars,amount=payment.amount)
             transactionOut =await create_transaction_history(transaction)
             await subtract_from_user_balance(userId= user_id,number_of_stars=payment.numberOfstars)
@@ -50,7 +53,7 @@ async def create_transaction(user_id: str, bundleId:str,tx_ref:Optional[str] = N
             return userOut
 
 
-async def pay_for_chapter(user_id: str,bundle_id:str,chapter_id: str) -> Optional[TransactionIn]:
+async def pay_for_chapter(user_id: str,bundle_id:str,chapter_id: str) -> Optional[UserOut]:
     transaction = await create_transaction(user_id=user_id,tx_type=TransactionType.chapter_purchase,bundleId=bundle_id,chapterId=chapter_id)
     return transaction
     

@@ -77,7 +77,7 @@ async def create_payment_link(payment:PaymentLink,dep=Depends(verify_token)):
  
  
 @router.post("/pay-chapter")
-async def create_payment_link(payment: ChapterPayment, dep=Depends(verify_token)):
+async def make_payment_for_book(payment: ChapterPayment, dep=Depends(verify_token)):
     try:
         payment_bundle = await get_payment_bundle(bundle_id=payment.bundle_id)
         if not payment_bundle:
@@ -91,13 +91,13 @@ async def create_payment_link(payment: ChapterPayment, dep=Depends(verify_token)
         if not chapter:
             raise HTTPException(status_code=404, detail="Chapter not found")
 
-        paid_chapter = pay_for_chapter(
+        paid_chapter = await pay_for_chapter(
             user_details.userId,
             bundle_id=payment_bundle.id,
             chapter_id=chapter.id
         )
 
-        return {"message": "Payment successful", "chapter": paid_chapter}
+        return paid_chapter
 
     except HTTPException:
         raise  # re-raise HTTP exceptions directly

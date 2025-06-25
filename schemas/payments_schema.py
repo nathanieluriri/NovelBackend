@@ -71,6 +71,7 @@ class PaymentBundlesOut(BaseModel):
     id:str
     amount:int
     numberOfstars:int
+    bundleType:Optional[BundleType]=None
     description:str
     dateCreated:int
     @model_validator(mode='before')
