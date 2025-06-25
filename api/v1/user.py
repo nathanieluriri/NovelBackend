@@ -28,17 +28,17 @@ async def register(user: NewUserBase):
 
 
 
-@router.post("/sign-in",response_model=TokenOut)
+@router.post("/sign-in",response_model_exclude_none=True,response_model=OldUserOut)
 async def login(user_data:OldUserBase):
     try:
         if user_data.provider=="credentials":
             data = await login_credentials(user_data=user_data)
-            response = TokenOut(userId=data.userId,accesstoken=data.accessToken,refreshtoken=data.refreshToken)
-            return response
+        
+            return data
         elif user_data.provider=="google":
             data = await login_google(user_data=user_data)
-            response = TokenOut(userId=data.userId,accesstoken=data.accessToken,refreshtoken=data.refreshToken)
-            return response
+           
+            return data
         else:
             raise HTTPException(status_code=404,detail="Provider Not Recognized")
         

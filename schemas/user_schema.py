@@ -58,6 +58,7 @@ class NewUserCreate(AsyncValidationModelMixin,NewUserBase):
 
 class NewUserOut(BaseModel):
     userId: Optional[str] =None
+    balance:Optional[int]=None
     accessToken: Optional[str]=None
     refreshToken:Optional[str]=None
     unlockedChapters:Optional[List[str]]=[]
@@ -65,16 +66,7 @@ class NewUserOut(BaseModel):
     lastName:Optional[str]=None
     avatar:Optional[str]=None
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
-    @model_validator(mode='before')
-    def set_values(cls,values):
-        values['userId']= str(values.get('_id'))
-        return values
-        
 
-    model_config = {
-        'populate_by_name': True,
-        'arbitrary_types_allowed': True,
-    }
 
 
 class UserOut(BaseModel):
@@ -91,8 +83,7 @@ class UserOut(BaseModel):
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
     @model_validator(mode='before')
     def set_id(cls,values):
-        
-        values['userId'] = str(values.get('_id'))
+        values['userId'] = str(values['_id'])
         return values
     
         
@@ -130,7 +121,7 @@ class OldUserOut(NewUserOut):
     refreshToken:str    
     @model_validator(mode='before')
     def set_values(cls,values):   
-        values['userId']= str(values.get('_id'))
+        values['userId']= str(values['_id'])
         return values
         
 
