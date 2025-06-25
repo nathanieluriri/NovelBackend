@@ -58,6 +58,7 @@ class NewUserCreate(AsyncValidationModelMixin,NewUserBase):
 
 class NewUserOut(BaseModel):
     userId: Optional[str] =None
+    email:str
     balance:Optional[int]=None
     accessToken: Optional[str]=None
     refreshToken:Optional[str]=None
