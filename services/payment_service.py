@@ -103,7 +103,6 @@ def createLink(userId,email,amount,bundle_id,bundle_description,firstName=None,l
             print("Error response:", err.response.text)
 
 
-@celery.task
 async def record_purchase_of_stars(userId: str, tx_ref,bundleId: str,):
     
     return await create_transaction(bundleId=bundleId,user_id=userId,tx_ref=tx_ref, tx_type=TransactionType.real_cash,)
