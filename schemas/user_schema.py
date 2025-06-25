@@ -37,10 +37,10 @@ class NewUserCreate(AsyncValidationModelMixin,NewUserBase):
     password: Union[str ,bytes]
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     balance:Optional[int]=0
-    unlockedChapters:Optional[List[str]]=None
+    unlockedChapters:Optional[List[str]]=[]
     googleAccessToken:None
     
-    @async_field_validator('commentsCount','likesCount')
+    @async_field_validator('unlockedChapters')
     async def set_default_chapter(self,config: ValidationInfo):
         chapter = await get_chapter_one_id()
         self.unlockedChapters.append(chapter.id)
@@ -60,6 +60,7 @@ class NewUserOut(BaseModel):
     userId: Optional[str] =None
     accessToken: Optional[str]=None
     refreshToken:Optional[str]=None
+    unlockedChapters:Optional[List[str]]=[]
     firstName:Optional[str]=None
     lastName:Optional[str]=None
     avatar:Optional[str]=None
@@ -83,13 +84,17 @@ class UserOut(BaseModel):
     firstName:Optional[str]=None
     lastName:Optional[str]=None
     avatar:Optional[str]=None
+    accessToken: Optional[str]=None
+    refreshToken:Optional[str]=None
     balance:Optional[int]=0
     unlockedChapters:Optional[List[str]]=None
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
     @model_validator(mode='before')
-    def set_values(cls,values):
-        values['userId']= str(values.get('_id'))
+    def set_id(cls,values):
+        
+        values['userId'] = str(values.get('_id'))
         return values
+    
         
 
     model_config = {

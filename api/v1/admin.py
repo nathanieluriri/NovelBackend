@@ -147,24 +147,3 @@ async def analytics():
         raise e
     
     
-@router.get("/user-details",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
-async def get_user_data():
-    try:
-        result  = await get_all_user_details()
-       
-        if result:
-            return result
-        
-    except Exception as e:
-        raise e
-    
-@router.patch("/{userId}",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
-async def update_user_data(userId:str,user:UserUpdate):
-    try:
-        result  = await update_user_details(updateData=user,userId=userId)
-       
-        if result:
-            return result
-        
-    except Exception as e:
-        raise e
