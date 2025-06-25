@@ -1,5 +1,6 @@
 from repositories.payment_repo import create_payment_bundle,get_all_payment_bundles,update_payment_bundle,delete_payment_bundle
-from services.payment_service import createLink,record_purchase_of_stars
+from services.payment_service import createLink,record_purchase_of_stars,pay_for_chapter
+from services.chapter_services import fetch_chapter_with_chapterId
 from fastapi import APIRouter, HTTPException,Depends,Request, Header
 from fastapi.responses import JSONResponse
 from security.auth import verify_admin_token,verify_token,verify_any_token
@@ -74,6 +75,34 @@ async def create_payment_link(payment:PaymentLink,dep=Depends(verify_token)):
     
 
  
+ 
+@router.post("/pay-chapter")
+async def create_payment_link(payment: ChapterPayment, dep=Depends(verify_token)):
+    try:
+        payment_bundle = await get_payment_bundle(bundle_id=payment.bundle_id)
+        if not payment_bundle:
+            raise HTTPException(status_code=404, detail="Payment bundle not found")
+
+        user_details = await get_user_details_with_accessToken(token=dep['accessToken'])
+        if not user_details:
+            raise HTTPException(status_code=401, detail="User details not found or unauthorized")
+
+        chapter = await fetch_chapter_with_chapterId(chapterId=payment.chapterId)
+        if not chapter:
+            raise HTTPException(status_code=404, detail="Chapter not found")
+
+        paid_chapter = pay_for_chapter(
+            user_details.userId,
+            bundle_id=payment_bundle.id,
+            chapter_id=chapter.id
+        )
+
+        return {"message": "Payment successful", "chapter": paid_chapter}
+
+    except HTTPException:
+        raise  # re-raise HTTP exceptions directly
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
  
 @router.post("/webhook")

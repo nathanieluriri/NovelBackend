@@ -57,6 +57,10 @@ class PaymentBundles(BaseModel):
 class PaymentLink(BaseModel):
     bundle_id:str
     
+class ChapterPayment(BaseModel):
+    bundle_id:str
+    chapterId:str 
+    
 class PaymentBundlesUpdate(BaseModel):
     amount:Optional[int]=None
     bundleType:Optional[BundleType]=None
