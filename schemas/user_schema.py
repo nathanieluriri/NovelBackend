@@ -72,7 +72,7 @@ class NewUserOut(BaseModel):
 class UserOut(BaseModel):
     userId: Optional[str] =None
     status:Optional[UserStatus]=None
-    email:Optional[EmailStr]=None
+    email:str
     firstName:Optional[str]=None
     lastName:Optional[str]=None
     avatar:Optional[str]=None
