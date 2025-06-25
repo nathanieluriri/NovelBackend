@@ -114,7 +114,8 @@ async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
             log_payload["step"] = "processed"
             log_payload["data"] = payload
             data= {"status": "verified"}
-            log_payload["userOut"]= await record_purchase_of_stars(userId=payload["uid"],tx_ref=tx_ref,bundleId=payload["bid"])
+            user_out= await record_purchase_of_stars(userId=payload["uid"],tx_ref=tx_ref,bundleId=payload["bid"])
+            log_payload["user_balance"]=user_out.balance
             return JSONResponse(status_code=200,content=data)
 
         log_payload["status"] = "ignored"
