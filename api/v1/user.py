@@ -94,7 +94,7 @@ async def update(update:UserUpdate,accessToken:str=Depends(verify_token))->NewUs
     
     
     
-@router.get("/user-details",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
+@router.get("/all/user-details",description="Requires admin Tokens",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
 async def get_user_data():
     try:
         result  = await get_all_user_details()
@@ -105,7 +105,7 @@ async def get_user_data():
     except Exception as e:
         raise e
     
-@router.patch("/{userId}",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
+@router.patch("/{userId}",description="Requires admin Tokens",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
 async def update_user_data(userId:str,user:UserUpdate):
     try:
         result  = await update_user_details(updateData=user,userId=userId)
