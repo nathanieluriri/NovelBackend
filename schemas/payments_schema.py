@@ -10,6 +10,15 @@ class TransactionType(str, Enum):
     star_currency_transfer = "transfer of Star currency between accounts"
     chapter_purchase ="transfer of Star currency for chapter access"
 
+
+class BundleType(str, Enum):
+    cash_to_star = "cash"
+    star_to_book = "Purchase Of Books"
+    star_to_star ="Transferring Stars To Other Users"
+    cash_promo="Cash Promo"
+    book_promo="Book Promo"
+
+
 # Records Transactions...
 class TransactionIn(BaseModel):
     userId:str
@@ -39,7 +48,7 @@ class TransactionOut(BaseModel):
 
     
 class PaymentBundles(BaseModel):
-    
+    bundleType:BundleType
     amount:int
     numberOfstars:int
     description:str
@@ -50,8 +59,10 @@ class PaymentLink(BaseModel):
     
 class PaymentBundlesUpdate(BaseModel):
     amount:Optional[int]=None
+    bundleType:Optional[BundleType]=None
     numberOfstars:Optional[int]=None
     description:Optional[str]=None
+    
 class PaymentBundlesOut(BaseModel):
     id:str
     amount:int
@@ -61,7 +72,7 @@ class PaymentBundlesOut(BaseModel):
     @model_validator(mode='before')
     def set_id(cls,values):
         
-        values['id'] = str(values.get('_id',""))
+        values['id'] = str(values.get('_id'))
         return values
     
     
