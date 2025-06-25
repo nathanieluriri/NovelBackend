@@ -79,20 +79,10 @@ WEBHOOK_LOG_URL = "https://webhook.site/aa908af2-2986-4ec1-b4aa-eb7d28c67dae"
 
 @router.post("/webhook")
 async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
-    import requests as r
-    import json
-    raw_body = await request.body()
-    log_payload = {
-        "status": "start",
-        "error": None,
-        "tx_ref": None,
-        "step": "verifying",
-    }
 
     try:
         if verif_hash is None or verif_hash != FLW_WEBHOOK_SECRET_HASH:
-            log_payload["status"] = "rejected"
-            log_payload["error"] = "Invalid signature"
+         
             raise HTTPException(status_code=403, detail="Invalid webhook signature")
 
         # Parse payload
@@ -105,41 +95,21 @@ async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
             data.get("status") == "successful"
         ):
             tx_ref = data.get("tx_ref")
-            log_payload["tx_ref"] = tx_ref
             parts = dict(part.split(":") for part in tx_ref.split("|"))
             payload["uid"] = parts.get("uid")
             payload["timestamp"] = parts.get("ts")
             payload["bid"] = parts.get("bid")
-            log_payload["status"] = "verified"
-            log_payload["step"] = "processed"
-            log_payload["data"] = payload
+         
             data= {"status": "verified"}
             user_out= await record_purchase_of_stars(userId=payload["uid"],tx_ref=tx_ref,bundleId=payload["bid"])
-            user_out= await record_purchase_of_stars(userId=payload["uid"],tx_ref=tx_ref,bundleId=payload["bid"])
-            user_out= await record_purchase_of_stars(userId=payload["uid"],tx_ref=tx_ref,bundleId=payload["bid"])
-            user_out= await record_purchase_of_stars(userId=payload["uid"],tx_ref=tx_ref,bundleId=payload["bid"])
-            user_out= await record_purchase_of_stars(userId=payload["uid"],tx_ref=tx_ref,bundleId=payload["bid"])
-            log_payload["user_balance"]=user_out.balance
             return JSONResponse(status_code=200,content=data)
 
-        log_payload["status"] = "ignored"
-        log_payload["step"] = "not_matching_criteria"
-
+     
         return {"status": "ignored"}
 
     except Exception as e:
-        log_payload["status"] = "error"
-        log_payload["error"] = str(e)
+
 
         raise  # Re-raise so FastAPI still throws the correct error
 
-    finally:
-        # Log to webhook.site no matter what
-        try:
-            r.post(
-                url=WEBHOOK_LOG_URL,
-                data=json.dumps(log_payload),
-                headers={"Content-Type": "application/json"}
-            )
-        except Exception as log_err:
-            print("Failed to log to webhook.site:", log_err)
+     
