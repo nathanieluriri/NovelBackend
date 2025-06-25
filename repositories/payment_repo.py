@@ -93,6 +93,13 @@ async def get_all_transaction_history(userId:str)->List[PaymentBundlesOut]:
     return bundles
 
 
+# READ BY PAYMENTID
+async def get_transaction_history_by_paymentId(paymentId: str) -> Optional[TransactionOut]:
+    doc = await transaction_collection.find_one({"paymentId": paymentId})
+    if doc is None:
+        return None
+    return TransactionOut(**doc)
+
 # DELETE
 async def delete_payment_bundle(bundle_id: str)->bool:
     result = await bundle_collection.delete_one({"_id": ObjectId(bundle_id)})
