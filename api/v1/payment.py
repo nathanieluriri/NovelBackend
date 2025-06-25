@@ -75,8 +75,7 @@ async def create_payment_link(payment:PaymentLink,dep=Depends(verify_token)):
 
  
 
-WEBHOOK_LOG_URL = "https://webhook.site/aa908af2-2986-4ec1-b4aa-eb7d28c67dae"
-
+ 
 @router.post("/webhook")
 async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
 
