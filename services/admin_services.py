@@ -181,7 +181,7 @@ async def get_one_user_details(userId:str):
         list_of_unlocked_chapters =user['unlockedChapters']
         chapterDetailsList=[]
         for chapter in list_of_unlocked_chapters:
-            chapterDetails = await get_chapter_by_chapter_id(chapterDetails)
+            chapterDetails = await get_chapter_by_chapter_id(chapter)
             if chapterDetails:
                 chapterDetails['hasRead']=True # TODO: Here you will replace with db logic that checks if this user has read this chapter
                 chapterDetailsList.append(chapterDetailsList)
