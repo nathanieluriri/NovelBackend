@@ -138,3 +138,9 @@ class UserUpdate(BaseModel):
     lastName:Optional[str] =None
     avatar:Optional[str] =None
     status:Optional[UserStatus]=None
+    
+class UserStatusUpdate(BaseModel):
+    firstName:Optional[str] =None
+    lastName:Optional[str] =None
+    avatar:Optional[str] =None
+    status:Optional[UserStatus]=None
