@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException,Depends, Body,Path
 from schemas.user_schema import Provider, NewUserBase, NewUserCreate,NewUserOut,OldUserBase,OldUserOut,OldUserCreate,UserUpdate,UserStatus
 from services.user_service import register_user,verify_google_access_token,login_credentials,login_google,get_user_details_with_accessToken,change_of_user_password_flow1,change_of_user_password_flow2,update_user
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
-from services.admin_services import get_all_user_details,update_user_details
+from services.admin_services import get_all_user_details,update_user_details,get_one_user_details
 from security.auth import verify_admin_token,verify_token,verify_token_and_refresh_token
 from repositories.tokens_repo import delete_refresh_token
 router = APIRouter()
@@ -104,6 +104,19 @@ async def get_user_data():
         
     except Exception as e:
         raise e
+    
+    
+@router.get("/{userId}/user-details",description="Requires admin Tokens",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
+async def get_particular_user_data( userId: str = Path(..., description="The ID of the user whose status is to be updated."),):
+    try:
+        result  = await get_one_user_details(userId=userId)
+       
+        if result:
+            return result
+        
+    except Exception as e:
+        raise e
+    
     
 @router.patch("/{userId}/status/{new_status}",description="Requires admin Tokens",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
 async def update_user_data(    userId: str = Path(..., description="The ID of the user whose status is to be updated."),

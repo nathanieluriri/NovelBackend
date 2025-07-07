@@ -1,5 +1,7 @@
 from repositories.admin_repo import get_admin_by_email, create_admin,get_allowd_admin_emails,get_admin_by_email_return_dict,get_admin_details_with_accessToken,replace_password_admin,create_default_admin, update_admin_profile,get_all_admins
 from repositories.tokens_repo import delete_all_tokens_with_user_id,get_access_tokens
+from repositories.user_repo import get_user_by_userId
+from repositories.chapter_repo import get_chapter_by_chapter_id
 from schemas.admin_schema import NewAdminCreate,NewAdminOut,AdminBase,DefaultAllowedAdminCreate,AdminUpdate
 from fastapi import HTTPException,status
 from schemas.user_schema import UserOut
@@ -172,3 +174,17 @@ async def get_all_user_details()->List[UserOut]:
 async def update_user_details(userId,updateData)->UserOut:
     users = await update_user_profile(userId=userId,update=updateData.model_dump())
     return UserOut(**users)
+
+async def get_one_user_details(userId:str):
+    user = await get_user_by_userId(userId=userId)
+    if user:
+        list_of_unlocked_chapters =user['unlockedChapters']
+        chapterDetailsList=[]
+        for chapter in list_of_unlocked_chapters:
+            chapterDetails = await get_chapter_by_chapter_id(chapterDetails)
+            if chapterDetails:
+                chapterDetails['hasRead']=True # TODO: Here you will replace with db logic that checks if this user has read this chapter
+                chapterDetailsList.append(chapterDetailsList)
+        user['chapterDetails']=chapterDetailsList
+        return user
+            
