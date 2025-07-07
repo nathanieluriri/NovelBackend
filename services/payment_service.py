@@ -1,5 +1,7 @@
 from repositories.payment_repo import *
 from schemas.user_schema import UserOut
+from schemas.read_schema import MarkAsRead
+from repositories.read_repo import upsert_read_record
 from repositories.user_repo import get_user_by_userId,checks_user_balance,subtract_from_user_balance,update_user_unlocked_chapters,add_to_user_balance
 from dotenv import load_dotenv
 from core.background_task import celery
@@ -27,6 +29,7 @@ async def create_transaction(user_id: str, bundleId:str,tx_ref:Optional[str] = N
             if not unlock_succes:
                 raise HTTPException(status_code=500,detail="Most likely done before or user doesnt exist")
             
+            await upsert_read_record(data=MarkAsRead(userId=user_id,chapterId=chapterId,hasRead=False))
             transaction = TransactionIn(userId=user_id,paymentId=f"uid:{user_id}||nos:{payment.numberOfstars}||ts:{epoch_time}", TransactionType=tx_type,numberOfStars=payment.numberOfstars,amount=payment.amount)
             transactionOut =await create_transaction_history(transaction)
             await subtract_from_user_balance(userId= user_id,number_of_stars=payment.numberOfstars)

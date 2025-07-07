@@ -71,6 +71,20 @@ class ChapterOut(AsyncValidationModelMixin,ChapterBase):
     }
 
 
+class ChapterOutSyncVersion(ChapterBase):
+    id: Optional[str] =None
+    hasRead:bool
+    @model_validator(mode='before')
+    def set_dynamic_values(cls,values):
+        values['id']= str(values.get('_id'))
+        return values
+
+    model_config = {
+        'populate_by_name': True,
+        'arbitrary_types_allowed': True,
+        'json_encoders':{ObjectId:str}
+    }
+
 class ChapterUpdate(ChapterBase):
     bookId:Optional[str]=None
     number: Optional[int]=None

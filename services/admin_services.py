@@ -1,10 +1,11 @@
 from repositories.admin_repo import get_admin_by_email, create_admin,get_allowd_admin_emails,get_admin_by_email_return_dict,get_admin_details_with_accessToken,replace_password_admin,create_default_admin, update_admin_profile,get_all_admins
 from repositories.tokens_repo import delete_all_tokens_with_user_id,get_access_tokens
 from repositories.user_repo import get_user_by_userId
+from repositories.read_repo import get_particular_chapter_user_has_read
 from repositories.chapter_repo import get_chapter_by_chapter_id
 from schemas.admin_schema import NewAdminCreate,NewAdminOut,AdminBase,DefaultAllowedAdminCreate,AdminUpdate
 from fastapi import HTTPException,status
-from schemas.user_schema import UserOut
+from schemas.user_schema import UserOut,UserOutChapterDetails
 from repositories.user_repo import get_all_users,update_user_profile
 from typing import List
 from schemas.email_schema import ClientData
@@ -175,7 +176,7 @@ async def update_user_details(userId,updateData)->UserOut:
     users = await update_user_profile(userId=userId,update=updateData.model_dump())
     return UserOut(**users)
 
-async def get_one_user_details(userId:str):
+async def get_one_user_details(userId:str)->UserOutChapterDetails:
     user = await get_user_by_userId(userId=userId)
     if user:
         list_of_unlocked_chapters =user['unlockedChapters']
@@ -183,9 +184,12 @@ async def get_one_user_details(userId:str):
         for chapter in list_of_unlocked_chapters:
             chapterDetails = await get_chapter_by_chapter_id(chapter)
             if chapterDetails:
-                chapterDetails['_id']=chapter
-                chapterDetails['hasRead']=True # TODO: Here you will replace with db logic that checks if this user has read this chapter
-                chapterDetailsList.append(chapterDetailsList)
+                HasReadObj=await get_particular_chapter_user_has_read(userId=str(user['_id']),chapterId=chapter) 
+                chapterDetails['hasRead']=HasReadObj.hasRead
+                chapterDetailsList.append(chapterDetails)
+
         user['chapterDetails']=chapterDetailsList
-        return user
+        
+        User =UserOutChapterDetails(**user)
+        return User
             

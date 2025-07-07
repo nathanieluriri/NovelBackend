@@ -4,7 +4,7 @@ from typing import Union
 from enum import Enum
 from core.database import db
 from pydantic_async_validation import async_field_validator, AsyncValidationModelMixin, ValidationInfo
-from schemas.chapter_schema import ChapterOut
+from schemas.chapter_schema import ChapterOut,ChapterOutSyncVersion
 
 async def get_chapter_one_id():
     chapter = await db.chapters.find_one({"number":1})
@@ -95,6 +95,9 @@ class UserOut(BaseModel):
     }
 
 
+class UserOutChapterDetails(UserOut):
+    chapterDetails:List[ChapterOutSyncVersion]
+
 
 class OldUserBase(BaseModel):
     provider:Provider
@@ -144,3 +147,5 @@ class UserStatusUpdate(BaseModel):
     lastName:Optional[str] =None
     avatar:Optional[str] =None
     status:Optional[UserStatus]=None
+    
+    
