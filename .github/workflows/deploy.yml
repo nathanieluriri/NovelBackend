@@ -16,7 +16,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_KEY }}
           script: |
-            cd /home/ubuntu/NovelBackend
+            cd /home/ubuntu/novel-backend
             git pull origin master
             chmod +x deploy.sh
             ./deploy.sh
