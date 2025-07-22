@@ -7,12 +7,10 @@ services:
     ports:
       - "7860:7860"
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
     volumes:
       - .:/app
-    depends_on:
-      - redis
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
       interval: 30s
@@ -24,14 +22,7 @@ services:
     build: .
     command: celery -A core.background_task worker --loglevel=info --pool=eventlet --concurrency=10
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
     volumes:
       - .:/app
-    depends_on:
-      - redis
-
-  redis:
-    image: redis:7
-    
-    restart: always
