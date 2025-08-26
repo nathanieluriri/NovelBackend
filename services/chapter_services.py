@@ -18,7 +18,13 @@ async def add_chapter(chapter:ChapterCreate):
         print(chap)
         return chap
     else:
-        raise HTTPException(status_code=404,detail="Coudn't find a book with such book Id")
+        created_chapter =await create_chapter(chapter_data=ChapterCreate(coverImage=chapter.coverImage,bookId=chapter.bookId,chapterLabel=chapter.chapterLabel,status=chapter.status,number=1))
+        
+        await update_book(book_id=chapter.bookId,update_data=BookUpdate(chapterCount=1,chapters=1))
+        chap =ChapterOut(**created_chapter)
+        await chap.model_async_validate()
+        print(chap)
+        return chap
 
 
 async def delete_chapter(chapterId:str):
