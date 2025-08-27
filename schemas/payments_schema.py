@@ -7,16 +7,16 @@ load_dotenv()
 FLW_WEBHOOK_SECRET_HASH = os.getenv("FLW_WEBHOOK_SECRET_HASH")
 class TransactionType(str, Enum):
     real_cash = "cash"
-    star_currency_transfer = "transfer of Star currency between accounts"
-    chapter_purchase ="transfer of Star currency for chapter access"
+    star_currency_transfer = "transferOfStarCurrencyBetweenAccounts"
+    chapter_purchase ="transferOfStarCurrencyForChapterAccess"
 
 
 class BundleType(str, Enum):
     cash_to_star = "cash"
-    star_to_book = "Purchase Of Books"
-    star_to_star ="Transferring Stars To Other Users"
-    cash_promo="Cash Promo"
-    book_promo="Book Promo"
+    star_to_book = "purchaseOfBooks"
+    star_to_star ="transferringStarsToOtherUsers"
+    cash_promo="cashPromo"
+    book_promo="bookPromo"
 
 
 # Records Transactions...
