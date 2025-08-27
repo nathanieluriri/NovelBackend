@@ -31,7 +31,7 @@ async def get_payment_bundle_route()->List[PaymentBundlesOut]:
     
     
     
-@router.patch("/update-payment-bundle/{bundleId}")
+@router.patch("/update-payment-bundle/{bundleId}",dependencies=[Depends(verify_admin_token)] )
 async def update_payment_bundle_route(bundleId:str,paymentBundle:PaymentBundlesUpdate):
     if len(bundleId) != 24:
         raise HTTPException(status_code=400, detail="bundleId must be exactly 24 characters long")
@@ -44,7 +44,7 @@ async def update_payment_bundle_route(bundleId:str,paymentBundle:PaymentBundlesU
     
     
     
-@router.delete("/delete-payment-bundle/{bundleId}")
+@router.delete("/delete-payment-bundle/{bundleId}",dependencies=[Depends(verify_admin_token)])
 async def delete_payment_bundle_route(bundleId:str):
     if len(bundleId) != 24:
         raise HTTPException(status_code=400, detail="bundleId must be exactly 24 characters long")
