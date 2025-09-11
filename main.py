@@ -5,7 +5,7 @@ from api.v1 import user,book,bookmark,like,chapter,page,admin,comments,payment
 from security.auth import verify_token
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="Mie Novel-app FastAPI Backend",summary="""Backend for the "Mie Novel-app", providing RESTful endpoints to manage users, novel content (books, chapters, pages), bookmarks, and likes. Features JWT-based authentication supporting both traditional credentials and Google sign-in, including token refresh capabilities.""")
+app = FastAPI(root_path="/api/v1",title="Mie Novel-app FastAPI Backend",summary="""Backend for the "Mie Novel-app", providing RESTful endpoints to manage users, novel content (books, chapters, pages), bookmarks, and likes. Features JWT-based authentication supporting both traditional credentials and Google sign-in, including token refresh capabilities.""")
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,13 +19,13 @@ async def health_check():
     return {"status": "healthy"}
     
 user_dependencies=[Depends(verify_token)]
-app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
-app.include_router(user.router, prefix="/api/v1/user", tags=["User"])
-app.include_router(book.router,prefix="/api/v1/book", tags=["Book"],dependencies=[Depends(verify_admin_token)])
-app.include_router(bookmark.router,prefix="/api/v1/bookmark", tags=["Bookmark"])
-app.include_router(like.router,prefix="/api/v1/like", tags=["Like"])
-app.include_router(chapter.router,prefix="/api/v1/chapter", tags=["Chapter"],)
-app.include_router(page.router,prefix="/api/v1/page", tags=["Page"])
-app.include_router(comments.router,prefix="/api/v1/comment",tags=['Comment'])
-app.include_router(payment.router,prefix="/api/v1/payment",tags=["Payment"])
+app.include_router(admin.router, prefix="/admin", tags=["Admin"])
+app.include_router(user.router, prefix="/user", tags=["User"])
+app.include_router(book.router,prefix="/book", tags=["Book"],dependencies=[Depends(verify_admin_token)])
+app.include_router(bookmark.router,prefix="/bookmark", tags=["Bookmark"])
+app.include_router(like.router,prefix="/like", tags=["Like"])
+app.include_router(chapter.router,prefix="/chapter", tags=["Chapter"],)
+app.include_router(page.router,prefix="/page", tags=["Page"])
+app.include_router(comments.router,prefix="/comment",tags=['Comment'])
+app.include_router(payment.router,prefix="/payment",tags=["Payment"])
 
