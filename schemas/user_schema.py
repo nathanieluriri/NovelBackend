@@ -5,7 +5,7 @@ from enum import Enum
 from core.database import db
 from pydantic_async_validation import async_field_validator, AsyncValidationModelMixin, ValidationInfo
 from schemas.chapter_schema import ChapterOut,ChapterOutSyncVersion
-
+ 
 async def get_chapter_one_id():
     chapter = await db.chapters.find_one({"number":1})
     chapterOut = ChapterOut(**chapter)
@@ -25,8 +25,16 @@ class NewUserBase(BaseModel):
     email: EmailStr
     password:  Optional[str]=None 
     googleAccessToken:Optional[str]=None
-    
-      
+    firstName:Optional[str]=None
+    lastName:Optional[str]=None
+    avatar:Optional[str]=None
+    @model_validator(mode='after')
+    def check_password_and_credentials(self):
+        if self.provider=="credentials" and self.password==None:
+            raise ValueError("Password is compulsory for credentials provider")
+        elif self.provider=="google" and self.googleAccessToken==None:
+            raise ValueError("Google access token is compulsory for google provider")
+        return self
         
         
 class NewUserCreate(AsyncValidationModelMixin,NewUserBase):
