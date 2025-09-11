@@ -23,7 +23,7 @@ class UserStatus(str, Enum):
 class NewUserBase(BaseModel):
     provider:Provider
     email: EmailStr
-    password:  str 
+    password:  Optional[str]=None 
     googleAccessToken:Optional[str]=None
     
       
