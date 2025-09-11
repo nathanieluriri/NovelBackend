@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException,Depends, UploadFile, Form,File,Body
-from security.auth import verify_admin_token
+from security.auth import verify_admin_token, verify_any_token
 from schemas.chapter_schema import ChapterCreate, ChapterOut,ChapterBase,ChapterUpdateStatusOrLabel,ChapterBaseRequest,ChapterUpdateStatusOrLabelRequest
 from typing import List
 from services.chapter_services import add_chapter,delete_chapter,fetch_chapters,update_chapter_status_or_label,fetch_chapter_with_chapterId,fetch_chapter_with_chapterNumber_and_bookId
@@ -64,6 +64,37 @@ async def update_a_chapter(chapterId:str, chapterDetails: ChapterUpdateStatusOrL
     try:
         updated_chapter = await update_chapter_status_or_label(chapterId=chapterId,chapter=updateChapter)
         return updated_chapter
+    except Exception as e:
+        print(e)
+        raise 
+    
+    
+    
+@router.get("/user/get/allChapters/{bookId}", response_model=List[ChapterOut],response_model_exclude_none=True,dependencies=[Depends(verify_any_token)])
+async def get_all_available_chapters(bookId:str):
+    try:
+        chapters = await fetch_chapters(bookId=bookId)
+        return chapters
+    except Exception as e:
+        print(e)
+        raise 
+ 
+ 
+@router.get("/user/get/chapterId/{chapterId}", response_model=ChapterOut,response_model_exclude_none=True,dependencies=[Depends(verify_any_token)])
+async def get_specific_chapter_details_with_chapterId(chapterId:str):
+    try:
+        chapter =await fetch_chapter_with_chapterId(chapterId=chapterId)
+        return chapter
+    except Exception as e:
+        print(e)
+        raise 
+ 
+ 
+@router.get("/user/get/{bookId}/{chapterNumber}", response_model=ChapterOut,response_model_exclude_none=True,dependencies=[Depends(verify_any_token)])
+async def get_specific_chapter_details_with_number_and_bookId(bookId:str,chapterNumber:int):
+    try:
+        chapter = await fetch_chapter_with_chapterNumber_and_bookId(bookId=bookId,chapterNumber=chapterNumber)
+        return chapter
     except Exception as e:
         print(e)
         raise 
