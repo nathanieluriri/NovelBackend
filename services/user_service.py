@@ -76,15 +76,17 @@ async def login_credentials(user_data:OldUserBase):
 
 async def login_google(user_data:OldUserBase):
     existing = await get_user_by_email_and_provider(email=user_data.email,provider="google")
+    print(existing)
     if existing:
         details = verify_google_access_token(user_data.accessToken)
         if details['email']==user_data.email:
+            print(details)
             accessToken =await generate_member_access_tokens(str(existing['_id']))
             existing['accessToken']= accessToken.accesstoken
             refreshToken =await generate_refresh_tokens(userId=str(existing['_id']),accessToken=existing['accessToken'])
             existing['refreshToken']= refreshToken.refreshtoken
             return OldUserOut(**existing)
-        else:raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User Not Found")
+        else:raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Invalid User Login")
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User Not Found")
     
