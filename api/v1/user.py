@@ -12,7 +12,7 @@ async def register(user: NewUserBase):
     if user.provider=="google":
         other_values = verify_google_access_token(google_access_token=user.googleAccessToken)
         if other_values:
-            user = NewUserCreate(firstName=other_values['firstName'],email=other_values['email'],lastName=other_values['lastName'],avatar=other_values['avatar'],provider=user.provider,password="signed up with google",googleAccessToken=None)
+            user = NewUserCreate(firstName=other_values['firstName'],email=other_values['email'],lastName=other_values['lastName'],avatar=other_values['avatar'],provider=user.provider,password="signed up with google",googleAccessToken=user.googleAccessToken)
             await user.model_async_validate()
     elif user.provider=="credentials":
         user = NewUserCreate(**user.model_dump())

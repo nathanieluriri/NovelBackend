@@ -46,7 +46,7 @@ class NewUserCreate(AsyncValidationModelMixin,NewUserBase):
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     balance:Optional[int]=0
     unlockedChapters:Optional[List[str]]=[]
-    googleAccessToken:None
+    googleAccessToken:Optional[str]=None
     
     @async_field_validator('unlockedChapters')
     async def set_default_chapter(self,config: ValidationInfo):

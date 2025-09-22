@@ -28,7 +28,7 @@ def verify_google_access_token(google_access_token:str):
         firstName= response.get("given_name")
         lastName= response.get("family_name")
         email= response.get("email")
-        return {"avatar":avatar,"firstName":firstName,"lastName":lastName,"email":email}
+        return {"avatar":avatar,"firstName":firstName,"lastName":lastName,"email":email,"google_access_token" :google_access_token}
 
 
 
