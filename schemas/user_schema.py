@@ -111,7 +111,7 @@ class OldUserBase(BaseModel):
     provider:Provider
     email: EmailStr
     password: Optional[str]=None
-    accessToken:Optional[str]=None
+    googleAccessToken:Optional[str]=None
 
 class OldUserCreate(OldUserBase):
     firstName:Optional[str]=None

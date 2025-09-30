@@ -78,7 +78,7 @@ async def login_google(user_data:OldUserBase):
     existing = await get_user_by_email_and_provider(email=user_data.email,provider="google")
     print(existing)
     if existing:
-        details = verify_google_access_token(user_data.accessToken)
+        details = verify_google_access_token(user_data.googleAccessToken)
         if details['email']==user_data.email:
             print(details)
             accessToken =await generate_member_access_tokens(str(existing['_id']))
