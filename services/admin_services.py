@@ -68,7 +68,9 @@ async def login_admin_func(user_data:AdminBase,location:ClientData):
                 # generate and send otp 
                 otp = generate_otp(admin_access_token=existing["accessToken"])
                 print("otp",otp)
-                await send_otp(otp=otp,location=location,user_email=user_data.email)
+                
+                # await send_otp(otp=otp,location=location,user_email=user_data.email)
+                # TODO: Probably switch send_otp to something
                 
                 refreshToken=await generate_refresh_tokens(userId=str(existing['_id']),accessToken=accessToken.accesstoken)
                 
