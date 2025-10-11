@@ -4,14 +4,14 @@ from fastapi import HTTPException
 from bson import ObjectId,errors
 import asyncio
 
-async def get_chapter_by_bookId(bookId:str):
+async def get_chapter_by_bookId(bookId:str,start:int=0,stop:int=100):
     try:
         obj_id= ObjectId(bookId)
     except errors.InvalidId:
         raise HTTPException(status_code=500,detail="Invalid Book Id")
 
     
-    cursor= db.chapters.find({"bookId":bookId})
+    cursor= db.chapters.find({"bookId":bookId}).skip(start).limit(stop - start)
     retrieved_chapters= [chapters async for chapters in cursor]
 
     return retrieved_chapters

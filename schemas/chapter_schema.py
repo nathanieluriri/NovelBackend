@@ -58,6 +58,47 @@ class ChapterOut(AsyncValidationModelMixin,ChapterBase):
         likes_count = likes_count[0]["total"] if likes_count else 0
         self.commentsCount=comments_count
         self.likesCount=likes_count
+            # The ID is already set by the @model_validator(mode='before'), so we can use self.id
+        chapter_id = self.id
+        
+        # Aggregate to get BOTH the count and the list of IDs in a single query
+        page_data = await db.pages.aggregate([
+            # Stage 1: Filter pages for the specific chapter
+            {"$match": {"chapterId": chapter_id}},
+            
+            # Stage 2: Group all pages into a single document to calculate metrics
+            {"$group": {
+                "_id": None, # Group all documents into one
+                "totalCount": {"$sum": 1},
+                # Collect the page's _id (which is its unique identifier) into an array
+                "pageIds": {"$push": "$_id"} 
+            }},
+            
+            # Stage 3: Project and convert the _id ObjectIds to strings
+            {"$project": {
+                "_id": 0,
+                "totalCount": 1,
+                # Use $map to convert each ObjectId to a string before output
+                "pageIds": {
+                    "$map": {
+                        "input": "$pageIds",
+                        "as": "page_id",
+                        "in": {"$toString": "$$page_id"}
+                    }
+                }
+            }}
+        ]).to_list(length=1)
+
+        # Extract the data. If no pages are found, page_data will be empty.
+        if page_data:
+            data = page_data[0]
+            self.pageCount = data.get("totalCount", 0)
+            self.pages = data.get("pageIds", [])
+        else:
+            self.pageCount = 0
+            self.pages = []
+
+
 
     @model_validator(mode='before')
     def set_dynamic_values(cls,values):
@@ -98,7 +139,6 @@ class ChapterUpdate(ChapterBase):
         values['dateUpdated']= now_str
         values['id']= str(values.get('_id'))
         return values
-    
     
     
     

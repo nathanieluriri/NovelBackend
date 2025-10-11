@@ -41,8 +41,8 @@ async def delete_chapter(chapterId:str):
         print("chapter doesn't exist")
 
 
-async def fetch_chapters(bookId: str):
-    chapters = await get_chapter_by_bookId(bookId=bookId)
+async def fetch_chapters(bookId: str,start:int=0,stop:int=100):
+    chapters = await get_chapter_by_bookId(bookId=bookId,start=start,stop=stop)
     returnable_chapters = []
     for chapter in chapters:
         chap = ChapterOut(**chapter)
@@ -60,11 +60,14 @@ async def update_chapter_status_or_label(chapterId:str,chapter:ChapterUpdate):
 
 async def fetch_chapter_with_chapterId(chapterId: str):
     chapter = await get_chapter_by_chapter_id(chapterId=chapterId)
-    chap = ChapterOut(**chapter)
-    
-    await chap.model_async_validate()
-    return chap
-
+    print(chapter)
+    try:
+        chap = ChapterOut(**chapter)
+        
+        await chap.model_async_validate()
+        return chap
+    except Exception as e:
+        HTTPException(status_code=500,detail=str(e))
 
 
 async def fetch_chapter_with_chapterNumber_and_bookId(bookId: str,chapterNumber:int):

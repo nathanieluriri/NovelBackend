@@ -9,9 +9,9 @@ router = APIRouter()
 
 
 @router.get("/admin/get/allChapters/{bookId}", response_model=List[ChapterOut],response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
-async def get_all_available_chapters(bookId:str):
+async def get_all_available_chapters(bookId:str,start:int=0,stop:int=100):
     try:
-        chapters = await fetch_chapters(bookId=bookId)
+        chapters = await fetch_chapters(bookId=bookId,start=start,  stop=stop)
         return chapters
     except Exception as e:
         print(e)
@@ -71,9 +71,9 @@ async def update_a_chapter(chapterId:str, chapterDetails: ChapterUpdateStatusOrL
     
     
 @router.get("/user/get/allChapters/{bookId}", response_model=List[ChapterOut],response_model_exclude_none=True,dependencies=[Depends(verify_any_token)])
-async def get_all_available_chapters(bookId:str):
+async def get_all_available_chapters(bookId:str,start:int=0,stop:int=100):
     try:
-        chapters = await fetch_chapters(bookId=bookId)
+        chapters = await fetch_chapters(bookId=bookId,start=start,  stop=stop)
         return chapters
     except Exception as e:
         print(e)
