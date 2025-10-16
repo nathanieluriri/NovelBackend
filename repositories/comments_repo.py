@@ -46,6 +46,7 @@ async def delete_comments_with_user_id(userId: list):
 
 async def create_comment(comment_data: CommentCreate):
     comment = comment_data.model_dump()
+    print(comment)
     result = await db.comments.insert_one(comment)
     created_comment = await db.comments.find_one({"_id": result.inserted_id})
     return created_comment

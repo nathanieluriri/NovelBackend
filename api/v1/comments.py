@@ -13,7 +13,7 @@ router = APIRouter()
 @router.get("/get", response_model=List[CommentOut],dependencies=[Depends(verify_any_token)])
 async def get_all_available_Comments_a_particular_user_made(dep= Depends(verify_any_token)):
     try:
-        if dep['role']=='user':
+        if dep['role']=='member':
             userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
             Comments = await retrieve_user_Comments(userId=userDetails.userId)
             return Comments
@@ -38,12 +38,23 @@ async def get_all_chapter_Comments(chapterId:str):
 @router.post("/create", response_model=CommentOut,dependencies=[Depends(verify_any_token)])
 async def Comment_on_a_chapter(Comment: CommentBaseRequest,dep= Depends(verify_any_token)):
     created_Comment = CommentCreate(**Comment.model_dump())
-    if dep['role']=='user':
+
+    if dep['role']=='member':
         userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
         created_Comment.userId=userDetails.userId 
+
         created_Comment.role=dep['role']
         try:
+            
             new_Comment = await add_Comment(CommentData=created_Comment)
+            print("___________________________new_Comment___________________________")
+            print(new_Comment)
+            print(new_Comment)
+            print(new_Comment)
+            print(new_Comment)
+            print(new_Comment)
+            print(new_Comment)
+            print("___________________________new_Comment___________________________")
             return new_Comment
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -61,7 +72,7 @@ async def Comment_on_a_chapter(Comment: CommentBaseRequest,dep= Depends(verify_a
 @router.delete("/user/remove/{CommentId}",dependencies=[Depends(verify_any_token)], response_model=CommentOut)
 async def unComment(CommentId: str,dep=Depends(verify_token)):
     try:
-        if dep['role']=='user':
+        if dep['role']=='member':
             userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
             removed_Comment = await remove_Comment_by_userId_and_commentId(CommentId=CommentId,userId=userDetails.userId)
             if removed_Comment:
@@ -103,7 +114,7 @@ async def AdminPriveledgeunComment(CommentId: str):
 @router.patch("/update",response_model=CommentOut,dependencies=[Depends(verify_any_token)])
 async def updateComment(updateData:UpdateCommentBaseRequest,dep=Depends(verify_any_token)):
     try:
-        if dep['role']=='user':
+        if dep['role']=='member':
             userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
             updated_comment = await update_comment(commentId=updateData.commentId,userId=userDetails.userId,text=updateData.text)
             if updated_comment:

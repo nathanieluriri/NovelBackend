@@ -43,10 +43,15 @@ class CommentOut(AsyncValidationModelMixin,CommentBase):
     firstName:Optional[str]=None
     lastName:Optional[str]=None
     avatar:Optional[str]=None
+    email:Optional[str]=None
     @model_validator(mode='before')
     def set_dynamic_values(cls,values):
-        values['id']= str(values.get('_id'))
-        return values
+        try:
+            if isinstance(values,dict):
+                values['id']= str(values.get('_id'))
+                return values
+        except Exception as e:
+            print("exception in comment out ",str(e))
     @async_field_validator('userId')
     async def set_user_details(self,config: ValidationInfo):
         users_collection = db.users
@@ -56,14 +61,17 @@ class CommentOut(AsyncValidationModelMixin,CommentBase):
             'firstName': 1,
             'lastName': 1,
             'avatar': 1,
+            'email':1,
             '_id': 0  # Exclude the _id from the result
         }
         user_details = await users_collection.find_one(query, projection)
         if user_details:
             print("User found:")
+            print(user_details)
             self.firstName= user_details.get("firstName",None)
             self.lastName= user_details.get("lastName",None)
             self.avatar = user_details.get("avatar",None)
+            self.email = user_details.get("email",None)
         return self
 
     model_config = {

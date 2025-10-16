@@ -16,7 +16,7 @@ async def get_user_likes(dep= Depends(verify_any_token)):
            
             likes = await retrieve_user_likes(userId=userDetails.userId)
             return likes
-        if dep['role']=='user':
+        if dep['role']=='member':
             userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
            
             likes = await retrieve_user_likes(userId=userDetails.userId)
@@ -47,7 +47,7 @@ async def like_chapter(like: LikeBaseRequest,dep= Depends(verify_any_token)):
             return new_like
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-    elif dep['role'] == 'user':
+    elif dep['role'] == 'member':
         userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
         
         created_like.userId= userDetails.userId
