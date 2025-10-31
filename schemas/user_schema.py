@@ -5,7 +5,10 @@ from enum import Enum
 from core.database import db
 from pydantic_async_validation import async_field_validator, AsyncValidationModelMixin, ValidationInfo
 from schemas.chapter_schema import ChapterOut,ChapterOutSyncVersion
- 
+class Stage(BaseModel):
+    currentStage:Optional[int]=1
+    currentExperience:Optional[int]=0
+    
 async def get_chapter_one_id():
     chapter = await db.chapters.find_one({"number":1})
     chapterOut = ChapterOut(**chapter)
@@ -75,7 +78,7 @@ class NewUserOut(BaseModel):
     lastName:Optional[str]=None
     avatar:Optional[str]=None
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
-
+    stage:Optional[Stage]=Field(default_factory=Stage)
 
 
 class UserOut(BaseModel):
@@ -90,6 +93,7 @@ class UserOut(BaseModel):
     balance:Optional[int]=0
     unlockedChapters:Optional[List[str]]=None
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
+    stage:Optional[Stage]=Field(default_factory=Stage)
     @model_validator(mode='before')
     def set_id(cls,values):
         values['userId'] = str(values['_id'])

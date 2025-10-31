@@ -6,6 +6,9 @@ from security.auth import verify_token
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(root_path="/api/v1",title="Mie Novel-app FastAPI Backend",summary="""Backend for the "Mie Novel-app", providing RESTful endpoints to manage users, novel content (books, chapters, pages), bookmarks, and likes. Features JWT-based authentication supporting both traditional credentials and Google sign-in, including token refresh capabilities.""")
+from starlette.middleware.sessions import SessionMiddleware
+app.add_middleware(SessionMiddleware, secret_key="some-random-string")
+
 
 app.add_middleware(
     CORSMiddleware,

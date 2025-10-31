@@ -1,11 +1,36 @@
-from fastapi import APIRouter, HTTPException,Depends, Body,Path
+from fastapi import APIRouter, HTTPException,Depends, Body,Path, Request
 from schemas.user_schema import Provider,UserOutChapterDetails, NewUserBase, NewUserCreate,NewUserOut,OldUserBase,OldUserOut,OldUserCreate,UserUpdate,UserStatus
-from services.user_service import register_user,verify_google_access_token,login_credentials,login_google,get_user_details_with_accessToken,change_of_user_password_flow1,change_of_user_password_flow2,update_user
+from services.user_service import register_user,verify_google_access_token,login_credentials,login_google,get_user_details_with_accessToken,change_of_user_password_flow1,change_of_user_password_flow2,update_user,oauth
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
 from services.admin_services import get_all_user_details,update_user_details,get_one_user_details
 from security.auth import verify_admin_token,verify_token,verify_token_and_refresh_token
 from repositories.tokens_repo import delete_refresh_token
 router = APIRouter()
+
+
+
+@router.get("/google/auth")
+async def login(request: Request):
+    base_url = request.url_for("root")
+    redirect_uri = f"{base_url}auth/callback"
+    print(redirect_uri)
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+
+# --- Step 2: Handle callback from Google ---
+@router.get("/auth/callback")
+async def auth_callback(request: Request):
+    token = await oauth.google.authorize_access_token(request)
+    user_info = token.get('userinfo')
+
+    # Just print or return user info for now
+    if user_info:
+        print("✅ Google user info:", user_info)
+        return  user_info
+    else:
+        raise HTTPException(status_code=400,detail={"status": "failed", "message": "No user info found"})
+
+
 
 @router.post("/sign-up", response_model=NewUserOut)
 async def register(user: NewUserBase):

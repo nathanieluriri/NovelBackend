@@ -5,7 +5,22 @@ from fastapi import HTTPException,status
 from security.hash import check_password,hash_password
 from security.tokens import generate_member_access_tokens,generate_refresh_tokens
 from security.user_otp import generate_otp, verify_otp, send_otp_user
+from authlib.integrations.starlette_client import OAuth
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
+
+
+oauth = OAuth()
+oauth.register(
+    name='google',
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'},
+)
+ 
 def verify_google_access_token(google_access_token:str):
     import requests
 
