@@ -1,22 +1,23 @@
-name: Deploy to EC2
+name: Deploy to EC2 T3-SMALL
 
 on:
   push:
-    branches: [master]  # Change to your branch name if not using main
+    branches: [master] # or main if that’s your default branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: SSH & Deploy
+      - name: SSH & Deploy to EC2 T3-SMALL
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_KEY }}
+          host: ${{ secrets.EC2_HOST }}          # your EC2 public IP or DNS
+          username: ubuntu                       # use ubuntu (default for AWS Ubuntu AMIs)
+          key: ${{ secrets.EC2_SSH_KEY }}        # your private PEM key (add to GitHub secrets)
+          port: 22
           script: |
-            cd /home/ubuntu/novel-backend
-            git pull origin master
+            cd /home/ubuntu/eps-backend          # adjust if your code lives elsewhere
+            git pull origin master               # or main
             chmod +x deploy.sh
             ./deploy.sh
