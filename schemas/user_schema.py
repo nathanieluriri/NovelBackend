@@ -5,9 +5,19 @@ from enum import Enum
 from core.database import db
 from pydantic_async_validation import async_field_validator, AsyncValidationModelMixin, ValidationInfo
 from schemas.chapter_schema import ChapterOut,ChapterOutSyncVersion
+from schemas.bookmark_schema import BookMarkOut
+from schemas.likes_schema import LikeOut
 class Stage(BaseModel):
     currentStage:Optional[int]=1
     currentExperience:Optional[int]=0
+    
+    
+class ReadingHistory(BaseModel):
+    chapterId:Optional[str]="6843840255b3388477dcdaed"
+    chapterNumber:Optional[int]=1
+    chapterSnippet:Optional[str]= "Not every relative celebrated when my parents decided to marry. Their vows were blessed in a small church but not with joy. Maybe people had already seen my father’s empty wallet before my mother did. Maybe they thought love was too expensive for the poor."
+    
+    
     
 async def get_chapter_one_id():
     chapter = await db.chapters.find_one({"number":1})
@@ -79,8 +89,9 @@ class NewUserOut(BaseModel):
     avatar:Optional[str]=None
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
     stage:Optional[Stage]=Field(default_factory=Stage)
-
-
+    bookmarks:Optional[List[BookMarkOut]]=Field(default_factory=[])
+    likes:Optional[List[LikeOut]] = Field(default_factory=[])
+    stopped_reading:Optional[ReadingHistory] = Field(default_factory=ReadingHistory)
 class UserOut(BaseModel):
     userId: Optional[str] =None
     status:Optional[UserStatus]=None
@@ -94,6 +105,10 @@ class UserOut(BaseModel):
     unlockedChapters:Optional[List[str]]=None
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
     stage:Optional[Stage]=Field(default_factory=Stage)
+    bookmarks:Optional[List[BookMarkOut]]=Field(default=[])
+    likes:Optional[List[LikeOut]] = Field(default=[])
+    
+    stopped_reading:Optional[ReadingHistory] = Field(default=ReadingHistory)
     @model_validator(mode='before')
     def set_id(cls,values):
         values['userId'] = str(values['_id'])

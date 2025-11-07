@@ -5,6 +5,8 @@ from fastapi import HTTPException,status
 from security.hash import check_password,hash_password
 from security.tokens import generate_member_access_tokens,generate_refresh_tokens
 from security.user_otp import generate_otp, verify_otp, send_otp_user
+from services.bookmark_services import retrieve_user_bookmark
+from services.like_services import retrieve_user_likes
 from authlib.integrations.starlette_client import OAuth
 import os
 from dotenv import load_dotenv
@@ -80,7 +82,14 @@ async def login_credentials(user_data:OldUserBase):
                 
                 existing['refreshToken']= refreshToken.refreshtoken
                 
-                return OldUserOut(**existing)
+                
+                user = OldUserOut(**existing,bookmarks=[],likes=[])
+                bookmarks = await retrieve_user_bookmark(userId=user.userId)
+                likes = await retrieve_user_likes(userId=user.userId)
+                user.bookmarks = bookmarks
+                user.likes= likes
+                return user
+                
             else:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Password Incorrect")
         else:
@@ -100,7 +109,9 @@ async def login_google(user_data:OldUserBase):
             existing['accessToken']= accessToken.accesstoken
             refreshToken =await generate_refresh_tokens(userId=str(existing['_id']),accessToken=existing['accessToken'])
             existing['refreshToken']= refreshToken.refreshtoken
-            return OldUserOut(**existing)
+            bookmarks = await retrieve_user_bookmark(userId=existing['_id'])
+            likes = await retrieve_user_likes(userId=existing['_id'])
+            return OldUserOut(**existing,bookmarks=bookmarks,likes=likes)
         else:raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Invalid User Login")
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User Not Found")

@@ -17,7 +17,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}        # your private PEM key (add to GitHub secrets)
           port: 22
           script: |
-            cd /home/ubuntu/eps-backend          # adjust if your code lives elsewhere
+            cd /home/ubuntu/NovelBackend         # adjust if your code lives elsewhere
             git pull origin master               # or main
             chmod +x deploy.sh
             ./deploy.sh

@@ -10,16 +10,19 @@ class LikeType(str,Enum):
 
 class LikeBaseRequest(BaseModel):
     chapterId: str
-    likeType:Optional[LikeType]=LikeType.Like_chapter
+    
 
 class LikeBase(LikeBaseRequest):
     userId:str
     role:str
+    likeType:Optional[LikeType]=LikeType.Like_chapter
 
 
 class LikeCreate(LikeBase):
     userId:Optional[str]=None
     role:Optional[str]=None
+    chapaterLabel:str
+ 
     dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
     @model_validator(mode='before')
     def set_dates(cls,values):
@@ -28,7 +31,7 @@ class LikeCreate(LikeBase):
         return values
     
     
-class LikeOut(LikeBase):
+class LikeOut(LikeCreate):
     id: Optional[str] =None
     
     dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()

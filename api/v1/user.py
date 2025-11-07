@@ -4,6 +4,7 @@ from services.user_service import register_user,verify_google_access_token,login
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
 from services.admin_services import get_all_user_details,update_user_details,get_one_user_details
 from security.auth import verify_admin_token,verify_token,verify_token_and_refresh_token
+
 from repositories.tokens_repo import delete_refresh_token
 router = APIRouter()
 
@@ -63,6 +64,7 @@ async def login(user_data:OldUserBase):
         elif user_data.provider=="google":
             data = await login_google(user_data=user_data)
            
+                   
             return data
         else:
             raise HTTPException(status_code=404,detail="Provider Not Recognized")

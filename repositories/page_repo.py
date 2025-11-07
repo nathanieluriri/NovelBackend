@@ -1,5 +1,5 @@
 from core.database import db
-from schemas.page_schema import PageCreate,PageUpdate
+from schemas.page_schema import PageCreate,PageUpdate,PageOut
 from bson import ObjectId,errors
 import asyncio
 async def get_all_pages(chapterId):

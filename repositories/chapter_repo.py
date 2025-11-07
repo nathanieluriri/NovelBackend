@@ -16,7 +16,7 @@ async def get_chapter_by_bookId(bookId:str,start:int=0,stop:int=100):
 
     return retrieved_chapters
 
-async def get_chapter_by_chapter_id(chapterId:str):
+async def get_chapter_by_chapter_id(chapterId:str)->ChapterOut:
     try:
         obj_id = ObjectId(chapterId)
     except errors.InvalidId:

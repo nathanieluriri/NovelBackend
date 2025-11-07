@@ -14,12 +14,13 @@ async def get_all_available_bookmarks(userId:str):
 
 @router.post("/create", response_model=BookMarkOut)
 async def create_new_book(book: BookMarkBase):
-    book = BookMarkCreate(**book.model_dump())
-    try:
-        new_book = await add_bookmark(userId=book.userId,pageId=book.pageId)
-        return new_book
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    new_book = await add_bookmark(userId=book.userId,pageId=book.pageId)
+    return new_book
+    # try:
+    #     new_book = await add_bookmark(userId=book.userId,pageId=book.pageId)
+    #     return new_book
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/remove/{bookmarkId}", response_model=BookMarkOut)
 async def delete_a_bookmark(bookmarkId: str):

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException,Depends
 from security.auth import verify_any_token
-from schemas.likes_schema import LikeCreate, LikeOut,LikeBaseRequest
+from schemas.likes_schema import LikeCreate, LikeOut,LikeBaseRequest,LikeBase
 from typing import List
 from services.like_services import add_like,remove_like,retrieve_user_likes,retrieve_chapter_likes
 from services.user_service import get_user_details_with_accessToken
@@ -36,28 +36,34 @@ async def get_all_chapter_likes(chapterId:str):
 
 
 @router.post("/create", response_model=LikeOut,dependencies=[Depends(verify_any_token)])
-async def like_chapter(like: LikeBaseRequest,dep= Depends(verify_any_token)):
-    created_like = LikeCreate(**like.model_dump())
-    if dep['role']=='admin':
-        userDetails =await get_admin_details_with_accessToken_service(token= dep['accessToken'])
-        created_like.userId=userDetails.userId 
-        created_like.role=dep['role']
-        try:
-            new_like = await add_like(likeData=created_like)
-            return new_like
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-    elif dep['role'] == 'member':
-        userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
-        
-        created_like.userId= userDetails.userId
-        created_like.role=dep['role']
-        try:
-            new_like = await add_like(likeData=created_like)
-            return new_like
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+async def like_chapter(
+    like: LikeBaseRequest,
+    dep=Depends(verify_any_token)
+):
+    access_token = dep.get("accessToken")
+    role = dep.get("role")
 
+    # Try getting user or admin details
+    user_details = await get_user_details_with_accessToken(token=access_token)
+    if not user_details:
+        user_details = await get_admin_details_with_accessToken_service(token=access_token)
+
+    if not user_details:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    created_like = LikeBase(
+        chapterId=like.chapterId,
+        userId=user_details.userId,
+        role=role
+    )
+
+    try:
+        new_like = await add_like(likeData=created_like)
+        return new_like
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create like: {e}")
+    
+    
 @router.delete("/remove/{likeId}", response_model=LikeOut)
 async def unlike(likeId: str):
     try:
