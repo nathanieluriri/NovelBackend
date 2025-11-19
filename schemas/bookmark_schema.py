@@ -6,7 +6,7 @@ class BookMarkBase(BaseModel):
 
 
 class BookMarkCreate(BookMarkBase):
-    chapaterLabel:str
+    chapterLabel:str
     chapterId:str
     dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
     @model_validator(mode='before')
