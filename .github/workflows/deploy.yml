@@ -2,26 +2,23 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [master]
+    branches: [master] # or main if that’s your default branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    environment: Production
     steps:
       - name: SSH & Deploy to EC2  
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
+          host: ${{ secrets.EC2_HOST }}          # your EC2 public IP or DNS
+          username: ubuntu                       # use ubuntu (default for AWS Ubuntu AMIs)
+          key: ${{ secrets.EC2_SSH_KEY }}        # your private PEM key (add to GitHub secrets)
           port: 22
-          envs: ENVIRONMENT
           script: |
-            echo "Using environment: $ENVIRONMENT"
-            cd /home/ubuntu/NovelBackend
-            git pull origin master
-            sudo ENVIRONMENT=$ENVIRONMENT docker compose down
-            sudo ENVIRONMENT=$ENVIRONMENT docker compose up --build -d
-        env:
-          ENVIRONMENT: Production
+            cd NovelBackend         # adjust if your code lives elsewhere
+            git pull origin master               # or main
+            sudo docker compose down
+            sudo docker compose up --build -d
+            
