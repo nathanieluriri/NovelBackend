@@ -83,12 +83,14 @@ async def login_credentials(user_data:OldUserBase):
                 existing['refreshToken']= refreshToken.refreshtoken
                 
                 
-                user = OldUserOut(**existing,bookmarks=[],likes=[])
+                user = OldUserOut(**existing,likes=[])
+                # print(user)
                 bookmarks = await retrieve_user_bookmark(userId=user.userId)
                 likes = await retrieve_user_likes(userId=user.userId)
+                # print(bookmarks)
                 user.bookmarks = bookmarks
                 user.likes= likes
-                return user
+                return user 
                 
             else:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Password Incorrect")

@@ -36,6 +36,22 @@ class BookMarkOut(BookMarkCreate):
 
 
 
+class BookMarkOutSync(BookMarkCreate):
+    id: Optional[str] =None
+    pageNumber:Optional[int]=None
+    dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
+    @model_validator(mode='before')
+    def set_dynamic_values(cls,values):
+        values['id']= str(values.get('_id'))
+        return values
+    
+
+    model_config = {
+        'populate_by_name': True,
+        'arbitrary_types_allowed': True,
+        'json_encoders':{ObjectId:str}
+    }
+
 
 class BookMarkOutAsync(AsyncValidationModelMixin,BookMarkCreate):
     id: Optional[str] =None
