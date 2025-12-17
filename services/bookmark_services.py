@@ -1,4 +1,4 @@
-from schemas.bookmark_schema import BookMarkCreate,BookMarkOut
+from schemas.bookmark_schema import BookMarkCreate,BookMarkOut, BookMarkOutAsync
 from repositories.bookmark_repo import create_bookmark,delete_bookmarks_with_bookmark_id,get_all_user_bookmarks
 from services.page_services import fetch_single_page_by_pageId
 from services.chapter_services import fetch_chapter_with_chapterId
@@ -18,10 +18,18 @@ async def remove_bookmark(bookmarkId:str):
         return BookMarkOut(**result)
     else: return None
 
+
+ 
+
 async def retrieve_user_bookmark(userId:str):
-    result = await get_all_user_bookmarks(userId=userId)
-    if result:
-        list_of_bookmarks = [BookMarkOut(**bookmark) for bookmark in result]
+    bookmarks = await get_all_user_bookmarks(userId=userId)
+    list_of_bookmarks=[]
+    if bookmarks:
+        for bookmark in bookmarks:
+            bm = BookMarkOutAsync(**bookmark)
+            await bm.model_async_validate()
+            list_of_bookmarks.append(bm)
+ 
         return list_of_bookmarks
     else:
         return []

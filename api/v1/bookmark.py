@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException
-from schemas.bookmark_schema import BookMarkCreate, BookMarkOut,BookMarkBase
+from schemas.bookmark_schema import BookMarkCreate, BookMarkOut,BookMarkBase, BookMarkOutAsync
 from typing import List
 from services.bookmark_services import add_bookmark,remove_bookmark,retrieve_user_bookmark
 
 router = APIRouter()
-@router.get("/get/{userId}", response_model=List[BookMarkOut])
+@router.get("/get/{userId}", response_model=List[BookMarkOutAsync])
 async def get_all_available_bookmarks(userId:str):
     try:
         bookmarks = await retrieve_user_bookmark(userId=userId)
