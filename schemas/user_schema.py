@@ -105,7 +105,7 @@ class UserOut(BaseModel):
     unlockedChapters:Optional[List[str]]=None
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
     stage:Optional[Stage]=Field(default_factory=Stage)
-    bookmarks:Optional[List[BookMarkOut]]=Field(default=[])
+    bookmarks:Optional[List[BookMarkOutAsync]]=Field(default=[])
     likes:Optional[List[LikeOut]] = Field(default=[])
     
     stopped_reading:Optional[ReadingHistory] = Field(default=ReadingHistory)
