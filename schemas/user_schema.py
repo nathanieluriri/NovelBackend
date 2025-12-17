@@ -5,7 +5,7 @@ from enum import Enum
 from core.database import db
 from pydantic_async_validation import async_field_validator, AsyncValidationModelMixin, ValidationInfo
 from schemas.chapter_schema import ChapterOut,ChapterOutSyncVersion
-from schemas.bookmark_schema import BookMarkOut
+from schemas.bookmark_schema import BookMarkOut, BookMarkOutAsync
 from schemas.likes_schema import LikeOut
 class Stage(BaseModel):
     currentStage:Optional[int]=1
@@ -88,8 +88,8 @@ class NewUserOut(BaseModel):
     lastName:Optional[str]=None
     avatar:Optional[str]=None
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
-    stage:Optional[Stage]=Field(default_factory=Stage)
-    bookmarks:Optional[List[BookMarkOut]]=Field(default_factory=[])
+    stage:Optional[Stage]=Field(default=Stage)
+    bookmarks:Optional[List[BookMarkOutAsync]]=Field(default=[])
     likes:Optional[List[LikeOut]] = Field(default_factory=[])
     stopped_reading:Optional[ReadingHistory] = Field(default_factory=ReadingHistory)
 class UserOut(BaseModel):
