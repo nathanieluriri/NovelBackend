@@ -89,8 +89,8 @@ class NewUserOut(BaseModel):
     avatar:Optional[str]=None
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
     stage:Optional[Stage]=Field(default=Stage)
-    bookmarks:Optional[List[BookMarkOutAsync]]=Field(default=[])
-    likes:Optional[List[LikeOut]] = Field(default_factory=[])
+    bookmarks:Optional[List[BookMarkOutAsync]]=[]
+    likes:Optional[List[LikeOut]] = []
     stopped_reading:Optional[ReadingHistory] = Field(default_factory=ReadingHistory)
 class UserOut(BaseModel):
     userId: Optional[str] =None

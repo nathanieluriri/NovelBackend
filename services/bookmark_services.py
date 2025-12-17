@@ -1,3 +1,4 @@
+from typing import List
 from schemas.bookmark_schema import BookMarkCreate,BookMarkOut, BookMarkOutAsync
 from repositories.bookmark_repo import create_bookmark,delete_bookmarks_with_bookmark_id,get_all_user_bookmarks
 from services.page_services import fetch_single_page_by_pageId
@@ -21,7 +22,7 @@ async def remove_bookmark(bookmarkId:str):
 
  
 
-async def retrieve_user_bookmark(userId:str):
+async def retrieve_user_bookmark(userId:str)->List[BookMarkOutAsync]:
     bookmarks = await get_all_user_bookmarks(userId=userId)
     list_of_bookmarks=[]
     if bookmarks:
