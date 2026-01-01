@@ -121,7 +121,9 @@ async def create_transaction(user_id: str, bundleId:str,tx_ref:Optional[str] = N
                 amount=payment.amount,
             )
             await create_transaction_history(transaction)
-        return await _update_subscription(user_id=user_id, duration_days=payment.durationDays)
+            return await _update_subscription(user_id=user_id, duration_days=payment.durationDays)
+        user = await get_user_by_userId(userId=user_id)
+        return UserOut(**user)
 
 
 async def pay_for_chapter(user_id: str,bundle_id:str,chapter_id: str) -> Optional[UserOut]:

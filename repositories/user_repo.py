@@ -59,7 +59,7 @@ async def update_user_subscription(userId: str, subscription: dict):
         user = await db.users.find_one({"_id": ObjectId(userId)})
         if not user:
             return None
-        db.users.update_one(
+        await db.users.update_one(
             filter={"_id": ObjectId(userId)},
             update={"$set": {"subscription": subscription}},
         )
