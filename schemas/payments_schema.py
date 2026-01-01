@@ -9,6 +9,7 @@ class TransactionType(str, Enum):
     real_cash = "cash"
     star_currency_transfer = "transferOfStarCurrencyBetweenAccounts"
     chapter_purchase ="transferOfStarCurrencyForChapterAccess"
+    subscription_purchase = "subscriptionPurchase"
 
 
 class BundleType(str, Enum):
@@ -17,6 +18,7 @@ class BundleType(str, Enum):
     star_to_star ="transferringStarsToOtherUsers"
     cash_promo="cashPromo"
     book_promo="bookPromo"
+    subscription = "subscription"
 
 
 # Records Transactions...
@@ -50,7 +52,8 @@ class TransactionOut(BaseModel):
 class PaymentBundles(BaseModel):
     bundleType:BundleType
     amount:int
-    numberOfstars:int
+    numberOfstars:Optional[int]=None
+    durationDays:Optional[int]=None
     description:str
     
     
@@ -58,20 +61,22 @@ class PaymentLink(BaseModel):
     bundle_id:str
     
 class ChapterPayment(BaseModel):
-    bundle_id:str
+    bundle_id:Optional[str]=None
     chapterId:str 
     
 class PaymentBundlesUpdate(BaseModel):
     amount:Optional[int]=None
     bundleType:Optional[BundleType]=None
     numberOfstars:Optional[int]=None
+    durationDays:Optional[int]=None
     description:Optional[str]=None
     
 class PaymentBundlesOut(BaseModel):
     id:str
     amount:int
-    numberOfstars:int
+    numberOfstars:Optional[int]=None
     bundleType:Optional[BundleType]=None
+    durationDays:Optional[int]=None
     description:str
     dateCreated:int
     @model_validator(mode='before')

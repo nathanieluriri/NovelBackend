@@ -1,5 +1,10 @@
 from repositories.payment_repo import create_payment_bundle,get_all_payment_bundles,update_payment_bundle,delete_payment_bundle
-from services.payment_service import createLink,record_purchase_of_stars,pay_for_chapter
+from services.payment_service import (
+    createLink,
+    record_purchase_of_stars,
+    record_subscription_purchase,
+    pay_for_chapter,
+)
 from services.chapter_services import fetch_chapter_with_chapterId
 from fastapi import APIRouter, HTTPException,Depends,Request, Header
 from fastapi.responses import JSONResponse
@@ -79,10 +84,6 @@ async def create_payment_link(payment:PaymentLink,dep=Depends(verify_token)):
 @router.post("/pay-chapter")
 async def make_payment_for_book(payment: ChapterPayment, dep=Depends(verify_token)):
     try:
-        payment_bundle = await get_payment_bundle(bundle_id=payment.bundle_id)
-        if not payment_bundle:
-            raise HTTPException(status_code=404, detail="Payment bundle not found")
-
         user_details = await get_user_details_with_accessToken(token=dep['accessToken'])
         if not user_details:
             raise HTTPException(status_code=401, detail="User details not found or unauthorized")
@@ -93,7 +94,7 @@ async def make_payment_for_book(payment: ChapterPayment, dep=Depends(verify_toke
 
         paid_chapter = await pay_for_chapter(
             user_details.userId,
-            bundle_id=payment_bundle.id,
+            bundle_id=payment.bundle_id,
             chapter_id=chapter.id
         )
 
@@ -129,7 +130,15 @@ async def flutterwave_webhook(request: Request, verif_hash: str = Header(None)):
             payload["bid"] = parts.get("bid")
          
             data= {"status": "verified"}
-            user_out= await record_purchase_of_stars(userId=payload["uid"],tx_ref=tx_ref,bundleId=payload["bid"])
+            bundle = await get_payment_bundle(bundle_id=payload["bid"])
+            if bundle and bundle.bundleType == BundleType.subscription:
+                user_out = await record_subscription_purchase(
+                    userId=payload["uid"],
+                    tx_ref=tx_ref,
+                    bundleId=payload["bid"],
+                )
+            else:
+                user_out= await record_purchase_of_stars(userId=payload["uid"],tx_ref=tx_ref,bundleId=payload["bid"])
             return JSONResponse(status_code=200,content=data)
 
      
