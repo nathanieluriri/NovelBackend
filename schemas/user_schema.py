@@ -16,6 +16,11 @@ class ReadingHistory(BaseModel):
     chapterId:Optional[str]="6843840255b3388477dcdaed"
     chapterNumber:Optional[int]=1
     chapterSnippet:Optional[str]= "Not every relative celebrated when my parents decided to marry. Their vows were blessed in a small church but not with joy. Maybe people had already seen my father’s empty wallet before my mother did. Maybe they thought love was too expensive for the poor."
+
+
+class SubscriptionInfo(BaseModel):
+    active: Optional[bool] = False
+    expiresAt: Optional[str] = None
     
     
     
@@ -60,6 +65,7 @@ class NewUserCreate(AsyncValidationModelMixin,NewUserBase):
     balance:Optional[int]=0
     unlockedChapters:Optional[List[str]]=[]
     googleAccessToken:Optional[str]=None
+    subscription: Optional[SubscriptionInfo] = Field(default_factory=SubscriptionInfo)
     
     @async_field_validator('unlockedChapters')
     async def set_default_chapter(self,config: ValidationInfo):
@@ -92,6 +98,7 @@ class NewUserOut(BaseModel):
     bookmarks:Optional[List[BookMarkOutSync]]=[]
     likes:Optional[List[LikeOut]] = []
     stopped_reading:Optional[ReadingHistory] = Field(default_factory=ReadingHistory)
+    subscription: Optional[SubscriptionInfo] = Field(default_factory=SubscriptionInfo)
 class UserOut(BaseModel):
     userId: Optional[str] =None
     status:Optional[UserStatus]=None
@@ -109,6 +116,7 @@ class UserOut(BaseModel):
     likes:Optional[List[LikeOut]] = Field(default=[])
     
     stopped_reading:Optional[ReadingHistory] = Field(default=ReadingHistory)
+    subscription: Optional[SubscriptionInfo] = Field(default_factory=SubscriptionInfo)
     @model_validator(mode='before')
     def set_id(cls,values):
         values['userId'] = str(values['_id'])
