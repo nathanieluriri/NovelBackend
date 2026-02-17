@@ -41,8 +41,8 @@ async def verify_token_and_refresh_token(token: str = Depends(token_auth_scheme)
             )
         else:
             return refreshedTokens
-    elif decodedT['role']=="admin":
-        result = await validate_expired_admin_accesstoken(accessToken=str(token.credentials))
+    elif decodedT['role']=="admin": # type: ignore
+        result = await validate_expired_admin_accesstoken(accessToken=str(token.credentials)) # type: ignore
         print("result",result)
         if result =="inactive":
             raise HTTPException(

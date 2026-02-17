@@ -62,7 +62,7 @@ async def update_a_chapter(chapterId:str, chapterDetails: ChapterUpdateStatusOrL
     
     updateChapter = ChapterUpdateStatusOrLabel(**chapterDetails.model_dump())
     try:
-        updated_chapter = await update_chapter_status_or_label(chapterId=chapterId,chapter=updateChapter)
+        updated_chapter = await update_chapter_status_or_label(chapterId=chapterId,chapter=updateChapter) # type: ignore
         return updated_chapter
     except Exception as e:
         print(e)
