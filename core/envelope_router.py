@@ -26,11 +26,15 @@ class EnvelopeAPIRoute(APIRoute):
 
             if response.status_code >= 400:
                 return response
-            if not isinstance(response, JSONResponse):
+            if response.status_code == 204:
+                return response
+
+            content_type = response.headers.get("content-type", "").lower()
+            if "application/json" not in content_type:
                 return response
 
             try:
-                raw = response.body.decode("utf-8")
+                raw = response.body.decode("utf-8") if response.body else ""
                 payload = json.loads(raw) if raw else None
             except (UnicodeDecodeError, json.JSONDecodeError):
                 return response
@@ -38,15 +42,25 @@ class EnvelopeAPIRoute(APIRoute):
             if _is_enveloped(payload):
                 return response
 
+            wrapped_data = jsonable_encoder(payload)
+            message = "Success"
+
+            # Legacy v1 shape: {"status_code": int, "data": ..., "detail": str}
+            if isinstance(payload, dict) and {"status_code", "data", "detail"}.issubset(payload.keys()):
+                wrapped_data = jsonable_encoder(payload.get("data"))
+                detail = payload.get("detail")
+                if isinstance(detail, str) and detail:
+                    message = detail
+
             wrapped = build_success_envelope(
-                data=jsonable_encoder(payload),
-                message="Success",
+                data=wrapped_data,
+                message=message,
             )
+            headers = {k: v for k, v in response.headers.items() if k.lower() != "content-length"}
             return JSONResponse(
                 status_code=response.status_code,
                 content=wrapped,
-                headers=dict(response.headers),
+                headers=headers,
             )
 
         return custom_route_handler
-

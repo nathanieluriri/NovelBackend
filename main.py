@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.routing import APIRoute, APIWebSocketRoute
+from starlette import routing
 from starlette.middleware.sessions import SessionMiddleware
 
 from api.v1 import admin, book, bookmark, chapter, comments, like, page, payment, user
@@ -94,18 +96,84 @@ async def v2_unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 
-v2_router = APIRouter(route_class=EnvelopeAPIRoute)
-v2_router.include_router(admin.router, prefix="/admin", tags=["Admin-v2"])
-v2_router.include_router(user.router, prefix="/user", tags=["User-v2"])
-v2_router.include_router(book.router, prefix="/book", tags=["Book-v2"], dependencies=[Depends(verify_admin_token)])
-v2_router.include_router(bookmark.router, prefix="/bookmark", tags=["Bookmark-v2"])
-v2_router.include_router(like.router, prefix="/like", tags=["Like-v2"])
-v2_router.include_router(chapter.router, prefix="/chapter", tags=["Chapter-v2"])
-v2_router.include_router(page.router, prefix="/page", tags=["Page-v2"])
-v2_router.include_router(comments.router, prefix="/comment", tags=["Comment-v2"])
-v2_router.include_router(payment.router, prefix="/payment", tags=["Payment-v2"])
-v2_router.include_router(author_room_v2.router)
-v2_router.include_router(reaction_v2.router)
+def include_router_with_envelope(
+    target: APIRouter,
+    source: APIRouter,
+    *,
+    prefix: str = "",
+    tags: list[str] | None = None,
+    dependencies: list | None = None,
+) -> None:
+    extra_tags = tags or []
+    extra_dependencies = dependencies or []
+
+    for route in source.routes:
+        if isinstance(route, APIRoute):
+            target.add_api_route(
+                prefix + route.path,
+                route.endpoint,
+                response_model=route.response_model,
+                status_code=route.status_code,
+                tags=[*extra_tags, *(route.tags or [])],
+                dependencies=[*extra_dependencies, *(route.dependencies or [])],
+                summary=route.summary,
+                description=route.description,
+                response_description=route.response_description,
+                responses=route.responses,
+                deprecated=route.deprecated,
+                methods=list(route.methods or []),
+                operation_id=route.operation_id,
+                response_model_include=route.response_model_include,
+                response_model_exclude=route.response_model_exclude,
+                response_model_by_alias=route.response_model_by_alias,
+                response_model_exclude_unset=route.response_model_exclude_unset,
+                response_model_exclude_defaults=route.response_model_exclude_defaults,
+                response_model_exclude_none=route.response_model_exclude_none,
+                include_in_schema=route.include_in_schema,
+                response_class=route.response_class,
+                name=route.name,
+                callbacks=route.callbacks,
+                openapi_extra=route.openapi_extra,
+                generate_unique_id_function=route.generate_unique_id_function,
+                route_class_override=EnvelopeAPIRoute,
+            )
+        elif isinstance(route, routing.Route):
+            target.add_route(
+                prefix + route.path,
+                route.endpoint,
+                methods=list(route.methods or []),
+                include_in_schema=route.include_in_schema,
+                name=route.name,
+            )
+        elif isinstance(route, APIWebSocketRoute):
+            target.add_api_websocket_route(
+                prefix + route.path,
+                route.endpoint,
+                dependencies=[*extra_dependencies, *(route.dependencies or [])],
+                name=route.name,
+            )
+        elif isinstance(route, routing.WebSocketRoute):
+            target.add_websocket_route(prefix + route.path, route.endpoint, name=route.name)
+
+
+v2_router = APIRouter()
+include_router_with_envelope(v2_router, admin.router, prefix="/admin", tags=["Admin-v2"])
+include_router_with_envelope(v2_router, user.router, prefix="/user", tags=["User-v2"])
+include_router_with_envelope(
+    v2_router,
+    book.router,
+    prefix="/book",
+    tags=["Book-v2"],
+    dependencies=[Depends(verify_admin_token)],
+)
+include_router_with_envelope(v2_router, bookmark.router, prefix="/bookmark", tags=["Bookmark-v2"])
+include_router_with_envelope(v2_router, like.router, prefix="/like", tags=["Like-v2"])
+include_router_with_envelope(v2_router, chapter.router, prefix="/chapter", tags=["Chapter-v2"])
+include_router_with_envelope(v2_router, page.router, prefix="/page", tags=["Page-v2"])
+include_router_with_envelope(v2_router, comments.router, prefix="/comment", tags=["Comment-v2"])
+include_router_with_envelope(v2_router, payment.router, prefix="/payment", tags=["Payment-v2"])
+include_router_with_envelope(v2_router, author_room_v2.router)
+include_router_with_envelope(v2_router, reaction_v2.router)
 v2_app.include_router(v2_router)
 
 
