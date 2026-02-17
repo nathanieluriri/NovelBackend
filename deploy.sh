@@ -44,9 +44,9 @@ echo "🔄 Pulling latest code..."
 git pull origin master
 
 echo "🛠️ Building Docker images..."
-docker compose build
+sudo docker compose build
 
 echo "🚀 Restarting services..."
-docker compose up -d
+sudo docker compose up -d
 
 echo "✅ Deployment complete!"

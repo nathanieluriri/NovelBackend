@@ -68,8 +68,11 @@ def is_older_than_days(date_string, days=10):
 
 
 async def get_access_tokens(accessToken:str):
-    
-    token = await db.accessToken.find_one({"_id": ObjectId(accessToken)})
+    try:
+        token = await db.accessToken.find_one({"_id": ObjectId(accessToken)})
+    except errors.InvalidId:
+        return None
+
     if token:
         if is_older_than_days(date_string=token['dateCreated'])==False:
             if token.get("role",None)=="member":
@@ -80,16 +83,16 @@ async def get_access_tokens(accessToken:str):
                     tokn = accessTokenOut(**token)
                     return tokn
                 else: 
-                    return None
+                    return "inactive"
             else:
                 return None
             
         else:
-            delete_access_token(accessToken=str(token['_id'])) 
+            await delete_access_token(accessToken=str(token['_id']))
             return None
     else:
         print("No token found")
-        return "None"
+        return None
     
     
 async def get_refresh_tokens(refreshToken:str):

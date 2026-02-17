@@ -82,8 +82,8 @@ async def validate_member_accesstoken(accessToken:str):
     
     if decodedAccessToken:
         validatedAccessToken= await get_access_tokens(accessToken=decodedAccessToken['accessToken'])
-    
-        if validatedAccessToken:
+
+        if isinstance(validatedAccessToken, accessTokenOut):
             return validatedAccessToken
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Couldn't Find Access Tokens While Validating Member Access Tokens")
@@ -103,12 +103,12 @@ async def validate_admin_accesstoken(accessToken:str):
     if decodedAccessToken:
         if decodedAccessToken['role']=="admin":
             validatedAccessToken= await get_access_tokens(accessToken=decodedAccessToken['accessToken'])
-            if type(validatedAccessToken) == type(accessTokenOut(userId="12",accesstoken="sa")):
+            if isinstance(validatedAccessToken, accessTokenOut):
                 return validatedAccessToken
-            elif validatedAccessToken=="None":
-                return None
+            elif validatedAccessToken == "inactive":
+                return "inactive"
             else:
-                return "inactive" 
+                return None
         else:
             return None  
         
@@ -128,12 +128,12 @@ async def validate_expired_admin_accesstoken(accessToken:str):
     if decodedAccessToken:
         if decodedAccessToken['role']=="admin":
             validatedAccessToken= await get_access_tokens(accessToken=decodedAccessToken['accessToken'])
-            if type(validatedAccessToken) == type(accessTokenOut(userId="12",accesstoken="sa")):
+            if isinstance(validatedAccessToken, accessTokenOut):
                 return validatedAccessToken
-            elif validatedAccessToken=="None":
-                return None
+            elif validatedAccessToken == "inactive":
+                return "inactive"
             else:
-                return "inactive" 
+                return None
         else:
             return None  
         
@@ -157,7 +157,7 @@ async def validate_member_accesstoken_without_expiration(accessToken:str):
     
     if decodedAccessToken:
         validatedAccessToken= await get_access_tokens(accessToken=decodedAccessToken['accessToken'])
-        if validatedAccessToken:
+        if isinstance(validatedAccessToken, accessTokenOut):
             return validatedAccessToken
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Couldn't Find Refresh Id")

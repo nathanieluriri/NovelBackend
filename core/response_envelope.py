@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel, Field
-from pydantic.generics import GenericModel
+from pydantic import BaseModel
 
 T = TypeVar("T")
 
@@ -14,7 +13,7 @@ class ErrorDetail(BaseModel):
     field: str | None = None
 
 
-class EnvelopeResponse(GenericModel, Generic[T]):
+class EnvelopeResponse(BaseModel, Generic[T]):
     success: bool
     message: str
     data: T | None = None
@@ -51,4 +50,3 @@ def build_error_envelope(
     if errors is not None:
         payload["errors"] = errors
     return payload
-

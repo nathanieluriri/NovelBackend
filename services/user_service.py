@@ -1,6 +1,7 @@
 from repositories.user_repo import get_user_by_email, create_user,get_user_by_email_and_provider,get_user_by_userId,replace_password,update_user_profile
 from repositories.tokens_repo import get_access_tokens,delete_all_tokens_with_user_id
 from schemas.user_schema import NewUserCreate,UserOut,OldUserBase,OldUserCreate,OldUserOut,UserUpdate
+from schemas.tokens_schema import accessTokenOut
 from fastapi import HTTPException,status
 from security.hash import check_password,hash_password
 from security.tokens import generate_member_access_tokens,generate_refresh_tokens
@@ -8,6 +9,7 @@ from security.user_otp import generate_otp, verify_otp, send_otp_user
 from services.bookmark_services import retrieve_user_bookmark
 from services.like_services import retrieve_user_likes
 from authlib.integrations.starlette_client import OAuth
+from typing import Optional
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -120,12 +122,15 @@ async def login_google(user_data:OldUserBase):
     
     
     
-async def get_user_details_with_accessToken(token:str)->UserOut:
+async def get_user_details_with_accessToken(token:str)->Optional[UserOut]:
     tokenOut = await get_access_tokens(accessToken=token)
-    if tokenOut:
-        userDetails = await get_user_by_userId(userId=tokenOut.userId)
-        if userDetails:
-            return UserOut(**userDetails)
+    if not isinstance(tokenOut, accessTokenOut):
+        return None
+
+    userDetails = await get_user_by_userId(userId=tokenOut.userId)
+    if userDetails:
+        return UserOut(**userDetails)
+    return None
         
         
 async def change_of_user_password_flow1(email):
