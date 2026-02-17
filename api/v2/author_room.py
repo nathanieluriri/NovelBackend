@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 
-from app.security.auth import verify_any_token
+from security.auth import verify_any_token
 from schemas.author_room import AuthorRoomBase, AuthorRoomCreate, AuthorRoomOut, AuthorRoomUpdate
 from services.author_room_service import (
     add_author_room,
@@ -75,4 +75,3 @@ async def delete_author_room(id: str = Path(..., description="ID of the author r
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="AuthorRoom not found")
     return {"deleted": True}
-

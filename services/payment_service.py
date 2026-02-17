@@ -16,6 +16,7 @@ from schemas.chapter_schema import ChapterOut, ChapterAccessType
 from dotenv import load_dotenv
 from core.background_task import celery
 from fastapi import HTTPException
+from typing import Optional
 import os
 import asyncio
 import time
