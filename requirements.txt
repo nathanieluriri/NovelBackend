@@ -4,7 +4,6 @@ pydantic-async-validation
 bcrypt
 requests
 pyjwt
-python-flutterwave
 celery
 python-dateutil 
 redis
@@ -47,5 +46,11 @@ typing_extensions==4.13.2
 ujson==5.10.0
 urllib3==2.4.0
 uvicorn==0.34.1
-Authlib
-
+APScheduler==3.11.0
+authlib
+python-socketio
+python-socketio[asyncio]
+redis_om
+googlemaps
+pycountry
+stripe

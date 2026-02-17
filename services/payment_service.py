@@ -6,10 +6,13 @@ from repositories.user_repo import (
     get_user_by_userId,
     checks_user_balance,
     subtract_from_user_balance,
-    update_user_unlocked_chapters,
     add_to_user_balance,
     update_user_subscription,
 )
+from repositories.chapter_repo import get_chapter_by_chapter_id
+from repositories.entitlement_repo import create_chapter_entitlement_if_absent
+from services.access_service import is_chapter_unlocked
+from schemas.chapter_schema import ChapterOut, ChapterAccessType
 from dotenv import load_dotenv
 from core.background_task import celery
 from fastapi import HTTPException
@@ -45,14 +48,17 @@ def _is_subscription_active(subscription: Optional[dict]) -> bool:
     return expires_at > datetime.now(timezone.utc)
 
 
-async def _unlock_chapter_for_user(user_id: str, chapter_id: str) -> UserOut:
-    unlock_succes = await update_user_unlocked_chapters(userId=user_id,chapterId=chapter_id)
-    if not unlock_succes:
-        raise HTTPException(status_code=500,detail="Most likely done before or user doesnt exist")
-
-    await upsert_read_record(data=MarkAsRead(userId=user_id,chapterId=chapter_id,hasRead=False))
+async def _unlock_chapter_for_user(user_id: str, chapter_id: str, tx_ref: Optional[str] = None):
+    _, created = await create_chapter_entitlement_if_absent(
+        userId=user_id,
+        chapterId=chapter_id,
+        source="stars_wallet",
+        tx_ref=tx_ref,
+    )
+    if created:
+        await upsert_read_record(data=MarkAsRead(userId=user_id,chapterId=chapter_id,hasRead=False))
     user = await get_user_by_userId(userId=user_id)
-    return UserOut(**user)
+    return UserOut(**user), created
 
 
 async def _update_subscription(user_id: str, duration_days: int) -> UserOut:
@@ -78,14 +84,43 @@ async def _update_subscription(user_id: str, duration_days: int) -> UserOut:
 async def create_transaction(user_id: str, bundleId:str,tx_ref:Optional[str] = None,chapterId:Optional[str] = None,tx_type: TransactionType=TransactionType.chapter_purchase)->UserOut:
     epoch_time  = int(time.time())
     if tx_type==TransactionType.chapter_purchase:
+        if chapterId is None:
+            raise HTTPException(status_code=400, detail="chapterId is required for chapter purchase")
         payment = await get_payment_bundle(bundle_id=bundleId)
+        if payment is None:
+            raise HTTPException(status_code=404, detail="Payment bundle not found")
+        if payment.bundleType != BundleType.star_to_book:
+            raise HTTPException(status_code=400, detail="Invalid bundle type for chapter purchase")
+        if payment.numberOfstars is None:
+            raise HTTPException(status_code=400, detail="Payment bundle missing stars")
+
+        user = await get_user_by_userId(userId=user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        user_out = UserOut(**user)
+        already_unlocked = await is_chapter_unlocked(user=user_out, chapter_id=chapterId)
+        if already_unlocked:
+            return user_out
+
         balance = await checks_user_balance(userId=user_id)
         
         if balance >= payment.numberOfstars:
-            user_out = await _unlock_chapter_for_user(user_id=user_id,chapter_id=chapterId)
-            transaction = TransactionIn(userId=user_id,paymentId=f"uid:{user_id}||nos:{payment.numberOfstars}||ts:{epoch_time}", TransactionType=tx_type,numberOfStars=payment.numberOfstars,amount=payment.amount)
-            await create_transaction_history(transaction)
-            await subtract_from_user_balance(userId= user_id,number_of_stars=payment.numberOfstars)
+            chapter_tx_ref = tx_ref or f"uid:{user_id}||cid:{chapterId}||nos:{payment.numberOfstars}||ts:{epoch_time}"
+            user_out, created = await _unlock_chapter_for_user(
+                user_id=user_id,
+                chapter_id=chapterId,
+                tx_ref=chapter_tx_ref,
+            )
+            if created:
+                transaction = TransactionIn(
+                    userId=user_id,
+                    paymentId=chapter_tx_ref,
+                    TransactionType=tx_type,
+                    numberOfStars=payment.numberOfstars,
+                    amount=payment.amount,
+                )
+                await create_transaction_history(transaction)
+                await subtract_from_user_balance(userId= user_id,number_of_stars=payment.numberOfstars)
             return user_out
         else:
             raise HTTPException(status_code=400, detail="Insufficient balance")
@@ -130,10 +165,24 @@ async def pay_for_chapter(user_id: str,bundle_id:str,chapter_id: str) -> Optiona
     user = await get_user_by_userId(userId=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user_out = UserOut(**user)
-    if not _is_subscription_active(user_out.subscription.model_dump() if user_out.subscription else None):
-        raise HTTPException(status_code=402, detail="Active subscription required")
-    return await _unlock_chapter_for_user(user_id=user_id,chapter_id=chapter_id)
+
+    chapter = await get_chapter_by_chapter_id(chapterId=chapter_id)
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    chapter_out = ChapterOut(**chapter)
+    await chapter_out.model_async_validate()
+    if chapter_out.accessType != ChapterAccessType.paid:
+        raise HTTPException(status_code=409, detail="Chapter does not require paid unlock")
+
+    if chapter_out.unlockBundleId and chapter_out.unlockBundleId != bundle_id:
+        raise HTTPException(status_code=400, detail="Invalid bundle for chapter unlock")
+
+    return await create_transaction(
+        bundleId=bundle_id,
+        user_id=user_id,
+        chapterId=chapter_id,
+        tx_type=TransactionType.chapter_purchase,
+    )
     
     
 

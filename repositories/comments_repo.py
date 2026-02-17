@@ -1,63 +1,84 @@
+from bson import ObjectId, errors
+from pymongo import ASCENDING, DESCENDING
 
 from core.database import db
-from schemas.comments_schema import CommentOut,CommentCreate
-from bson import ObjectId,errors
-import asyncio
-
-async def get_all_user_comments(userId):
-    cursor= db.comments.find({"userId":userId})
-    retrieved_comments= [chapters async for chapters in cursor]
-    return retrieved_comments
+from schemas.comments_schema import CommentCreate, InteractionTargetType
 
 
-async def get_all_chapter_comments(chapterId):
-    cursor= db.comments.find({"chapterId":chapterId})
-    retrieved_comments= [chapters async for chapters in cursor]
-    return retrieved_comments
+async def ensure_comment_indexes():
+    await db.comments.create_index(
+        [("targetType", ASCENDING), ("targetId", ASCENDING), ("dateCreated", DESCENDING)],
+        background=True,
+    )
+    await db.comments.create_index(
+        [("userId", ASCENDING), ("dateCreated", DESCENDING)],
+        background=True,
+    )
 
 
-async def delete_comments_with_chapter_id(chapterId: list):
-    """_summary_
-    
-    Accepts a list of page Id's and deletes comments with it
-    
-    Args:
-        chapterId (list): _description_
+async def get_all_user_comments(userId: str, skip: int = 0, limit: int = 20):
+    await ensure_comment_indexes()
+    cursor = db.comments.find({"userId": userId}).skip(skip).limit(limit)
+    return [comment async for comment in cursor]
 
-    Returns:
-        _type_: _description_
-    """
-    result = await db.comments.delete_many({"chapterId": {"$in": chapterId}})
-    return result
 
-async def delete_comments_with_user_id(userId: list):
-    """_summary_
-    Accepts list of user Id's and deletes comments with it
-    Args:
-        userId (list): _description_
-        
+async def get_comments_by_target(
+    targetType: InteractionTargetType,
+    targetId: str,
+    skip: int = 0,
+    limit: int = 20,
+):
+    await ensure_comment_indexes()
+    query = {"targetType": targetType.value, "targetId": targetId}
+    # Compatibility with legacy chapter-only comments.
+    if targetType == InteractionTargetType.chapter:
+        query = {
+            "$or": [
+                {"targetType": targetType.value, "targetId": targetId},
+                {"chapterId": targetId},
+            ]
+        }
+    cursor = db.comments.find(query).skip(skip).limit(limit)
+    return [comment async for comment in cursor]
 
-    Returns:
-        _type_: _description_
-    """
-    result = await db.comments.delete_many({"userId": {"$in": userId}})
-    return result
+
+async def get_all_chapter_comments(chapterId: str, skip: int = 0, limit: int = 20):
+    # Compatibility wrapper.
+    return await get_comments_by_target(
+        targetType=InteractionTargetType.chapter,
+        targetId=chapterId,
+        skip=skip,
+        limit=limit,
+    )
+
+
+async def delete_comments_with_chapter_id(chapterIds: list):
+    return await db.comments.delete_many(
+        {
+            "$or": [
+                {"chapterId": {"$in": chapterIds}},
+                {"targetType": InteractionTargetType.chapter.value, "targetId": {"$in": chapterIds}},
+            ]
+        }
+    )
+
+
+async def delete_comments_with_user_id(userIds: list):
+    return await db.comments.delete_many({"userId": {"$in": userIds}})
 
 
 async def create_comment(comment_data: CommentCreate):
+    await ensure_comment_indexes()
     comment = comment_data.model_dump()
-    print(comment)
     result = await db.comments.insert_one(comment)
-    created_comment = await db.comments.find_one({"_id": result.inserted_id})
-    return created_comment
-
+    return await db.comments.find_one({"_id": result.inserted_id})
 
 
 async def delete_comment_with_comment_id(commentId: str):
     try:
         obj_id = ObjectId(commentId)
     except errors.InvalidId:
-        return None  # or raise an error / log it
+        return None
     return await db.comments.find_one_and_delete({"_id": obj_id})
 
 
@@ -65,22 +86,18 @@ async def update_comment_with_comment_id(commentId: str, userId: str, text: str)
     try:
         obj_id = ObjectId(commentId)
     except errors.InvalidId:
-        return None  # You might also want to log this
+        return None
 
-    result = await db.comments.update_one(
+    await db.comments.update_one(
         {"_id": obj_id, "userId": userId},
-        {"$set": {"text": text}}
+        {"$set": {"text": text}},
     )
-    data = await db.comments.find_one(filter={"_id":obj_id})
-    return data
+    return await db.comments.find_one({"_id": obj_id, "userId": userId})
 
 
-async def delete_comment_with_comment_id_userId(userId,commentId: str):
+async def delete_comment_with_comment_id_userId(userId: str, commentId: str):
     try:
         obj_id = ObjectId(commentId)
     except errors.InvalidId:
-        return None  # or raise an error / log it
-    return await db.comments.find_one_and_delete({"_id": obj_id,"userId":userId})
-
-
-
+        return None
+    return await db.comments.find_one_and_delete({"_id": obj_id, "userId": userId})

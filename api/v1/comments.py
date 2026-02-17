@@ -1,136 +1,127 @@
-from fastapi import APIRouter, HTTPException,Depends
-from security.auth import verify_any_token,verify_admin_token,verify_token
-from schemas.comments_schema import CommentCreate, CommentOut,CommentBaseRequest,UpdateCommentBaseRequest
-from typing import List
-from services.comments_services import add_Comment,remove_Comment,retrieve_user_Comments,retrieve_chapter_Comments,remove_Comment_by_userId_and_commentId,update_comment
-from services.user_service import get_user_details_with_accessToken
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+
+from schemas.comments_schema import (
+    CommentCreateRequest,
+    CommentOut,
+    InteractionTargetType,
+    UpdateCommentBaseRequest,
+)
+from security.auth import verify_admin_token, verify_any_token
 from services.admin_services import get_admin_details_with_accessToken_service
+from services.comments_services import (
+    add_comment_for_target,
+    remove_comment,
+    remove_comment_by_userId_and_commentId,
+    retrieve_target_comments,
+    retrieve_user_comments,
+    update_comment,
+)
+from services.user_service import get_user_details_with_accessToken
 
 
 router = APIRouter()
 
 
-@router.get("/get", response_model=List[CommentOut],dependencies=[Depends(verify_any_token)])
-async def get_all_available_Comments_a_particular_user_made(dep= Depends(verify_any_token)):
-    try:
-        if dep['role']=='member':
-            userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
-            Comments = await retrieve_user_Comments(userId=userDetails.userId)
-            return Comments
-        elif dep['role']=='admin':
-            userDetails =await get_admin_details_with_accessToken_service(token= dep['accessToken'])
-            Comments = await retrieve_user_Comments(userId=userDetails.userId)
-            return Comments
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+async def _get_actor(dep: dict) -> tuple[str, str]:
+    if dep["role"] == "member":
+        user = await get_user_details_with_accessToken(token=dep["accessToken"])
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return user.userId, dep["role"]
+
+    admin = await get_admin_details_with_accessToken_service(token=dep["accessToken"])
+    if not admin:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return admin.userId, dep["role"]
 
 
+@router.get("/get", response_model=List[CommentOut], dependencies=[Depends(verify_any_token)])
+async def get_comments(
+    targetType: Optional[InteractionTargetType] = None,
+    targetId: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 20,
+    dep=Depends(verify_any_token),
+):
+    safe_limit = min(max(limit, 1), 100)
+    if skip < 0:
+        raise HTTPException(status_code=400, detail="skip must be >= 0")
+
+    if targetType is not None or targetId is not None:
+        if targetType is None or targetId is None:
+            raise HTTPException(status_code=400, detail="targetType and targetId must be provided together")
+        return await retrieve_target_comments(
+            targetType=targetType,
+            targetId=targetId,
+            skip=skip,
+            limit=safe_limit,
+        )
+
+    userId, _ = await _get_actor(dep)
+    return await retrieve_user_comments(userId=userId, skip=skip, limit=safe_limit)
+
+
+@router.get("/get/target/{targetType}/{targetId}", response_model=List[CommentOut])
+async def get_target_comments(
+    targetType: InteractionTargetType,
+    targetId: str,
+    skip: int = 0,
+    limit: int = 20,
+):
+    safe_limit = min(max(limit, 1), 100)
+    if skip < 0:
+        raise HTTPException(status_code=400, detail="skip must be >= 0")
+    return await retrieve_target_comments(
+        targetType=targetType,
+        targetId=targetId,
+        skip=skip,
+        limit=safe_limit,
+    )
+
+
+# Legacy wrapper for chapter-specific query.
 @router.get("/get/{chapterId}", response_model=List[CommentOut])
-async def get_all_chapter_Comments(chapterId:str):
-    try:
-        Comments = await retrieve_chapter_Comments(chapterId=chapterId)
-        return Comments
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+async def get_all_chapter_comments(chapterId: str, skip: int = 0, limit: int = 20):
+    safe_limit = min(max(limit, 1), 100)
+    if skip < 0:
+        raise HTTPException(status_code=400, detail="skip must be >= 0")
+    return await retrieve_target_comments(
+        targetType=InteractionTargetType.chapter,
+        targetId=chapterId,
+        skip=skip,
+        limit=safe_limit,
+    )
 
 
-
-@router.post("/create", response_model=CommentOut,dependencies=[Depends(verify_any_token)])
-async def Comment_on_a_chapter(Comment: CommentBaseRequest,dep= Depends(verify_any_token)):
-    created_Comment = CommentCreate(**Comment.model_dump())
-
-    if dep['role']=='member':
-        userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
-        created_Comment.userId=userDetails.userId 
-
-        created_Comment.role=dep['role']
-        try:
-            
-            new_Comment = await add_Comment(CommentData=created_Comment)
-            print("___________________________new_Comment___________________________")
-            print(new_Comment)
-            print(new_Comment)
-            print(new_Comment)
-            print(new_Comment)
-            print(new_Comment)
-            print(new_Comment)
-            print("___________________________new_Comment___________________________")
-            return new_Comment
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-    elif dep['role'] == 'admin':
-        userDetails =await get_admin_details_with_accessToken_service(token= dep['accessToken'])
-        created_Comment.userId= userDetails.userId
-        created_Comment.role=dep['role']
-        try:
-            new_Comment = await add_Comment(CommentData=created_Comment)
-            return new_Comment
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+@router.post("/create", response_model=CommentOut, dependencies=[Depends(verify_any_token)])
+async def create_comment(comment: CommentCreateRequest, dep=Depends(verify_any_token)):
+    userId, role = await _get_actor(dep)
+    return await add_comment_for_target(request=comment, userId=userId, role=role)
 
 
-@router.delete("/user/remove/{CommentId}",dependencies=[Depends(verify_any_token)], response_model=CommentOut)
-async def unComment(CommentId: str,dep=Depends(verify_token)):
-    try:
-        if dep['role']=='member':
-            userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
-            removed_Comment = await remove_Comment_by_userId_and_commentId(CommentId=CommentId,userId=userDetails.userId)
-            if removed_Comment:
-                return removed_Comment
-            else:
-                raise HTTPException(status_code=404, detail="Resource already deleted")
-        elif dep['role']=='admin':
-            userDetails =await get_admin_details_with_accessToken_service(token= dep['accessToken'])
-            
-            removed_Comment = await remove_Comment_by_userId_and_commentId(CommentId=CommentId,userId=userDetails.userId)
-            if removed_Comment:
-                return removed_Comment
-            else:
-                raise HTTPException(status_code=404, detail="Resource already deleted")
-    except HTTPException:
-        # re-raise known exceptions (Comment 404s) without changing them
-        raise
-    except Exception as e:
-        # catch all other unknown exceptions
-        raise HTTPException(status_code=500, detail=str(e))
-    
-    
-@router.delete("/admin/remove/{CommentId}", response_model=CommentOut,dependencies=[Depends(verify_admin_token)])
-async def AdminPriveledgeunComment(CommentId: str):
-    try:
-        removed_Comment = await remove_Comment(CommentId=CommentId)
-        if removed_Comment:
-            return removed_Comment
-        else:
-            raise HTTPException(status_code=404, detail="Resource already deleted")
-    except HTTPException:
-        # re-raise known exceptions (Comment 404s) without changing them
-        raise
-    except Exception as e:
-        # catch all other unknown exceptions
-        raise HTTPException(status_code=500, detail=str(e))
-    
-    
-@router.patch("/update",response_model=CommentOut,dependencies=[Depends(verify_any_token)])
-async def updateComment(updateData:UpdateCommentBaseRequest,dep=Depends(verify_any_token)):
-    try:
-        if dep['role']=='member':
-            userDetails =await get_user_details_with_accessToken(token= dep['accessToken'])
-            updated_comment = await update_comment(commentId=updateData.commentId,userId=userDetails.userId,text=updateData.text)
-            if updated_comment:
-                return updated_comment
-            else:
-                raise HTTPException(status_code=404, detail="Resource already deleted")
-        elif dep['role']=='admin':
-            userDetails =await get_admin_details_with_accessToken_service(token= dep['accessToken'])
-            updated_comment = await update_comment(commentId=updateData.commentId,userId=userDetails.userId,text=updateData.text)
-            if updated_comment:
-                return updated_comment
-            else:
-                raise HTTPException(status_code=404, detail="Resource already deleted")
-    except HTTPException:
-        # re-raise known exceptions (Comment 404s) without changing them
-        raise
-    except Exception as e:
-        # catch all other unknown exceptions
-        raise HTTPException(status_code=500, detail=str(e))
+@router.delete("/user/remove/{commentId}", dependencies=[Depends(verify_any_token)], response_model=CommentOut)
+async def user_remove_comment(commentId: str, dep=Depends(verify_any_token)):
+    userId, _ = await _get_actor(dep)
+    removed = await remove_comment_by_userId_and_commentId(commentId=commentId, userId=userId)
+    if removed is None:
+        raise HTTPException(status_code=404, detail="Resource already deleted")
+    return removed
+
+
+@router.delete("/admin/remove/{commentId}", response_model=CommentOut, dependencies=[Depends(verify_admin_token)])
+async def admin_remove_comment(commentId: str):
+    removed = await remove_comment(commentId=commentId)
+    if removed is None:
+        raise HTTPException(status_code=404, detail="Resource already deleted")
+    return removed
+
+
+@router.patch("/update", response_model=CommentOut, dependencies=[Depends(verify_any_token)])
+async def update_comment_route(updateData: UpdateCommentBaseRequest, dep=Depends(verify_any_token)):
+    userId, _ = await _get_actor(dep)
+    updated = await update_comment(commentId=updateData.commentId, userId=userId, text=updateData.text)
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Resource already deleted")
+    return updated

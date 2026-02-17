@@ -2,6 +2,11 @@ from repositories.page_repo import create_page,get_all_pages,update_page,delete_
 from schemas.page_schema import PageCreate,PageOut,PageUpdate
 from schemas.chapter_schema import ChapterUpdate
 from repositories.chapter_repo import update_chapter
+from repositories.chapter_repo import get_chapter_by_chapter_id
+from schemas.chapter_schema import ChapterOut
+from schemas.user_schema import UserOut
+from services.access_service import has_chapter_access
+from fastapi import HTTPException
 import asyncio
 
 
@@ -50,4 +55,36 @@ async def fetch_single_page(chapterId,pageNumber):
 
 async def fetch_single_page_by_pageId(pageId):
     page = await get_page_by_page_id(pageId=pageId)
+    return PageOut(**page)
+
+
+async def fetch_page_for_user(chapterId: str, user: UserOut):
+    chapter = await get_chapter_by_chapter_id(chapterId)
+    if chapter is None:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+
+    chapter_out = ChapterOut(**chapter)
+    await chapter_out.model_async_validate()
+    can_access = await has_chapter_access(user=user, chapter=chapter_out)
+    if not can_access:
+        raise HTTPException(status_code=403, detail="You do not have access to this chapter")
+
+    return await fetch_page(chapterId=chapterId)
+
+
+async def fetch_single_page_by_pageId_for_user(pageId: str, user: UserOut):
+    page = await get_page_by_page_id(pageId=pageId)
+    if page is None:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    chapter = await get_chapter_by_chapter_id(page["chapterId"])
+    if chapter is None:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+
+    chapter_out = ChapterOut(**chapter)
+    await chapter_out.model_async_validate()
+    can_access = await has_chapter_access(user=user, chapter=chapter_out)
+    if not can_access:
+        raise HTTPException(status_code=403, detail="You do not have access to this chapter")
+
     return PageOut(**page)

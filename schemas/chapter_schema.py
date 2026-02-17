@@ -1,17 +1,57 @@
 from schemas.imports import *
 from core.database import db
 from pydantic_async_validation import async_field_validator, AsyncValidationModelMixin, ValidationInfo
+from enum import Enum
+
+
+class ChapterAccessType(str, Enum):
+    free = "free"
+    subscription = "subscription"
+    paid = "paid"
+
+
+LEGACY_STATUS_TO_ACCESS = {
+    "free": ChapterAccessType.free.value,
+    "subscription": ChapterAccessType.subscription.value,
+    "paid": ChapterAccessType.paid.value,
+    "premium": ChapterAccessType.paid.value,
+    "locked": ChapterAccessType.paid.value,
+}
 
 class ChapterBaseRequest(BaseModel):
     bookId:str
     chapterLabel:str
-    status:str
+    status: Optional[str]=None
+    accessType: Optional[ChapterAccessType]=None
+    unlockBundleId: Optional[str]=None
     coverImage: Optional[str]=None
+    
+    @model_validator(mode='before')
+    def normalize_access_values(cls, values):
+        values = values or {}
+        access = values.get("accessType")
+        legacy_status = values.get("status")
+        if access is None and legacy_status is not None:
+            mapped = LEGACY_STATUS_TO_ACCESS.get(str(legacy_status).strip().lower())
+            values["accessType"] = mapped if mapped else ChapterAccessType.free.value
+        elif access is None:
+            values["accessType"] = ChapterAccessType.free.value
+        return values
+    
+    @model_validator(mode='after')
+    def validate_bundle_rules(self):
+        if self.accessType == ChapterAccessType.paid and not self.unlockBundleId:
+            raise ValueError("unlockBundleId is required when accessType is paid")
+        if self.accessType in (ChapterAccessType.free, ChapterAccessType.subscription) and self.unlockBundleId is not None:
+            raise ValueError("unlockBundleId must be empty unless accessType is paid")
+        return self
     
 class ChapterBase(ChapterBaseRequest):
     number: Optional[int]=0
     chapterLabel:Optional[str]=None
     status:Optional[str]=None
+    accessType: Optional[ChapterAccessType]=ChapterAccessType.free
+    unlockBundleId: Optional[str]=None
     
     
 class ChapterCreate(ChapterBase):
@@ -145,6 +185,8 @@ class ChapterUpdate(ChapterBase):
 class ChapterUpdateStatusOrLabel(BaseModel):
     chapterLabel: Optional[str] = None
     status: Optional[str] = None
+    accessType: Optional[ChapterAccessType] = None
+    unlockBundleId: Optional[str] = None
     dateUpdated: Optional[str] = datetime.now(timezone.utc).isoformat()  # This is a fixed value at class load time
     coverImage:Optional[str] = None
 
@@ -154,9 +196,29 @@ class ChapterUpdateStatusOrLabel(BaseModel):
             kwargs['dateUpdated'] = datetime.now(timezone.utc).isoformat()
         super().__init__(**kwargs)
         
+    @model_validator(mode='before')
+    def normalize_access_values(cls, values):
+        values = values or {}
+        access = values.get("accessType")
+        legacy_status = values.get("status")
+        if access is None and legacy_status is not None:
+            mapped = LEGACY_STATUS_TO_ACCESS.get(str(legacy_status).strip().lower())
+            values["accessType"] = mapped if mapped else ChapterAccessType.free.value
+        return values
+    
+    @model_validator(mode='after')
+    def validate_bundle_rules(self):
+        if self.accessType == ChapterAccessType.paid and not self.unlockBundleId:
+            raise ValueError("unlockBundleId is required when accessType is paid")
+        if self.accessType in (ChapterAccessType.free, ChapterAccessType.subscription) and self.unlockBundleId is not None:
+            raise ValueError("unlockBundleId must be empty unless accessType is paid")
+        return self
+        
 class ChapterUpdateStatusOrLabelRequest(BaseModel):
     chapterLabel: Optional[str] = None
     status: Optional[str] = None
+    accessType: Optional[ChapterAccessType] = None
+    unlockBundleId: Optional[str] = None
     dateUpdated: Optional[str] = datetime.now(timezone.utc).isoformat()  # This is a fixed value at class load time
     coverImage:Optional[str] = None
 
@@ -165,6 +227,24 @@ class ChapterUpdateStatusOrLabelRequest(BaseModel):
         if 'dateUpdated' not in kwargs:
             kwargs['dateUpdated'] = datetime.now(timezone.utc).isoformat()
         super().__init__(**kwargs)
+        
+    @model_validator(mode='before')
+    def normalize_access_values(cls, values):
+        values = values or {}
+        access = values.get("accessType")
+        legacy_status = values.get("status")
+        if access is None and legacy_status is not None:
+            mapped = LEGACY_STATUS_TO_ACCESS.get(str(legacy_status).strip().lower())
+            values["accessType"] = mapped if mapped else ChapterAccessType.free.value
+        return values
+    
+    @model_validator(mode='after')
+    def validate_bundle_rules(self):
+        if self.accessType == ChapterAccessType.paid and not self.unlockBundleId:
+            raise ValueError("unlockBundleId is required when accessType is paid")
+        if self.accessType in (ChapterAccessType.free, ChapterAccessType.subscription) and self.unlockBundleId is not None:
+            raise ValueError("unlockBundleId must be empty unless accessType is paid")
+        return self
         
 
 

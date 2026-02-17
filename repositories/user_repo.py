@@ -20,7 +20,10 @@ async def subtract_from_user_balance(userId,number_of_stars):
         user = await db.users.find_one({"_id":ObjectId(userId)})
         if user:
             userOut = UserOut(**user)
-            db.users.update_one(filter={"_id":ObjectId(userOut.userId)},update={"$set":{"balance":(userOut.balance-number_of_stars)}})
+            await db.users.update_one(
+                filter={"_id":ObjectId(userOut.userId)},
+                update={"$set":{"balance":(userOut.balance-number_of_stars)}}
+            )
         else: return None
     except:
         return None
@@ -31,7 +34,10 @@ async def add_to_user_balance(userId,number_of_stars):
         user = await db.users.find_one({"_id":ObjectId(userId)})
         if user:
             userOut = UserOut(**user)
-            db.users.update_one(filter={"_id":ObjectId(userOut.userId)},update={"$set":{"balance":(userOut.balance+number_of_stars)}})
+            await db.users.update_one(
+                filter={"_id":ObjectId(userOut.userId)},
+                update={"$set":{"balance":(userOut.balance+number_of_stars)}}
+            )
         else: return None
     except:
         return None
@@ -47,7 +53,10 @@ async def update_user_unlocked_chapters(userId,chapterId):
                     return None
             oldlist.append(chapterId)
             print("new List",oldlist)
-            db.users.update_one(filter={"_id":ObjectId(userOut.userId)},update={"$set":{"unlockedChapters":oldlist}})
+            await db.users.update_one(
+                filter={"_id":ObjectId(userOut.userId)},
+                update={"$set":{"unlockedChapters":oldlist}}
+            )
             return True
         else: return None
     except:

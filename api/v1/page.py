@@ -1,17 +1,29 @@
 from fastapi import APIRouter, HTTPException,Depends
-from security.auth import verify_admin_token
+from security.auth import verify_admin_token, verify_any_token
 from schemas.page_schema import PageOut,PageBase,PageUpdateRequest
 from typing import List
-from services.page_services import add_page,delete_page,fetch_page,update_page_content,fetch_single_page,fetch_single_page_by_pageId
+from services.page_services import (
+    add_page,
+    delete_page,
+    fetch_page_for_user,
+    update_page_content,
+    fetch_single_page_by_pageId_for_user,
+)
+from services.user_service import get_user_details_with_accessToken
 
 router = APIRouter()
 @router.get("/get/{chapterId}", response_model=List[PageOut])
-async def get_all_available_pages(chapterId:str):
+async def get_all_available_pages(chapterId:str, dep=Depends(verify_any_token)):
     if len(chapterId) != 24:
         raise HTTPException(status_code=400, detail="pageId must be exactly 24 characters long")
     try:
-        pages = await fetch_page(chapterId=chapterId)
+        user_details = await get_user_details_with_accessToken(token=dep["accessToken"])
+        if not user_details:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        pages = await fetch_page_for_user(chapterId=chapterId, user=user_details)
         return pages
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -20,13 +32,18 @@ async def get_all_available_pages(chapterId:str):
     
 
 @router.get("/get/page/{pageId}", response_model=PageOut)
-async def get_particular_page(pageId:str):
+async def get_particular_page(pageId:str, dep=Depends(verify_any_token)):
     if len(pageId) != 24:
         raise HTTPException(status_code=400, detail="pageeId must be exactly 24 characters long")
 
     try:
-        pages = await fetch_single_page_by_pageId(pageId=pageId)
+        user_details = await get_user_details_with_accessToken(token=dep["accessToken"])
+        if not user_details:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        pages = await fetch_single_page_by_pageId_for_user(pageId=pageId, user=user_details)
         return pages
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     

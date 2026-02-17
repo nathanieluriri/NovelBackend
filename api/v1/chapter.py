@@ -9,7 +9,7 @@ router = APIRouter()
 
 
 @router.get("/admin/get/allChapters/{bookId}", response_model=List[ChapterOut],response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
-async def get_all_available_chapters(bookId:str,start:int=0,stop:int=100):
+async def get_all_available_chapters_(bookId:str,start:int=0,stop:int=100):
     try:
         chapters = await fetch_chapters(bookId=bookId,start=start,  stop=stop)
         return chapters
@@ -19,7 +19,7 @@ async def get_all_available_chapters(bookId:str,start:int=0,stop:int=100):
  
  
 @router.get("/admin/get/chapterId/{chapterId}", response_model=ChapterOut,response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
-async def get_specific_chapter_details_with_chapterId(chapterId:str):
+async def get_specific_chapter_details_with_chapterId_(chapterId:str):
     try:
         chapter =await fetch_chapter_with_chapterId(chapterId=chapterId)
         return chapter
@@ -29,7 +29,7 @@ async def get_specific_chapter_details_with_chapterId(chapterId:str):
  
  
 @router.get("/admin/get/{bookId}/{chapterNumber}", response_model=ChapterOut,response_model_exclude_none=True)
-async def get_specific_chapter_details_with_number_and_bookId(bookId:str,chapterNumber:int):
+async def get_specific_chapter_details_with_number_and_bookId_(bookId:str,chapterNumber:int):
     try:
         chapter = await fetch_chapter_with_chapterNumber_and_bookId(bookId=bookId,chapterNumber=chapterNumber)
         return chapter

@@ -8,7 +8,17 @@ from fastapi import HTTPException
 async def add_chapter(chapter:ChapterCreate):
     retrieved_chapters = await get_chapter_by_bookId(bookId=chapter.bookId)
     if retrieved_chapters:
-        created_chapter =await create_chapter(chapter_data=ChapterCreate(coverImage=chapter.coverImage,bookId=chapter.bookId,chapterLabel=chapter.chapterLabel,status=chapter.status,number=len(retrieved_chapters)+1))
+        created_chapter =await create_chapter(
+            chapter_data=ChapterCreate(
+                coverImage=chapter.coverImage,
+                bookId=chapter.bookId,
+                chapterLabel=chapter.chapterLabel,
+                status=chapter.status,
+                accessType=chapter.accessType,
+                unlockBundleId=chapter.unlockBundleId,
+                number=len(retrieved_chapters)+1
+            )
+        )
         
         retrieved_chapters = await get_chapter_by_bookId(bookId=chapter.bookId)
         retrieved_chapters_id = [str(ids.get('_id') ) for ids in retrieved_chapters]
@@ -18,7 +28,17 @@ async def add_chapter(chapter:ChapterCreate):
         print(chap)
         return chap
     else:
-        created_chapter =await create_chapter(chapter_data=ChapterCreate(coverImage=chapter.coverImage,bookId=chapter.bookId,chapterLabel=chapter.chapterLabel,status=chapter.status,number=1))
+        created_chapter =await create_chapter(
+            chapter_data=ChapterCreate(
+                coverImage=chapter.coverImage,
+                bookId=chapter.bookId,
+                chapterLabel=chapter.chapterLabel,
+                status=chapter.status,
+                accessType=chapter.accessType,
+                unlockBundleId=chapter.unlockBundleId,
+                number=1
+            )
+        )
         
         await update_book(book_id=chapter.bookId,update_data=BookUpdate(chapterCount=1,chapters=1))
         chap =ChapterOut(**created_chapter)

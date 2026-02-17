@@ -111,8 +111,8 @@ async def login_google(user_data:OldUserBase):
             existing['accessToken']= accessToken.accesstoken
             refreshToken =await generate_refresh_tokens(userId=str(existing['_id']),accessToken=existing['accessToken'])
             existing['refreshToken']= refreshToken.refreshtoken
-            bookmarks = await retrieve_user_bookmark(userId=existing['_id'])
-            likes = await retrieve_user_likes(userId=existing['_id'])
+            bookmarks = await retrieve_user_bookmark(userId=str(existing['_id']))
+            likes = await retrieve_user_likes(userId=str(existing['_id']))
             return OldUserOut(**existing,bookmarks=bookmarks,likes=likes)
         else:raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Invalid User Login")
     else:
