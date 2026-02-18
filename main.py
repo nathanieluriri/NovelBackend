@@ -391,6 +391,7 @@ def custom_v1_openapi() -> dict[str, Any]:
         version=v1_app.version,
         description=v1_app.description,
         routes=v1_app.routes,
+        servers=[{"url": "/api/v1", "description": "v1 base path"}],
     )
     _inject_response_examples(openapi_schema, is_v2=False)
     v1_app.openapi_schema = openapi_schema
@@ -406,6 +407,7 @@ def custom_v2_openapi() -> dict[str, Any]:
         version=v2_app.version,
         description=v2_app.description,
         routes=v2_app.routes,
+        servers=[{"url": "/api/v2", "description": "v2 base path"}],
     )
     components = openapi_schema.get("components", {}).get("schemas", {})
 
