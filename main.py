@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
@@ -83,6 +84,266 @@ def _resolve_schema_ref(schema: dict[str, Any], components: dict[str, Any]) -> d
     return schema
 
 
+def _choose_type(schema: dict[str, Any]) -> str | None:
+    schema_type = schema.get("type")
+    if isinstance(schema_type, str):
+        return schema_type
+    if isinstance(schema_type, list):
+        for t in schema_type:
+            if t != "null":
+                return t
+    if "properties" in schema:
+        return "object"
+    if "items" in schema:
+        return "array"
+    return None
+
+
+def _example_string(field_name: str, schema: dict[str, Any]) -> str:
+    enum_values = schema.get("enum")
+    if isinstance(enum_values, list) and enum_values:
+        return str(enum_values[0])
+
+    schema_format = schema.get("format")
+    if schema_format == "date-time":
+        return datetime.now(timezone.utc).isoformat()
+    if schema_format == "email":
+        return "jane.doe@example.com"
+    if schema_format == "uri":
+        return "https://example.com/resource"
+
+    key = field_name.lower()
+    if key == "id" or key.endswith("id") or key.endswith("_id"):
+        return "684662739b0b51aed9ecd188"
+    if "email" in key:
+        return "jane.doe@example.com"
+    if "avatar" in key or "url" in key:
+        return "https://example.com/avatar.jpg"
+    if "firstname" in key:
+        return "Jane"
+    if "lastname" in key:
+        return "Doe"
+    if "phone" in key:
+        return "+15551234567"
+    if "role" in key:
+        return "member"
+    if "message" in key or "detail" in key:
+        return "Request processed successfully"
+    if "text" in key:
+        return "This is a sample text"
+    if "token" in key:
+        return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sample.signature"
+    return "string"
+
+
+def _example_from_schema(
+    schema: dict[str, Any],
+    components: dict[str, Any],
+    *,
+    field_name: str = "",
+    depth: int = 0,
+) -> Any:
+    if depth > 6:
+        return None
+
+    resolved = _resolve_schema_ref(schema, components)
+
+    if "example" in resolved:
+        return deepcopy(resolved["example"])
+    if "default" in resolved and resolved["default"] is not None:
+        return deepcopy(resolved["default"])
+
+    one_of = resolved.get("oneOf")
+    if isinstance(one_of, list) and one_of:
+        first = one_of[0]
+        if isinstance(first, dict):
+            return _example_from_schema(first, components, field_name=field_name, depth=depth + 1)
+
+    any_of = resolved.get("anyOf")
+    if isinstance(any_of, list) and any_of:
+        first = any_of[0]
+        if isinstance(first, dict):
+            return _example_from_schema(first, components, field_name=field_name, depth=depth + 1)
+
+    all_of = resolved.get("allOf")
+    if isinstance(all_of, list) and all_of:
+        merged: dict[str, Any] = {}
+        for item in all_of:
+            if not isinstance(item, dict):
+                continue
+            val = _example_from_schema(item, components, field_name=field_name, depth=depth + 1)
+            if isinstance(val, dict):
+                merged.update(val)
+            elif val is not None:
+                return val
+        if merged:
+            return merged
+
+    if isinstance(resolved.get("enum"), list) and resolved["enum"]:
+        return deepcopy(resolved["enum"][0])
+
+    schema_type = _choose_type(resolved)
+    if schema_type == "object":
+        result: dict[str, Any] = {}
+        properties = resolved.get("properties")
+        if isinstance(properties, dict):
+            for prop_name, prop_schema in properties.items():
+                if not isinstance(prop_schema, dict):
+                    continue
+                prop_value = _example_from_schema(
+                    prop_schema,
+                    components,
+                    field_name=prop_name,
+                    depth=depth + 1,
+                )
+                if prop_value is not None:
+                    result[prop_name] = prop_value
+        if result:
+            return result
+
+        additional = resolved.get("additionalProperties")
+        if isinstance(additional, dict):
+            additional_value = _example_from_schema(
+                additional,
+                components,
+                field_name="value",
+                depth=depth + 1,
+            )
+            return {"key": additional_value}
+        return {}
+
+    if schema_type == "array":
+        items = resolved.get("items")
+        if isinstance(items, dict):
+            item_example = _example_from_schema(items, components, field_name=field_name, depth=depth + 1)
+            if item_example is not None:
+                return [item_example]
+        return []
+
+    if schema_type == "integer":
+        minimum = resolved.get("minimum")
+        if isinstance(minimum, int):
+            return minimum
+        return 1
+    if schema_type == "number":
+        minimum = resolved.get("minimum")
+        if isinstance(minimum, (int, float)):
+            return float(minimum)
+        return 1.0
+    if schema_type == "boolean":
+        return True
+    if schema_type == "string":
+        return _example_string(field_name=field_name, schema=resolved)
+
+    return None
+
+
+def _success_message_for_status(status_code: str) -> str:
+    messages = {
+        "200": "Success",
+        "201": "Resource created successfully",
+        "202": "Request accepted",
+        "204": "No content",
+    }
+    return messages.get(status_code, "Success")
+
+
+def _error_message_for_status(status_code: str) -> str:
+    messages = {
+        "400": "Bad request",
+        "401": "Not authenticated",
+        "403": "Forbidden",
+        "404": "Resource not found",
+        "409": "Conflict",
+        "422": "Validation failed",
+        "500": "Internal Server Error",
+    }
+    return messages.get(status_code, "Request failed")
+
+
+def _build_v2_error_example(status_code: str) -> dict[str, Any]:
+    example: dict[str, Any] = {
+        "success": False,
+        "message": _error_message_for_status(status_code),
+        "data": None,
+    }
+    if status_code == "422":
+        example["errors"] = [
+            {
+                "type": "missing",
+                "loc": ["body", "field"],
+                "msg": "Field required",
+                "input": None,
+            }
+        ]
+    return example
+
+
+def _build_v1_error_example(status_code: str) -> dict[str, Any]:
+    if status_code == "422":
+        return {
+            "detail": [
+                {
+                    "type": "missing",
+                    "loc": ["body", "field"],
+                    "msg": "Field required",
+                    "input": None,
+                }
+            ]
+        }
+    return {"detail": _error_message_for_status(status_code)}
+
+
+def _inject_response_examples(openapi_schema: dict[str, Any], *, is_v2: bool) -> None:
+    components = openapi_schema.get("components", {}).get("schemas", {})
+
+    for path_item in openapi_schema.get("paths", {}).values():
+        if not isinstance(path_item, dict):
+            continue
+        for operation in path_item.values():
+            if not isinstance(operation, dict):
+                continue
+            responses = operation.get("responses")
+            if not isinstance(responses, dict):
+                continue
+
+            for status_code, response_info in responses.items():
+                if not isinstance(response_info, dict):
+                    continue
+                content = response_info.get("content")
+                if not isinstance(content, dict):
+                    continue
+                app_json = content.get("application/json")
+                if not isinstance(app_json, dict):
+                    continue
+                if "example" in app_json or "examples" in app_json:
+                    continue
+
+                if is_v2 and not str(status_code).startswith("2"):
+                    app_json["example"] = _build_v2_error_example(str(status_code))
+                    continue
+                if not is_v2 and not str(status_code).startswith("2"):
+                    app_json["example"] = _build_v1_error_example(str(status_code))
+                    continue
+
+                schema = app_json.get("schema")
+                if not isinstance(schema, dict):
+                    continue
+                generated = _example_from_schema(schema, components)
+                if generated is None:
+                    continue
+
+                if (
+                    is_v2
+                    and isinstance(generated, dict)
+                    and {"success", "message", "data"}.issubset(generated.keys())
+                ):
+                    generated["success"] = True
+                    generated["message"] = _success_message_for_status(str(status_code))
+
+                app_json["example"] = generated
+
+
 def _extract_data_schema_from_legacy_api_response(schema: dict[str, Any], components: dict[str, Any]) -> dict[str, Any]:
     resolved = _resolve_schema_ref(schema, components)
     if "allOf" in resolved and isinstance(resolved["allOf"], list) and len(resolved["allOf"]) == 1:
@@ -119,6 +380,21 @@ def _build_envelope_schema(data_schema: dict[str, Any]) -> dict[str, Any]:
         },
         "required": ["success", "message", "data"],
     }
+
+
+def custom_v1_openapi() -> dict[str, Any]:
+    if v1_app.openapi_schema:
+        return v1_app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title=v1_app.title,
+        version=v1_app.version,
+        description=v1_app.description,
+        routes=v1_app.routes,
+    )
+    _inject_response_examples(openapi_schema, is_v2=False)
+    v1_app.openapi_schema = openapi_schema
+    return v1_app.openapi_schema
 
 
 def custom_v2_openapi() -> dict[str, Any]:
@@ -166,10 +442,12 @@ def custom_v2_openapi() -> dict[str, Any]:
                 data_schema = _extract_data_schema_from_legacy_api_response(schema, components)
                 app_json["schema"] = _build_envelope_schema(data_schema)
 
+    _inject_response_examples(openapi_schema, is_v2=True)
     v2_app.openapi_schema = openapi_schema
     return v2_app.openapi_schema
 
 
+v1_app.openapi = custom_v1_openapi
 v2_app.openapi = custom_v2_openapi
 
 
