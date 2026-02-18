@@ -1,6 +1,10 @@
+from copy import deepcopy
+from typing import Any
+
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute, APIWebSocketRoute
 from starlette import routing
@@ -64,6 +68,109 @@ v2_app = FastAPI(
     docs_url="/docs",
     openapi_url="/openapi.json",
 )
+
+
+def _resolve_schema_ref(schema: dict[str, Any], components: dict[str, Any]) -> dict[str, Any]:
+    if "$ref" not in schema:
+        return schema
+    ref = schema["$ref"]
+    if not isinstance(ref, str):
+        return schema
+    schema_name = ref.rsplit("/", 1)[-1]
+    resolved = components.get(schema_name)
+    if isinstance(resolved, dict):
+        return resolved
+    return schema
+
+
+def _extract_data_schema_from_legacy_api_response(schema: dict[str, Any], components: dict[str, Any]) -> dict[str, Any]:
+    resolved = _resolve_schema_ref(schema, components)
+    if "allOf" in resolved and isinstance(resolved["allOf"], list) and len(resolved["allOf"]) == 1:
+        item = resolved["allOf"][0]
+        if isinstance(item, dict):
+            resolved = _resolve_schema_ref(item, components)
+
+    properties = resolved.get("properties")
+    if isinstance(properties, dict) and "data" in properties and (
+        "status_code" in properties or "detail" in properties
+    ):
+        data_schema = properties.get("data")
+        if isinstance(data_schema, dict):
+            return deepcopy(data_schema)
+
+    return deepcopy(schema)
+
+
+def _is_envelope_schema(schema: dict[str, Any], components: dict[str, Any]) -> bool:
+    resolved = _resolve_schema_ref(schema, components)
+    properties = resolved.get("properties")
+    if not isinstance(properties, dict):
+        return False
+    return {"success", "message", "data"}.issubset(properties.keys())
+
+
+def _build_envelope_schema(data_schema: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": {
+            "success": {"type": "boolean", "example": True},
+            "message": {"type": "string", "example": "Success"},
+            "data": data_schema,
+        },
+        "required": ["success", "message", "data"],
+    }
+
+
+def custom_v2_openapi() -> dict[str, Any]:
+    if v2_app.openapi_schema:
+        return v2_app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title=v2_app.title,
+        version=v2_app.version,
+        description=v2_app.description,
+        routes=v2_app.routes,
+    )
+    components = openapi_schema.get("components", {}).get("schemas", {})
+
+    for path_item in openapi_schema.get("paths", {}).values():
+        if not isinstance(path_item, dict):
+            continue
+        for operation in path_item.values():
+            if not isinstance(operation, dict):
+                continue
+            responses = operation.get("responses", {})
+            if not isinstance(responses, dict):
+                continue
+
+            for status_code, response_info in responses.items():
+                if not str(status_code).startswith("2"):
+                    continue
+                if str(status_code) == "204":
+                    continue
+                if not isinstance(response_info, dict):
+                    continue
+
+                content = response_info.get("content")
+                if not isinstance(content, dict):
+                    continue
+                app_json = content.get("application/json")
+                if not isinstance(app_json, dict):
+                    continue
+                schema = app_json.get("schema")
+                if not isinstance(schema, dict):
+                    continue
+                if _is_envelope_schema(schema, components):
+                    continue
+
+                data_schema = _extract_data_schema_from_legacy_api_response(schema, components)
+                app_json["schema"] = _build_envelope_schema(data_schema)
+
+    v2_app.openapi_schema = openapi_schema
+    return v2_app.openapi_schema
+
+
+v2_app.openapi = custom_v2_openapi
 
 
 @v2_app.exception_handler(HTTPException)
