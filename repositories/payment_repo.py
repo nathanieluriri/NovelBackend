@@ -41,7 +41,7 @@ async def ensure_payment_runtime_indexes():
 
 # Bundle APIs
 async def create_payment_bundle(bundle: PaymentBundles) -> PaymentBundlesOut:
-    bundle_dict = bundle.model_dump()
+    bundle_dict = bundle.model_dump(exclude_none=True)
     bundle_dict["dateCreated"] = int(time.time())
     result = await bundle_collection.insert_one(bundle_dict)
     payment_obj = await bundle_collection.find_one({"_id": ObjectId(result.inserted_id)})
@@ -63,8 +63,22 @@ async def get_all_payment_bundles() -> list[PaymentBundlesOut]:
 
 
 async def update_payment_bundle(bundle_id: str, update_data: PaymentBundlesUpdate) -> bool:
-    update_payload = update_data.model_dump(exclude_none=True)
+    current = await bundle_collection.find_one({"_id": ObjectId(bundle_id)})
+    if current is None:
+        return False
+
+    partial_update = update_data.model_dump(exclude_none=True)
+    merged = {
+        "bundleType": partial_update.get("bundleType", current.get("bundleType")),
+        "amount": partial_update.get("amount", current.get("amount")),
+        "numberOfstars": partial_update.get("numberOfstars", current.get("numberOfstars")),
+        "durationDays": partial_update.get("durationDays", current.get("durationDays")),
+        "description": partial_update.get("description", current.get("description")),
+    }
+    validated = PaymentBundles.model_validate(merged)
+    update_payload = validated.model_dump(exclude_none=True)
     update_payload["dateUpdated"] = int(time.time())
+
     result = await bundle_collection.update_one(
         {"_id": ObjectId(bundle_id)},
         {"$set": update_payload},

@@ -1,6 +1,14 @@
 from repositories.payment_repo import *
 from schemas.user_schema import UserOut
 from schemas.read_schema import MarkAsRead
+from schemas.payments_schema import (
+    BundleType,
+    PricingBundleOut,
+    PricingCatalogOut,
+    SUBSCRIPTION_CASH_TYPES,
+    SUBSCRIPTION_STAR_TYPES,
+    TransactionType,
+)
 from repositories.read_repo import upsert_read_record
 from repositories.user_repo import (
     get_user_by_userId,
@@ -130,6 +138,8 @@ async def create_transaction(user_id: str, bundleId:str,tx_ref:Optional[str] = N
         
         payment = await get_payment_bundle(bundle_id=bundleId)
         if payment:
+            if payment.amount is None or payment.amount <= 0:
+                raise HTTPException(status_code=400, detail="Cash bundle is missing amount")
             indempotent_check = await get_transaction_history_by_paymentId(paymentId=tx_ref)
             if indempotent_check==None:
                 if payment.numberOfstars is None:
@@ -145,7 +155,13 @@ async def create_transaction(user_id: str, bundleId:str,tx_ref:Optional[str] = N
             return userOut
     elif tx_type == TransactionType.subscription_purchase:
         payment = await get_payment_bundle(bundle_id=bundleId)
-        if not payment or payment.durationDays is None:
+        if (
+            not payment
+            or payment.durationDays is None
+            or payment.bundleType not in SUBSCRIPTION_CASH_TYPES
+            or payment.amount is None
+            or payment.amount <= 0
+        ):
             raise HTTPException(status_code=400, detail="Subscription bundle is invalid")
         indempotent_check = await get_transaction_history_by_paymentId(paymentId=tx_ref)
         if indempotent_check is None:
@@ -160,6 +176,8 @@ async def create_transaction(user_id: str, bundleId:str,tx_ref:Optional[str] = N
             return await _update_subscription(user_id=user_id, duration_days=payment.durationDays)
         user = await get_user_by_userId(userId=user_id)
         return UserOut(**user)
+
+    raise HTTPException(status_code=400, detail="Unsupported transaction type")
 
 
 async def pay_for_chapter(user_id: str,bundle_id:str,chapter_id: str) -> Optional[UserOut]:
@@ -249,4 +267,75 @@ async def record_subscription_purchase(userId: str, tx_ref: str, bundleId: str) 
         user_id=userId,
         tx_ref=tx_ref,
         tx_type=TransactionType.subscription_purchase,
+    )
+
+
+async def purchase_subscription_with_stars(user_id: str, bundle_id: str) -> UserOut:
+    payment = await get_payment_bundle(bundle_id=bundle_id)
+    if (
+        payment is None
+        or payment.bundleType not in SUBSCRIPTION_STAR_TYPES
+        or payment.numberOfstars is None
+        or payment.numberOfstars <= 0
+        or payment.durationDays is None
+        or payment.durationDays <= 0
+    ):
+        raise HTTPException(status_code=400, detail="Subscription stars bundle is invalid")
+
+    user = await get_user_by_userId(userId=user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    balance = await checks_user_balance(userId=user_id)
+    if balance is None or balance < payment.numberOfstars:
+        raise HTTPException(status_code=400, detail="Insufficient balance")
+
+    tx_ref = f"uid:{user_id}||bid:{bundle_id}||nos:{payment.numberOfstars}||ts:{int(time.time())}"
+    transaction = TransactionIn(
+        userId=user_id,
+        paymentId=tx_ref,
+        TransactionType=TransactionType.subscription_purchase,
+        numberOfStars=payment.numberOfstars,
+        amount=payment.amount or 0,
+    )
+    await create_transaction_history(transaction)
+    await subtract_from_user_balance(userId=user_id, number_of_stars=payment.numberOfstars)
+    return await _update_subscription(user_id=user_id, duration_days=payment.durationDays)
+
+
+def _as_pricing_bundle(bundle) -> PricingBundleOut:
+    return PricingBundleOut(
+        id=bundle.id,
+        bundleType=bundle.bundleType,
+        description=bundle.description,
+        durationDays=bundle.durationDays,
+        cashAmount=bundle.amount,
+        starAmount=bundle.numberOfstars,
+        dateCreated=bundle.dateCreated,
+    )
+
+
+async def get_pricing_catalog() -> PricingCatalogOut:
+    bundles = await get_all_payment_bundles()
+    subscriptions = []
+    star_bundles = []
+    chapter_unlock_bundles = []
+
+    for bundle in bundles:
+        if bundle.bundleType is None:
+            continue
+        item = _as_pricing_bundle(bundle)
+        if bundle.bundleType in SUBSCRIPTION_CASH_TYPES or bundle.bundleType in SUBSCRIPTION_STAR_TYPES:
+            subscriptions.append(item)
+            continue
+        if bundle.bundleType in {BundleType.cash_to_star, BundleType.cash_promo}:
+            star_bundles.append(item)
+            continue
+        if bundle.bundleType == BundleType.star_to_book:
+            chapter_unlock_bundles.append(item)
+
+    return PricingCatalogOut(
+        subscriptionPlans=subscriptions,
+        starBundles=star_bundles,
+        chapterUnlockBundles=chapter_unlock_bundles,
     )

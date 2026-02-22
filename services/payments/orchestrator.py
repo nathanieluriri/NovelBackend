@@ -9,6 +9,7 @@ from repositories.payment_repo import (
     update_payment_runtime_status,
 )
 from schemas.payments_schema import (
+    BundleType,
     CheckoutCreateRequest,
     CheckoutSessionOut,
     NormalizedWebhookEvent,
@@ -44,6 +45,10 @@ async def create_checkout(
     bundle = await get_payment_bundle(bundle_id=request.bundleId)
     if bundle is None:
         raise HTTPException(status_code=404, detail="Payment bundle not found")
+    if bundle.bundleType == BundleType.subscription_stars:
+        raise HTTPException(status_code=400, detail="Use wallet endpoint for stars subscription purchase")
+    if bundle.amount is None or bundle.amount <= 0:
+        raise HTTPException(status_code=400, detail="Checkout requires a cash-priced bundle")
 
     provider = resolve_provider(request.countryCode, request.provider)
     currency = resolve_currency(request.countryCode)

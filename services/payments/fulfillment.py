@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from repositories.entitlement_repo import create_chapter_entitlement_if_absent
 from repositories.payment_repo import get_payment_bundle
 from repositories.read_repo import upsert_read_record
-from schemas.payments_schema import BundleType, EntitlementGrantType
+from schemas.payments_schema import BundleType, EntitlementGrantType, SUBSCRIPTION_CASH_TYPES
 from schemas.read_schema import MarkAsRead
 from services.payment_service import record_purchase_of_stars, record_subscription_purchase
 
@@ -19,12 +19,15 @@ async def fulfill_verified_payment(
     if bundle is None:
         raise HTTPException(status_code=404, detail="Payment bundle not found")
 
-    if bundle.bundleType == BundleType.subscription:
+    if bundle.bundleType in SUBSCRIPTION_CASH_TYPES:
         user_out = await record_subscription_purchase(userId=user_id, tx_ref=tx_ref, bundleId=bundle_id)
         return {
             "grantType": EntitlementGrantType.subscription,
             "userId": user_out.userId,
         }
+
+    if bundle.bundleType == BundleType.subscription_stars:
+        raise HTTPException(status_code=400, detail="Stars subscriptions must be purchased from wallet")
 
     if bundle.bundleType == BundleType.star_to_book:
         if not chapter_id:

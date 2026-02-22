@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 from repositories.payment_repo import (
     create_payment_bundle,
     delete_payment_bundle,
     get_all_payment_bundles,
-    get_payment_bundle,
     update_payment_bundle,
 )
 from schemas.payments_schema import (
@@ -15,11 +15,13 @@ from schemas.payments_schema import (
     PaymentBundlesOut,
     PaymentBundlesUpdate,
     PaymentLink,
+    PricingCatalogOut,
     PaymentProvider,
+    SubscriptionStarsPurchaseRequest,
 )
 from security.auth import verify_admin_token, verify_any_token, verify_token
 from services.payments import create_checkout, process_webhook
-from services.payment_service import pay_for_chapter
+from services.payment_service import get_pricing_catalog, pay_for_chapter, purchase_subscription_with_stars
 from services.user_service import get_user_details_with_accessToken
 
 router = APIRouter()
@@ -35,11 +37,19 @@ async def get_payment_bundle_route() -> list[PaymentBundlesOut]:
     return await get_all_payment_bundles()
 
 
+@router.get("/pricing", response_model=PricingCatalogOut, dependencies=[Depends(verify_any_token)])
+async def get_pricing_catalog_route() -> PricingCatalogOut:
+    return await get_pricing_catalog()
+
+
 @router.patch("/update-payment-bundle/{bundleId}", dependencies=[Depends(verify_admin_token)])
 async def update_payment_bundle_route(bundleId: str, paymentBundle: PaymentBundlesUpdate):
     if len(bundleId) != 24:
         raise HTTPException(status_code=400, detail="bundleId must be exactly 24 characters long")
-    updated = await update_payment_bundle(bundle_id=bundleId, update_data=paymentBundle)
+    try:
+        updated = await update_payment_bundle(bundle_id=bundleId, update_data=paymentBundle)
+    except ValidationError as err:
+        raise HTTPException(status_code=422, detail=err.errors()) from err
     return JSONResponse(content={"message": updated})
 
 
@@ -102,6 +112,17 @@ async def make_payment_for_book(payment: ChapterPayment, dep=Depends(verify_toke
         user_details.userId, # type: ignore
         bundle_id=payment.bundle_id,
         chapter_id=payment.chapterId,
+    )
+
+
+@router.post("/subscribe-with-stars")
+async def subscribe_with_stars(payment: SubscriptionStarsPurchaseRequest, dep=Depends(verify_token)):
+    user_details = await get_user_details_with_accessToken(token=dep["accessToken"])
+    if not user_details:
+        raise HTTPException(status_code=401, detail="User details not found or unauthorized")
+    return await purchase_subscription_with_stars(
+        user_id=user_details.userId, # type: ignore
+        bundle_id=payment.bundleId,
     )
 
 
