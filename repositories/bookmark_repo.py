@@ -32,6 +32,16 @@ async def get_all_user_bookmarks(
     return [bookmark async for bookmark in cursor]
 
 
+async def count_user_bookmarks(
+    userId: str,
+    targetType: InteractionTargetType | None = None,
+) -> int:
+    query = {"userId": userId}
+    if targetType is not None:
+        query["targetType"] = targetType.value
+    return await db.bookmarks.count_documents(query)
+
+
 async def get_bookmark_by_user_target(userId: str, targetType: InteractionTargetType, targetId: str):
     await ensure_bookmark_indexes()
     return await db.bookmarks.find_one(

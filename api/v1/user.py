@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException,Depends, Body,Path, Request
 from schemas.user_schema import Provider,UserOutChapterDetails, NewUserBase, NewUserCreate,NewUserOut,OldUserBase,OldUserOut,OldUserCreate,UserUpdate,UserStatus
+from schemas.reading_progress_schema import ReadingProgressOut
 from services.user_service import register_user,verify_google_access_token,login_credentials,login_google,get_user_details_with_accessToken,change_of_user_password_flow1,change_of_user_password_flow2,update_user,oauth
 from schemas.tokens_schema import TokenOut,refreshTokenRequest
 from services.admin_services import get_all_user_details,update_user_details,get_one_user_details
 from security.auth import verify_admin_token,verify_token,verify_token_and_refresh_token
+from services.reading_progress_service import get_user_reading_progress
 
 from repositories.tokens_repo import delete_refresh_token
 router = APIRouter()
@@ -92,6 +94,14 @@ async def get_user_details(accessToken:str=Depends(verify_token) )->NewUserOut:
         return user
     else:
         raise HTTPException(status_code=404,detail="Details not found")
+
+
+@router.get("/reading/progress", response_model=ReadingProgressOut, response_model_exclude_none=True, dependencies=[Depends(verify_token)])
+async def get_stopped_reading_progress(accessToken: str = Depends(verify_token)):
+    user = await get_user_details_with_accessToken(token=accessToken["accessToken"])
+    if not user:
+        raise HTTPException(status_code=404, detail="Details not found")
+    return await get_user_reading_progress(user=user)
 
 
 @router.post("/initiate/change-password")

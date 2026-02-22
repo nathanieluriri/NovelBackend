@@ -1,5 +1,6 @@
 from schemas.imports import *
 from enum import Enum
+from schemas.cache_summary_schema import ChapterSummaryOut
 
 class LikeType(str,Enum):
     Like_chapter="Liked Chapter"
@@ -44,6 +45,7 @@ class LikeCreate(LikeBase):
     
 class LikeOut(LikeCreate):
     id: Optional[str] =None
+    chapterSummary: Optional[ChapterSummaryOut] = None
  
     @model_validator(mode='before')
     def set_dynamic_values(cls,values):

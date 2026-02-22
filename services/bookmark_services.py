@@ -4,6 +4,7 @@ from fastapi import HTTPException
 
 from repositories.book_repo import get_book_by_book_id
 from repositories.bookmark_repo import (
+    count_user_bookmarks,
     create_bookmark,
     delete_bookmark_by_id_userId,
     delete_bookmarks_with_bookmark_id,
@@ -19,6 +20,7 @@ from schemas.bookmark_schema import (
     InteractionTargetType,
 )
 from services.chapter_services import fetch_chapter_with_chapterId
+from core.entity_cache import get_chapter_summary
 
 
 async def _build_bookmark_model(userId: str, targetType: InteractionTargetType, targetId: str) -> BookMarkCreate:
@@ -69,21 +71,30 @@ async def create_bookmark_for_target(userId: str, request: BookMarkCreateRequest
         targetId=request.targetId,
     )
     created = await create_bookmark(bookmark_data=bookmark_model)
-    return BookMarkOutAsync(**created)
+    result = BookMarkOutAsync(**created)
+    if result.chapterId:
+        result.chapterSummary = await get_chapter_summary(result.chapterId)
+    return result
 
 
 async def remove_bookmark_for_user(bookmarkId: str, userId: str) -> BookMarkOutAsync | None:
     removed = await delete_bookmark_by_id_userId(bookmarkId=bookmarkId, userId=userId)
     if removed is None:
         return None
-    return BookMarkOutAsync(**removed)
+    result = BookMarkOutAsync(**removed)
+    if result.chapterId:
+        result.chapterSummary = await get_chapter_summary(result.chapterId)
+    return result
 
 
 async def remove_bookmark(bookmarkId: str) -> BookMarkOutAsync | None:
     removed = await delete_bookmarks_with_bookmark_id(bookmarkId=bookmarkId)
     if removed is None:
         return None
-    return BookMarkOutAsync(**removed)
+    result = BookMarkOutAsync(**removed)
+    if result.chapterId:
+        result.chapterSummary = await get_chapter_summary(result.chapterId)
+    return result
 
 
 async def retrieve_user_bookmark(
@@ -98,10 +109,21 @@ async def retrieve_user_bookmark(
         skip=skip,
         limit=limit,
     )
-    return [BookMarkOutAsync(**bookmark) for bookmark in bookmarks]
+    results = [BookMarkOutAsync(**bookmark) for bookmark in bookmarks]
+    for item in results:
+        if item.chapterId:
+            item.chapterSummary = await get_chapter_summary(item.chapterId)
+    return results
 
 
 # Compatibility wrapper.
 async def add_bookmark(userId: str, pageId: str):
     request = BookMarkCreateRequest(targetType=InteractionTargetType.page, targetId=pageId)
     return await create_bookmark_for_target(userId=userId, request=request)
+
+
+async def retrieve_user_bookmark_count(
+    userId: str,
+    targetType: InteractionTargetType | None = None,
+) -> int:
+    return await count_user_bookmarks(userId=userId, targetType=targetType)

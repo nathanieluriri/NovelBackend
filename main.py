@@ -12,7 +12,7 @@ from starlette import routing
 from starlette.middleware.sessions import SessionMiddleware
 
 from api.v1 import admin, book, bookmark, chapter, comments, like, page, payment, user
-from api.v2 import author_room as author_room_v2, reaction as reaction_v2
+from api.v2 import author_room as author_room_v2, reaction as reaction_v2, user as user_v2
 from core.envelope_router import EnvelopeAPIRoute
 from core.response_envelope import build_error_envelope
 from security.auth import verify_admin_token
@@ -545,7 +545,8 @@ def include_router_with_envelope(
 
 v2_router = APIRouter()
 include_router_with_envelope(v2_router, admin.router, prefix="/admin", tags=["Admin-v2"])
-include_router_with_envelope(v2_router, user.router, prefix="/user", tags=["User-v2"])
+include_router_with_envelope(v2_router, user_v2.router, prefix="/user", tags=["User-v2"])
+include_router_with_envelope(v2_router, user.router, prefix="/user", tags=["User-v2-legacy"])
 include_router_with_envelope(
     v2_router,
     book.router,

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from schemas.book_schema import BookCreate, BookOut,BookUpdate,BookBase,BookBaseRequest
 from typing import List
 from services.book_services import add_book,delete_book,fetch_books,change_book_name
+from core.cache_invalidation import invalidate_entity_cache
 
 router = APIRouter()
 @router.get("/get", response_model=List[BookOut])
@@ -14,6 +15,7 @@ async def get_all_available_books():
 
 
 @router.post("/create", response_model=BookOut)
+@invalidate_entity_cache(book_response_fields=("id",))
 async def create_new_book(book: BookBaseRequest):
     b = BookBase(name=book.name,number=0)
     bo = BookCreate(**b.model_dump())
@@ -24,6 +26,7 @@ async def create_new_book(book: BookBaseRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/delete/{bookId}",response_model=BookOut)
+@invalidate_entity_cache(book_arg_names=("bookId",), book_response_fields=("id",))
 async def delete_a_book(bookId:str ):
     try:
         new_book = await delete_book(bookId=bookId)
@@ -32,6 +35,7 @@ async def delete_a_book(bookId:str ):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.patch("/update/{bookId}",response_model=BookOut)
+@invalidate_entity_cache(book_arg_names=("bookId",), book_response_fields=("id",))
 async def change_a_book_name(bookId:str,book:BookUpdate ):
     try:
         updated_book = await change_book_name(bookId=bookId,book=book)

@@ -4,6 +4,7 @@ from schemas.chapter_schema import ChapterCreate, ChapterOut,ChapterBase,Chapter
 from typing import List
 from services.chapter_services import add_chapter,delete_chapter,fetch_chapters,update_chapter_status_or_label,fetch_chapter_with_chapterId,fetch_chapter_with_chapterNumber_and_bookId
 from services.image_service import upload_base64_image,get_base64_from_upload
+from core.cache_invalidation import invalidate_entity_cache
 
 router = APIRouter()
 
@@ -39,6 +40,7 @@ async def get_specific_chapter_details_with_number_and_bookId_(bookId:str,chapte
  
 
 @router.post("/create", response_model=ChapterOut,dependencies=[Depends(verify_admin_token)],response_model_exclude_none=True)
+@invalidate_entity_cache(chapter_response_fields=("id",), book_response_fields=("bookId",))
 async def create_a_new_chapter(chapter: ChapterBaseRequest):
     chapter= ChapterCreate(**chapter.model_dump())
     try:
@@ -49,6 +51,7 @@ async def create_a_new_chapter(chapter: ChapterBaseRequest):
         raise 
 
 @router.delete("/delete/{chapterId}",response_model=ChapterOut,dependencies=[Depends(verify_admin_token)],response_model_exclude_none=True)
+@invalidate_entity_cache(chapter_arg_names=("chapterId",), chapter_response_fields=("id",), book_response_fields=("bookId",))
 async def delete_a_chapter(chapterId:str ):
     try:
         deleted_chapter = await delete_chapter(chapterId=chapterId)
@@ -58,6 +61,7 @@ async def delete_a_chapter(chapterId:str ):
         raise 
 
 @router.patch("/update/{chapterId}",response_model_exclude_defaults=True,response_model=ChapterOut,dependencies=[Depends(verify_admin_token)],response_model_exclude_none=True)
+@invalidate_entity_cache(chapter_arg_names=("chapterId",), chapter_response_fields=("id",), book_response_fields=("bookId",))
 async def update_a_chapter(chapterId:str, chapterDetails: ChapterUpdateStatusOrLabelRequest ):
     
     updateChapter = ChapterUpdateStatusOrLabel(**chapterDetails.model_dump())

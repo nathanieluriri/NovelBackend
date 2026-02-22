@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException,Depends
+from fastapi import APIRouter, BackgroundTasks, HTTPException,Depends
 from security.auth import verify_admin_token, verify_any_token
 from schemas.page_schema import PageOut,PageBase,PageUpdateRequest
 from typing import List
@@ -10,6 +10,8 @@ from services.page_services import (
     fetch_single_page_by_pageId_for_user,
 )
 from services.user_service import get_user_details_with_accessToken
+from services.reading_progress_service import track_user_reading_progress
+from core.cache_invalidation import invalidate_entity_cache
 
 router = APIRouter()
 @router.get("/get/{chapterId}", response_model=List[PageOut])
@@ -32,7 +34,7 @@ async def get_all_available_pages(chapterId:str, dep=Depends(verify_any_token)):
     
 
 @router.get("/get/page/{pageId}", response_model=PageOut)
-async def get_particular_page(pageId:str, dep=Depends(verify_any_token)):
+async def get_particular_page(pageId:str, background_tasks: BackgroundTasks, dep=Depends(verify_any_token)):
     if len(pageId) != 24:
         raise HTTPException(status_code=400, detail="pageeId must be exactly 24 characters long")
 
@@ -40,8 +42,15 @@ async def get_particular_page(pageId:str, dep=Depends(verify_any_token)):
         user_details = await get_user_details_with_accessToken(token=dep["accessToken"])
         if not user_details:
             raise HTTPException(status_code=401, detail="Invalid token")
-        pages = await fetch_single_page_by_pageId_for_user(pageId=pageId, user=user_details)
-        return pages
+        page = await fetch_single_page_by_pageId_for_user(pageId=pageId, user=user_details)
+        if user_details.userId and page.chapterId:
+            background_tasks.add_task(
+                track_user_reading_progress,
+                user_details.userId,
+                page.chapterId,
+                pageId,
+            )
+        return page
     except HTTPException:
         raise
     except Exception as e:
@@ -51,6 +60,7 @@ async def get_particular_page(pageId:str, dep=Depends(verify_any_token)):
 
 
 @router.post("/create/{bookId}", response_model=PageOut,dependencies=[Depends(verify_admin_token)])
+@invalidate_entity_cache(book_arg_names=("bookId",), page_response_fields=("id",), chapter_response_fields=("chapterId",))
 async def create_a_new_page(page: PageBase,bookId:str):
     if len(bookId) != 24:
         raise HTTPException(status_code=400, detail="bookId must be exactly 24 characters long")
@@ -61,6 +71,7 @@ async def create_a_new_page(page: PageBase,bookId:str):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/delete/{pageId}",dependencies=[Depends(verify_admin_token)])
+@invalidate_entity_cache(page_arg_names=("pageId",), page_response_fields=("id",), chapter_response_fields=("chapterId",))
 async def delete_a_page(pageId:str ):
     if len(pageId) != 24:
         raise HTTPException(status_code=400, detail="pageId must be exactly 24 characters long")
@@ -79,6 +90,7 @@ async def delete_a_page(pageId:str ):
 
 
 @router.patch("/update/{pageId}",response_model=PageOut,dependencies=[Depends(verify_admin_token)])
+@invalidate_entity_cache(page_arg_names=("pageId",), page_response_fields=("id",), chapter_response_fields=("chapterId",))
 async def update_a_page(pageId:str ,page: PageUpdateRequest):
     if len(pageId) != 24:
         raise HTTPException(status_code=400, detail="pageId must be exactly 24 characters long")

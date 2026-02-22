@@ -3,10 +3,16 @@ from schemas.likes_schema import LikeOut,LikeCreate
 from bson import ObjectId,errors
 import asyncio
 
-async def get_all_user_likes(userId):
-    cursor= db.likes.find({"userId":userId})
+async def get_all_user_likes(userId, skip: int = 0, limit: int | None = None):
+    cursor = db.likes.find({"userId": userId}).skip(skip)
+    if limit is not None:
+        cursor = cursor.limit(limit)
     retrieved_likes= [chapters async for chapters in cursor]
     return retrieved_likes
+
+
+async def count_user_likes(userId: str) -> int:
+    return await db.likes.count_documents({"userId": userId})
 
 
 async def get_all_chapter_likes(chapterId):

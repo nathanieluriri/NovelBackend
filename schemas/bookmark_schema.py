@@ -1,6 +1,7 @@
 from enum import Enum
 
 from schemas.imports import *
+from schemas.cache_summary_schema import ChapterSummaryOut
 
 
 class InteractionTargetType(str, Enum):
@@ -68,6 +69,7 @@ class BookMarkCreate(BookMarkBase):
 class BookMarkOut(BookMarkCreate):
     id: Optional[str] = None
     pageNumber: Optional[int] = None
+    chapterSummary: Optional[ChapterSummaryOut] = None
 
     @model_validator(mode="before")
     def set_dynamic_values(cls, values):
