@@ -15,6 +15,15 @@ async def get_all_books():
     retrieved_books = [books async for books in cursor]
     return retrieved_books
 
+
+async def get_all_books_paginated(skip: int = 0, limit: int = 20):
+    cursor = db.books.find().skip(skip).limit(limit)
+    return [books async for books in cursor]
+
+
+async def count_all_books() -> int:
+    return await db.books.count_documents({})
+
 def get_all_books_by_name(name:str,books:list):
     books_with_same_name= [books_with_same_name for books_with_same_name in books if re.findall(r'[\w\s!?,\'\.-]+(?=\s*\d*$)|\d+$', books_with_same_name.get('name'))[0] ==name]
     return books

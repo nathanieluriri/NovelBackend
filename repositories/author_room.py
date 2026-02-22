@@ -57,6 +57,14 @@ async def get_author_rooms(filter_dict: dict = {},start=0,stop=100) -> List[Auth
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while fetching author_rooms: {str(e)}"
         )
+
+
+async def count_author_rooms(filter_dict: dict | None = None) -> int:
+    if filter_dict is None:
+        filter_dict = {}
+    return await db.author_rooms.count_documents(filter_dict)
+
+
 async def update_author_room(filter_dict: dict, author_room_data: AuthorRoomUpdate) -> AuthorRoomOut:
     result = await db.author_rooms.find_one_and_update(
         filter_dict,

@@ -76,11 +76,17 @@ async def update_page(page_id: str, update_data: PageUpdate):
     return updated_page_value
 
 
-async def get_pages_by_chapter_id(chapterId):
+async def get_pages_by_chapter_id(chapterId, skip: int = 0, limit: int | None = None):
     try:
         obj_id = ObjectId(chapterId)
     except errors.InvalidId:
         return None 
-    cursor =  db.pages.find({"chapterId":chapterId})
+    cursor = db.pages.find({"chapterId": chapterId}).skip(skip)
+    if limit is not None:
+        cursor = cursor.limit(limit)
     pages = [page async for page in cursor]
     return pages
+
+
+async def count_pages_by_chapter_id(chapterId: str) -> int:
+    return await db.pages.count_documents({"chapterId": chapterId})

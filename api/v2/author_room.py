@@ -1,44 +1,33 @@
-from typing import List, Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 
 from security.auth import verify_any_token
+from schemas.listing_schema import PaginatedListOut
 from schemas.author_room import AuthorRoomBase, AuthorRoomCreate, AuthorRoomOut, AuthorRoomUpdate
 from services.author_room_service import (
     add_author_room,
     remove_author_room,
     retrieve_author_room_by_author_room_id,
     retrieve_author_rooms,
+    retrieve_author_rooms_count,
     update_author_room_by_id,
 )
+from services.listing_service import build_list_payload, clamp_limit
 
 router = APIRouter(prefix="/author_rooms", tags=["AuthorRooms-v2"])
 
 
-@router.get("/", response_model=List[AuthorRoomOut])
+@router.get("/", response_model=PaginatedListOut[AuthorRoomOut])
 async def list_author_rooms(
-    start: Optional[int] = Query(None, description="Start index for range-based pagination"),
-    stop: Optional[int] = Query(None, description="Stop index for range-based pagination"),
-    page_number: Optional[int] = Query(None, description="Page number for pagination (0-indexed)"),
+    skip: int = 0,
+    limit: int = 20,
     dep=Depends(verify_any_token),
 ):
-    page_size = 50
-
-    if start is not None or stop is not None:
-        if start is None or stop is None:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Both 'start' and 'stop' are required")
-        if stop < start:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="'stop' cannot be less than 'start'")
-        return await retrieve_author_rooms(start=start, stop=stop)
-
-    if page_number is not None:
-        if page_number < 0:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="'page_number' cannot be negative")
-        start_index = page_number * page_size
-        stop_index = start_index + page_size
-        return await retrieve_author_rooms(start=start_index, stop=stop_index)
-
-    return await retrieve_author_rooms(start=0, stop=100)
+    if skip < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="skip must be >= 0")
+    safe_limit = clamp_limit(limit)
+    items = await retrieve_author_rooms(start=skip, stop=skip + safe_limit)
+    total = await retrieve_author_rooms_count()
+    return build_list_payload(items, skip=skip, limit=safe_limit, total=total)
 
 
 @router.get("/{id}", response_model=AuthorRoomOut)

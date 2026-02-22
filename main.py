@@ -12,7 +12,18 @@ from starlette import routing
 from starlette.middleware.sessions import SessionMiddleware
 
 from api.v1 import admin, book, bookmark, chapter, comments, like, page, payment, user
-from api.v2 import author_room as author_room_v2, reaction as reaction_v2, user as user_v2
+from api.v2 import (
+    author_room as author_room_v2,
+    book as book_v2,
+    bookmark as bookmark_v2,
+    chapter as chapter_v2,
+    comments as comments_v2,
+    like as like_v2,
+    page as page_v2,
+    payment as payment_v2,
+    reaction as reaction_v2,
+    user as user_v2,
+)
 from core.envelope_router import EnvelopeAPIRoute
 from core.response_envelope import build_error_envelope
 from security.auth import verify_admin_token
@@ -494,8 +505,22 @@ def include_router_with_envelope(
     extra_tags = tags or []
     extra_dependencies = dependencies or []
 
+    def has_http_conflict(path: str, methods: set[str]) -> bool:
+        for existing in target.routes:
+            if not isinstance(existing, (APIRoute, routing.Route)):
+                continue
+            if existing.path != path:
+                continue
+            existing_methods = set(existing.methods or [])
+            if existing_methods & methods:
+                return True
+        return False
+
     for route in source.routes:
         if isinstance(route, APIRoute):
+            route_methods = set(route.methods or [])
+            if has_http_conflict(prefix + route.path, route_methods):
+                continue
             target.add_api_route(
                 prefix + route.path,
                 route.endpoint,
@@ -525,6 +550,9 @@ def include_router_with_envelope(
                 route_class_override=EnvelopeAPIRoute,
             )
         elif isinstance(route, routing.Route):
+            route_methods = set(route.methods or [])
+            if has_http_conflict(prefix + route.path, route_methods):
+                continue
             target.add_route(
                 prefix + route.path,
                 route.endpoint,
@@ -546,6 +574,21 @@ def include_router_with_envelope(
 v2_router = APIRouter()
 include_router_with_envelope(v2_router, admin.router, prefix="/admin", tags=["Admin-v2"])
 include_router_with_envelope(v2_router, user_v2.router, prefix="/user", tags=["User-v2"])
+include_router_with_envelope(
+    v2_router,
+    book_v2.router,
+    prefix="/book",
+    tags=["Book-v2"],
+    dependencies=[Depends(verify_admin_token)],
+)
+include_router_with_envelope(v2_router, bookmark_v2.router, prefix="/bookmark", tags=["Bookmark-v2"])
+include_router_with_envelope(v2_router, like_v2.router, prefix="/like", tags=["Like-v2"])
+include_router_with_envelope(v2_router, chapter_v2.router, prefix="/chapter", tags=["Chapter-v2"])
+include_router_with_envelope(v2_router, page_v2.router, prefix="/page", tags=["Page-v2"])
+include_router_with_envelope(v2_router, comments_v2.router, prefix="/comment", tags=["Comment-v2"])
+include_router_with_envelope(v2_router, payment_v2.router, prefix="/payment", tags=["Payment-v2"])
+include_router_with_envelope(v2_router, author_room_v2.router)
+include_router_with_envelope(v2_router, reaction_v2.router)
 include_router_with_envelope(v2_router, user.router, prefix="/user", tags=["User-v2-legacy"])
 include_router_with_envelope(
     v2_router,
@@ -560,8 +603,6 @@ include_router_with_envelope(v2_router, chapter.router, prefix="/chapter", tags=
 include_router_with_envelope(v2_router, page.router, prefix="/page", tags=["Page-v2"])
 include_router_with_envelope(v2_router, comments.router, prefix="/comment", tags=["Comment-v2"])
 include_router_with_envelope(v2_router, payment.router, prefix="/payment", tags=["Payment-v2"])
-include_router_with_envelope(v2_router, author_room_v2.router)
-include_router_with_envelope(v2_router, reaction_v2.router)
 v2_app.include_router(v2_router)
 
 

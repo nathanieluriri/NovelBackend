@@ -16,6 +16,10 @@ async def get_chapter_by_bookId(bookId:str,start:int=0,stop:int=100):
 
     return retrieved_chapters
 
+
+async def count_chapters_by_bookId(bookId: str) -> int:
+    return await db.chapters.count_documents({"bookId": bookId})
+
 async def get_chapter_by_chapter_id(chapterId:str)->ChapterOut:
     try:
         obj_id = ObjectId(chapterId)

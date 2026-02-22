@@ -55,11 +55,18 @@ async def get_payment_bundle(bundle_id: str) -> PaymentBundlesOut | None:
     return None
 
 
-async def get_all_payment_bundles() -> list[PaymentBundlesOut]:
+async def get_all_payment_bundles(skip: int = 0, limit: int | None = None) -> list[PaymentBundlesOut]:
     bundles = []
-    async for doc in bundle_collection.find():
+    cursor = bundle_collection.find().skip(skip)
+    if limit is not None:
+        cursor = cursor.limit(limit)
+    async for doc in cursor:
         bundles.append(PaymentBundlesOut(**doc))
     return bundles
+
+
+async def count_all_payment_bundles() -> int:
+    return await bundle_collection.count_documents({})
 
 
 async def update_payment_bundle(bundle_id: str, update_data: PaymentBundlesUpdate) -> bool:

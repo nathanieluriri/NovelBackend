@@ -57,6 +57,14 @@ async def get_reactions(filter_dict: dict = {},start=0,stop=100) -> List[Reactio
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while fetching reactions: {str(e)}"
         )
+
+
+async def count_reactions(filter_dict: dict | None = None) -> int:
+    if filter_dict is None:
+        filter_dict = {}
+    return await db.reactions.count_documents(filter_dict)
+
+
 async def update_reaction(filter_dict: dict, reaction_data: ReactionUpdate) -> ReactionOut:
     result = await db.reactions.find_one_and_update(
         filter_dict,

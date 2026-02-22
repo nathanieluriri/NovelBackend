@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from typing import List
 
 from repositories.reaction import (
+    count_reactions,
     create_reaction,
     get_reaction,
     get_reactions,
@@ -66,6 +67,10 @@ async def retrieve_reactions(start=0, stop=100) -> List[ReactionOut]:
         _type_: ReactionOut
     """
     return await get_reactions(start=start,stop=stop)
+
+
+async def retrieve_reactions_count() -> int:
+    return await count_reactions()
 
 
 async def update_reaction_by_id(user_id: str, author_room_id: str, reaction_data: ReactionUpdate) -> ReactionOut:

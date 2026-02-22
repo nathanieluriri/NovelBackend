@@ -1,4 +1,14 @@
-from repositories.page_repo import create_page,get_all_pages,update_page,delete_page_with_page_id,get_page_by_page_id,update_page_order_after_delete,get_pages_by_chapter_id,get_page_by_page_number
+from repositories.page_repo import (
+    count_pages_by_chapter_id,
+    create_page,
+    delete_page_with_page_id,
+    get_all_pages,
+    get_page_by_page_id,
+    get_page_by_page_number,
+    get_pages_by_chapter_id,
+    update_page,
+    update_page_order_after_delete,
+)
 from schemas.page_schema import PageCreate,PageOut,PageUpdate
 from schemas.chapter_schema import ChapterUpdate
 from repositories.chapter_repo import update_chapter
@@ -43,8 +53,8 @@ async def delete_page(pageId):
     else:
         print("Page doesnt exist")
 
-async def fetch_page(chapterId):
-    pages = await get_pages_by_chapter_id(chapterId=chapterId)
+async def fetch_page(chapterId, skip: int = 0, limit: int | None = None):
+    pages = await get_pages_by_chapter_id(chapterId=chapterId, skip=skip, limit=limit)
     returnable_pages = [PageOut(**page) for page in pages]
     return returnable_pages
 
@@ -58,7 +68,7 @@ async def fetch_single_page_by_pageId(pageId):
     return PageOut(**page)
 
 
-async def fetch_page_for_user(chapterId: str, user: UserOut):
+async def fetch_page_for_user(chapterId: str, user: UserOut, skip: int = 0, limit: int | None = None):
     chapter = await get_chapter_by_chapter_id(chapterId)
     if chapter is None:
         raise HTTPException(status_code=404, detail="Chapter not found")
@@ -69,7 +79,7 @@ async def fetch_page_for_user(chapterId: str, user: UserOut):
     if not can_access:
         raise HTTPException(status_code=403, detail="You do not have access to this chapter")
 
-    return await fetch_page(chapterId=chapterId)
+    return await fetch_page(chapterId=chapterId, skip=skip, limit=limit)
 
 
 async def fetch_single_page_by_pageId_for_user(pageId: str, user: UserOut):
@@ -88,3 +98,7 @@ async def fetch_single_page_by_pageId_for_user(pageId: str, user: UserOut):
         raise HTTPException(status_code=403, detail="You do not have access to this chapter")
 
     return PageOut(**page)
+
+
+async def fetch_pages_count(chapterId: str) -> int:
+    return await count_pages_by_chapter_id(chapterId=chapterId)

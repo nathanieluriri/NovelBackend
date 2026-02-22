@@ -3,6 +3,8 @@ from fastapi import HTTPException
 from repositories.book_repo import get_book_by_book_id
 from repositories.chapter_repo import get_chapter_by_chapter_id
 from repositories.comments_repo import (
+    count_all_user_comments,
+    count_comments_by_target,
     create_comment,
     delete_comment_with_comment_id,
     delete_comment_with_comment_id_userId,
@@ -95,6 +97,17 @@ async def retrieve_target_comments(
         await item.model_async_validate()
         out.append(item)
     return out
+
+
+async def retrieve_user_comments_count(userId: str) -> int:
+    return await count_all_user_comments(userId=userId)
+
+
+async def retrieve_target_comments_count(
+    targetType: InteractionTargetType,
+    targetId: str,
+) -> int:
+    return await count_comments_by_target(targetType=targetType, targetId=targetId)
 
 
 # Compatibility wrappers used by legacy routes/imports.

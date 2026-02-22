@@ -1,4 +1,15 @@
-from repositories.book_repo import get_all_books,get_all_books_by_name,get_book_by_number,create_book,get_book_by_book_id,delete_book_with_bookId,update_book_order_after_delete,update_book
+from repositories.book_repo import (
+    count_all_books,
+    create_book,
+    delete_book_with_bookId,
+    get_all_books,
+    get_all_books_by_name,
+    get_all_books_paginated,
+    get_book_by_book_id,
+    get_book_by_number,
+    update_book,
+    update_book_order_after_delete,
+)
 from repositories.page_repo import delete_pages_with_chapter_ids
 from repositories.chapter_repo import delete_chapters_with_book_id
 from schemas.book_schema import BookCreate,BookOut,BookUpdate
@@ -43,6 +54,15 @@ async def fetch_books():
     books = await get_all_books()
     list_of_books = [BookOut(**book) for book in books]
     return list_of_books
+
+
+async def fetch_books_paginated(skip: int = 0, limit: int = 20):
+    books = await get_all_books_paginated(skip=skip, limit=limit)
+    return [BookOut(**book) for book in books]
+
+
+async def fetch_books_count() -> int:
+    return await count_all_books()
 
 
 async def change_book_name(bookId,book:BookUpdate):

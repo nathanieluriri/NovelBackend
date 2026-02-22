@@ -15,10 +15,16 @@ async def count_user_likes(userId: str) -> int:
     return await db.likes.count_documents({"userId": userId})
 
 
-async def get_all_chapter_likes(chapterId):
-    cursor= db.likes.find({"chapterId":chapterId})
+async def get_all_chapter_likes(chapterId, skip: int = 0, limit: int | None = None):
+    cursor = db.likes.find({"chapterId": chapterId}).skip(skip)
+    if limit is not None:
+        cursor = cursor.limit(limit)
     retrieved_likes= [chapters async for chapters in cursor]
     return retrieved_likes
+
+
+async def count_likes_by_chapter(chapterId: str) -> int:
+    return await db.likes.count_documents({"chapterId": chapterId})
 
 
 async def delete_likes_with_page_id(chapterId: list):

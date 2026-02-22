@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from typing import List
 
 from repositories.author_room import (
+    count_author_rooms,
     create_author_room,
     get_author_room,
     get_author_rooms,
@@ -76,6 +77,10 @@ async def retrieve_author_rooms(start=0,stop=100) -> List[AuthorRoomOut]:
         _type_: AuthorRoomOut
     """
     return await get_author_rooms(start=start,stop=stop)
+
+
+async def retrieve_author_rooms_count() -> int:
+    return await count_author_rooms()
 
 
 async def update_author_room_by_id(author_room_id: str, author_room_data: AuthorRoomUpdate) -> AuthorRoomOut:

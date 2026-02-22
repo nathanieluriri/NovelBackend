@@ -1,5 +1,6 @@
 from schemas.likes_schema import LikeOut,LikeCreate,LikeBase
 from repositories.like_repo import (
+    count_likes_by_chapter,
     count_user_likes,
     create_like,
     delete_like_with_like_id,
@@ -38,8 +39,8 @@ async def retrieve_user_likes(userId:str, skip: int = 0, limit: int | None = Non
             like.chapterSummary = await get_chapter_summary(like.chapterId)
     return list_of_likes
 
-async def retrieve_chapter_likes(chapterId:str):
-    result = await get_all_chapter_likes(chapterId=chapterId)
+async def retrieve_chapter_likes(chapterId:str, skip: int = 0, limit: int | None = None):
+    result = await get_all_chapter_likes(chapterId=chapterId, skip=skip, limit=limit)
     list_of_likes = [LikeOut(**likes) for likes in result]
     chapter_summary = await get_chapter_summary(chapterId)
     for like in list_of_likes:
@@ -49,5 +50,9 @@ async def retrieve_chapter_likes(chapterId:str):
 
 async def retrieve_user_likes_count(userId: str) -> int:
     return await count_user_likes(userId=userId)
+
+
+async def retrieve_chapter_likes_count(chapterId: str) -> int:
+    return await count_likes_by_chapter(chapterId=chapterId)
 
 

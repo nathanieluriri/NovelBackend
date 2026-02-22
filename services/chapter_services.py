@@ -1,4 +1,13 @@
-from repositories.chapter_repo import get_chapter_by_bookId,create_chapter,delete_chapter_with_chapter_id,get_chapter_by_chapter_id,update_chapter_order_after_delete,update_chapter,get_chapter_by_bookid_and_chapter_numer
+from repositories.chapter_repo import (
+    count_chapters_by_bookId,
+    create_chapter,
+    delete_chapter_with_chapter_id,
+    get_chapter_by_bookId,
+    get_chapter_by_bookid_and_chapter_numer,
+    get_chapter_by_chapter_id,
+    update_chapter,
+    update_chapter_order_after_delete,
+)
 from repositories.page_repo import delete_pages_by_chapter_id
 from repositories.book_repo import update_book
 from schemas.book_schema import BookUpdate
@@ -69,6 +78,10 @@ async def fetch_chapters(bookId: str,start:int=0,stop:int=100):
         await chap.model_async_validate()
         returnable_chapters.append(chap)
     return returnable_chapters
+
+
+async def fetch_chapters_count(bookId: str) -> int:
+    return await count_chapters_by_bookId(bookId=bookId)
 
 async def update_chapter_status_or_label(chapterId:str,chapter:ChapterUpdate):
     await update_chapter(chapter_id=chapterId,update_data=chapter)

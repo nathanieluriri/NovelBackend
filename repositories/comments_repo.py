@@ -22,6 +22,11 @@ async def get_all_user_comments(userId: str, skip: int = 0, limit: int = 20):
     return [comment async for comment in cursor]
 
 
+async def count_all_user_comments(userId: str) -> int:
+    await ensure_comment_indexes()
+    return await db.comments.count_documents({"userId": userId})
+
+
 async def get_comments_by_target(
     targetType: InteractionTargetType,
     targetId: str,
@@ -40,6 +45,22 @@ async def get_comments_by_target(
         }
     cursor = db.comments.find(query).skip(skip).limit(limit)
     return [comment async for comment in cursor]
+
+
+async def count_comments_by_target(
+    targetType: InteractionTargetType,
+    targetId: str,
+) -> int:
+    await ensure_comment_indexes()
+    query = {"targetType": targetType.value, "targetId": targetId}
+    if targetType == InteractionTargetType.chapter:
+        query = {
+            "$or": [
+                {"targetType": targetType.value, "targetId": targetId},
+                {"chapterId": targetId},
+            ]
+        }
+    return await db.comments.count_documents(query)
 
 
 async def get_all_chapter_comments(chapterId: str, skip: int = 0, limit: int = 20):
