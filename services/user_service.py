@@ -129,7 +129,9 @@ async def get_user_details_with_accessToken(token:str)->Optional[UserOut]:
 
     userDetails = await get_user_by_userId(userId=tokenOut.userId)
     if userDetails:
-        return UserOut(**userDetails)
+        bookmarks = await retrieve_user_bookmark(userId=tokenOut.userId)
+        likes = await retrieve_user_likes(userId=tokenOut.userId)
+        return UserOut(**userDetails, bookmarks=bookmarks, likes=likes)
     return None
         
         

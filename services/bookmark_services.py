@@ -15,7 +15,6 @@ from repositories.page_repo import get_page_by_page_id
 from schemas.bookmark_schema import (
     BookMarkCreate,
     BookMarkCreateRequest,
-    BookMarkOut,
     BookMarkOutAsync,
     InteractionTargetType,
 )
@@ -57,7 +56,7 @@ async def _build_bookmark_model(userId: str, targetType: InteractionTargetType, 
     )
 
 
-async def create_bookmark_for_target(userId: str, request: BookMarkCreateRequest):
+async def create_bookmark_for_target(userId: str, request: BookMarkCreateRequest) -> BookMarkOutAsync:
     if request.targetType is None or request.targetId is None:
         raise HTTPException(status_code=422, detail="targetType and targetId are required")
     existing = await get_bookmark_by_user_target(userId=userId, targetType=request.targetType, targetId=request.targetId)
@@ -70,21 +69,21 @@ async def create_bookmark_for_target(userId: str, request: BookMarkCreateRequest
         targetId=request.targetId,
     )
     created = await create_bookmark(bookmark_data=bookmark_model)
-    return BookMarkOut(**created)
+    return BookMarkOutAsync(**created)
 
 
-async def remove_bookmark_for_user(bookmarkId: str, userId: str):
+async def remove_bookmark_for_user(bookmarkId: str, userId: str) -> BookMarkOutAsync | None:
     removed = await delete_bookmark_by_id_userId(bookmarkId=bookmarkId, userId=userId)
     if removed is None:
         return None
-    return BookMarkOut(**removed)
+    return BookMarkOutAsync(**removed)
 
 
-async def remove_bookmark(bookmarkId: str):
+async def remove_bookmark(bookmarkId: str) -> BookMarkOutAsync | None:
     removed = await delete_bookmarks_with_bookmark_id(bookmarkId=bookmarkId)
     if removed is None:
         return None
-    return BookMarkOut(**removed)
+    return BookMarkOutAsync(**removed)
 
 
 async def retrieve_user_bookmark(

@@ -63,7 +63,7 @@ class NewUserCreate(AsyncValidationModelMixin,NewUserBase):
     password: Union[str ,bytes]
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat()
     balance:Optional[int]=0
-    unlockedChapters:Optional[List[str]]=[]
+    unlockedChapters:Optional[List[str]]=Field(default_factory=list)
     googleAccessToken:Optional[str]=None
     subscription: Optional[SubscriptionInfo] = Field(default_factory=SubscriptionInfo)
     
@@ -89,14 +89,14 @@ class NewUserOut(BaseModel):
     balance:Optional[int]=None
     accessToken: Optional[str]=None
     refreshToken:Optional[str]=None
-    unlockedChapters:Optional[List[str]]=[]
+    unlockedChapters:Optional[List[str]]=Field(default_factory=list)
     firstName:Optional[str]=None
     lastName:Optional[str]=None
     avatar:Optional[str]=None
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
     stage: Optional[Stage] = Field(default_factory=Stage)
-    bookmarks:Optional[List[BookMarkOutSync]]=[]
-    likes:Optional[List[LikeOut]] = []
+    bookmarks:Optional[List[BookMarkOutSync]]=Field(default_factory=list)
+    likes:Optional[List[LikeOut]] = Field(default_factory=list)
     stopped_reading:Optional[ReadingHistory] = Field(default_factory=ReadingHistory)
     subscription: Optional[SubscriptionInfo] = Field(default_factory=SubscriptionInfo)
 class UserOut(BaseModel):
@@ -112,8 +112,8 @@ class UserOut(BaseModel):
     unlockedChapters:Optional[List[str]]=None
     dateCreated:Optional[str]=datetime.now(timezone.utc).isoformat() 
     stage:Optional[Stage]=Field(default_factory=Stage)
-    bookmarks:Optional[List[BookMarkOutSync]]=Field(default=[])
-    likes:Optional[List[LikeOut]] = Field(default=[])
+    bookmarks:Optional[List[BookMarkOutSync]]=Field(default_factory=list)
+    likes:Optional[List[LikeOut]] = Field(default_factory=list)
     
     stopped_reading:Optional[ReadingHistory] = Field(default=ReadingHistory)
     subscription: Optional[SubscriptionInfo] = Field(default_factory=SubscriptionInfo)

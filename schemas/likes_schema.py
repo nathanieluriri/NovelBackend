@@ -1,3 +1,5 @@
+import time
+
 from schemas.imports import *
 from enum import Enum
 
@@ -19,22 +21,21 @@ class LikeBase(LikeBaseRequest):
 
 
 class LikeCreate(LikeBase):
-    userId:Optional[str]=None
-    role:Optional[str]=None
     chapaterLabel:str
  
-    dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
+    dateCreated: Optional[int] = Field(default_factory=lambda: int(time.time()))
     @model_validator(mode='before')
     def set_dates(cls,values):
         now_str = datetime.now(timezone.utc).isoformat()
-        values['dateCreated']= now_str
+        
+        if values['dateCreated']==None:
+            values['dateCreated']= now_str
         return values
     
     
 class LikeOut(LikeCreate):
     id: Optional[str] =None
-    
-    dateCreated: Optional[str]=datetime.now(timezone.utc).isoformat()
+ 
     @model_validator(mode='before')
     def set_dynamic_values(cls,values):
         values['id']= str(values.get('_id'))
