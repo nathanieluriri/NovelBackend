@@ -16,6 +16,16 @@ class ListMeta(BaseModel):
     hasMore: bool
 
 
+
+# class IndexedLikeOut(BaseModel):
+#     index: int
+#     item: LikeOut
+
+
+# class IndexedBookmarkOut(BaseModel):
+#     index: int
+#     item: BookMarkOutAsync
+
 class IndexedLikeOut(BaseModel):
     index: int
     item: LikeOut
