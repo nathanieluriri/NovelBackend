@@ -115,7 +115,7 @@ class UserOut(BaseModel):
     bookmarks:Optional[List[BookMarkOutSync]]=Field(default_factory=list)
     likes:Optional[List[LikeOut]] = Field(default_factory=list)
     
-    stopped_reading:Optional[ReadingHistory] = Field(default=ReadingHistory)
+    stopped_reading:Optional[ReadingHistory] = Field(default_factory=ReadingHistory)
     subscription: Optional[SubscriptionInfo] = Field(default_factory=SubscriptionInfo)
     @model_validator(mode='before')
     def set_id(cls,values):
