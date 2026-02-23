@@ -25,8 +25,8 @@ def build_summary(*, returned: int, total: int) -> ListSummaryOut:
 #     return [{"index": skip + i + 1, "item": item} for i, item in enumerate(items)]
 
 
-def build_indexed_items(items: Sequence[Any], *, skip: int) -> list[dict[str, Any]]:
-    return [item for i, item in enumerate(items)]
+def build_indexed_items(items: Sequence[Any], *, skip: int) -> list[Any]:
+    return list(items)
 
 
 

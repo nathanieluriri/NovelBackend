@@ -24,6 +24,6 @@ class IndexedItemOut(BaseModel, Generic[T]):
 
 
 class PaginatedListOut(BaseModel, Generic[T]):
-    items: list[IndexedItemOut[T]]
+    items: list[T]
     meta: ListMetaOut
     summary: ListSummaryOut
