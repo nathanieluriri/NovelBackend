@@ -28,6 +28,8 @@ class ChapterBaseRequest(BaseModel):
     
     @model_validator(mode='before')
     def normalize_access_values(cls, values):
+        if not isinstance(values, dict):
+            return values
         values = values or {}
         access = values.get("accessType")
         legacy_status = values.get("status")
@@ -61,6 +63,8 @@ class ChapterCreate(ChapterBase):
     pages: Optional[List[str]] = None
     @model_validator(mode='before')
     def set_dates(cls,values):
+        if not isinstance(values, dict):
+            return values
         now_str = datetime.now(timezone.utc).isoformat()
         values['dateCreated']= now_str
         values['dateUpdated']= now_str
@@ -142,7 +146,11 @@ class ChapterOut(AsyncValidationModelMixin,ChapterBase):
 
     @model_validator(mode='before')
     def set_dynamic_values(cls,values):
-        values['id']= str(values.get('_id'))
+        if not isinstance(values, dict):
+            return values
+        raw_id = values.get('_id')
+        if raw_id is not None and values.get('id') is None:
+            values['id']= str(raw_id)
         return values
 
     model_config = {
@@ -157,7 +165,11 @@ class ChapterOutSyncVersion(ChapterBase):
     hasRead:bool
     @model_validator(mode='before')
     def set_dynamic_values(cls,values):
-        values['id']= str(values.get('_id'))
+        if not isinstance(values, dict):
+            return values
+        raw_id = values.get('_id')
+        if raw_id is not None and values.get('id') is None:
+            values['id']= str(raw_id)
         return values
 
     model_config = {
@@ -175,9 +187,13 @@ class ChapterUpdate(ChapterBase):
     pages: Optional[List[str]] = None
     @model_validator(mode='before')
     def set_dates(cls,values):
+        if not isinstance(values, dict):
+            return values
         now_str = datetime.now(timezone.utc).isoformat()
         values['dateUpdated']= now_str
-        values['id']= str(values.get('_id'))
+        raw_id = values.get('_id')
+        if raw_id is not None and values.get('id') is None:
+            values['id']= str(raw_id)
         return values
     
     
@@ -198,6 +214,8 @@ class ChapterUpdateStatusOrLabel(BaseModel):
         
     @model_validator(mode='before')
     def normalize_access_values(cls, values):
+        if not isinstance(values, dict):
+            return values
         values = values or {}
         access = values.get("accessType")
         legacy_status = values.get("status")
@@ -230,6 +248,8 @@ class ChapterUpdateStatusOrLabelRequest(BaseModel):
         
     @model_validator(mode='before')
     def normalize_access_values(cls, values):
+        if not isinstance(values, dict):
+            return values
         values = values or {}
         access = values.get("accessType")
         legacy_status = values.get("status")

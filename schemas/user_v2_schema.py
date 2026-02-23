@@ -1,20 +1,12 @@
 from schemas.imports import *
 from schemas.bookmark_schema import BookMarkOutAsync
 from schemas.likes_schema import LikeOut
+from schemas.listing_schema import ListMetaOut
 
 
 class InteractionTotals(BaseModel):
     totalLikes: int
     totalBookmarks: int
-
-
-class ListMeta(BaseModel):
-    skip: int
-    limit: int
-    returned: int
-    total: int
-    hasMore: bool
-
 
 
 # class IndexedLikeOut(BaseModel):
@@ -38,17 +30,17 @@ class IndexedBookmarkOut(BaseModel):
 
 class UserLikesListOut(BaseModel):
     items: list[IndexedLikeOut]
-    meta: ListMeta
+    meta: ListMetaOut
 
 
 class UserBookmarksListOut(BaseModel):
     items: list[IndexedBookmarkOut]
-    meta: ListMeta
+    meta: ListMetaOut
 
 
 class UserDetailsV2Out(BaseModel):
     summary: InteractionTotals
     likes: list[IndexedLikeOut]
     bookmarks: list[IndexedBookmarkOut]
-    likesMeta: ListMeta
-    bookmarksMeta: ListMeta
+    likesMeta: ListMetaOut
+    bookmarksMeta: ListMetaOut

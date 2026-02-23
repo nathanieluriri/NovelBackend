@@ -67,7 +67,7 @@ async def delete_chapter(chapterId:str):
         await update_book(book_id=chapter['bookId'],update_data=BookUpdate(chapterCount=len(retrieved_chapters),chapters=retrieved_chapters_id))
         return result
     else:
-        print("chapter doesn't exist")
+        raise HTTPException(status_code=404, detail="Chapter not found")
 
 
 async def fetch_chapters(bookId: str,start:int=0,stop:int=100):
@@ -86,6 +86,8 @@ async def fetch_chapters_count(bookId: str) -> int:
 async def update_chapter_status_or_label(chapterId:str,chapter:ChapterUpdate):
     await update_chapter(chapter_id=chapterId,update_data=chapter)
     updated_chapter =await get_chapter_by_chapter_id(chapterId=chapterId)
+    if not updated_chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
     returnable_chapter =ChapterOut(**updated_chapter)
     await returnable_chapter.model_async_validate() 
     return returnable_chapter
@@ -93,18 +95,17 @@ async def update_chapter_status_or_label(chapterId:str,chapter:ChapterUpdate):
 
 async def fetch_chapter_with_chapterId(chapterId: str):
     chapter = await get_chapter_by_chapter_id(chapterId=chapterId)
-    print(chapter)
-    try:
-        chap = ChapterOut(**chapter)
-        
-        await chap.model_async_validate()
-        return chap
-    except Exception as e:
-        HTTPException(status_code=500,detail=str(e))
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    chap = ChapterOut(**chapter)
+    await chap.model_async_validate()
+    return chap
 
 
 async def fetch_chapter_with_chapterNumber_and_bookId(bookId: str,chapterNumber:int):
     chapter = await get_chapter_by_bookid_and_chapter_numer(bookId=bookId,chapterNumber=chapterNumber)
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
     chap = ChapterOut(**chapter)
     await chap.model_async_validate()
     return chap
