@@ -22,21 +22,21 @@ import asyncio
 
 async def add_page(bookId,chapterId,textContent,status):
     pages = await get_all_pages(chapterId=chapterId)
-    page = await create_page(page_data=PageCreate(status=status,number=len(pages)+1,chapterId=chapterId,textContent=textContent))
+    page = await create_page(page_data=PageCreate(status=status,number=len(pages)+1,chapterId=chapterId,textContent=textContent)) # type: ignore
     
     page_ids = [str(ids.get("_id")) for ids in pages]
     await update_chapter(chapter_id=chapterId,update_data=ChapterUpdate(pageCount=len(pages),pages=page_ids))
-    created_page = PageOut(**page)
+    created_page = PageOut(**page) # type: ignore
     return created_page
     
     
 async def update_page_content(pageId,textContent,status=None):
     result = await update_page(page_id=pageId,update_data=PageUpdate(status=status,textContent=textContent))
     
-    pages = await get_all_pages(chapterId=result['chapterId'])
+    pages = await get_all_pages(chapterId=result['chapterId']) # type: ignore
     page_ids = [str(ids.get("_id")) for ids in pages]
     
-    await update_chapter(chapter_id=result['chapterId'],update_data=ChapterUpdate(pageCount=len(pages),pages=page_ids))
+    await update_chapter(chapter_id=result['chapterId'],update_data=ChapterUpdate(pageCount=len(pages),pages=page_ids)) # type: ignore
     return result
 
 
@@ -47,25 +47,25 @@ async def delete_page(pageId):
         # update = await update_page_order_after_delete(deleted_position=page['number'],chapterId=page['chapterId'])
         pages = await get_all_pages(chapterId=page['chapterId'])
         page_ids = [str(ids.get("_id")) for ids in pages]
-        await update_chapter(chapter_id=result['chapterId'],update_data=ChapterUpdate(pageCount=len(pages),pages=page_ids))
-        return PageOut(**result)
+        await update_chapter(chapter_id=result['chapterId'],update_data=ChapterUpdate(pageCount=len(pages),pages=page_ids)) # type: ignore
+        return PageOut(**result) # type: ignore
 
     else:
         print("Page doesnt exist")
 
 async def fetch_page(chapterId, skip: int = 0, limit: int | None = None):
     pages = await get_pages_by_chapter_id(chapterId=chapterId, skip=skip, limit=limit)
-    returnable_pages = [PageOut(**page) for page in pages]
+    returnable_pages = [PageOut(**page) for page in pages] # type: ignore
     return returnable_pages
 
 
 async def fetch_single_page(chapterId,pageNumber):
     page = await get_page_by_page_number(number=pageNumber,chapterId=chapterId)
-    return PageOut(**page)
+    return PageOut(**page) # type: ignore
 
 async def fetch_single_page_by_pageId(pageId):
     page = await get_page_by_page_id(pageId=pageId)
-    return PageOut(**page)
+    return PageOut(**page) # type: ignore
 
 
 async def fetch_page_for_user(chapterId: str, user: UserOut, skip: int = 0, limit: int | None = None):
