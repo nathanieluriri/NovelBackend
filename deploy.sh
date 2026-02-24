@@ -44,7 +44,7 @@ echo "🔄 Pulling latest code..."
 git pull origin master
 
 echo "🛠️ Building Docker images..."
-sudo docker compose build
+sudo docker compose build --provenance=false
 
 echo "🚀 Restarting services..."
 sudo docker compose up -d

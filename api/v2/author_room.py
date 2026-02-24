@@ -13,7 +13,7 @@ from services.author_room_service import (
 )
 from services.listing_service import build_list_payload, clamp_limit
 
-router = APIRouter(prefix="/author_rooms", tags=["AuthorRooms-v2"])
+router = APIRouter(prefix="/author_room", tags=["AuthorRooms-v2"])
 
 
 @router.get("/", response_model=PaginatedListOut[AuthorRoomOut])
@@ -39,7 +39,7 @@ async def get_author_room_by_id(dep=Depends(verify_any_token),id: str = Path(...
 
 
 @router.post("/", response_model=AuthorRoomOut, status_code=status.HTTP_201_CREATED)
-async def create_author_room(payload: AuthorRoomBase,dep=Depends(verify_any_token),):
+async def create_a_comment_in_author_room(payload: AuthorRoomBase,dep=Depends(verify_any_token),):
     item = await add_author_room(AuthorRoomCreate(**payload.model_dump()))
     if item is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to create author room")
@@ -47,7 +47,7 @@ async def create_author_room(payload: AuthorRoomBase,dep=Depends(verify_any_toke
 
 
 @router.patch("/{id}", response_model=AuthorRoomOut)
-async def update_author_room(
+async def update_a_comment_in_author_room(
     id: str = Path(..., description="ID of the author room to update"),
     payload: AuthorRoomUpdate = ..., # type: ignore
      dep=Depends(verify_any_token),
@@ -59,7 +59,7 @@ async def update_author_room(
 
 
 @router.delete("/{id}", status_code=status.HTTP_200_OK)
-async def delete_author_room(id: str = Path(..., description="ID of the author room to delete")):
+async def delete_a_comment_in_author_room(id: str = Path(..., description="ID of the author room to delete")):
     deleted = await remove_author_room(id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="AuthorRoom not found")

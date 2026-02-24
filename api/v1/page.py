@@ -1,28 +1,55 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException,Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from security.auth import verify_admin_token, verify_any_token
 from schemas.page_schema import PageOut,PageBase,PageUpdateRequest
 from typing import List
 from services.page_services import (
     add_page,
     delete_page,
+    fetch_page,
     fetch_page_for_user,
+    fetch_single_page_by_pageId,
     update_page_content,
     fetch_single_page_by_pageId_for_user,
 )
+from services.admin_services import get_admin_details_with_accessToken_service
 from services.user_service import get_user_details_with_accessToken
 from services.reading_progress_service import track_user_reading_progress
 from core.cache_invalidation import invalidate_entity_cache
 
 router = APIRouter()
+
+
+async def _resolve_reader(dep: dict):
+    role = dep.get("role")
+    access_token = dep.get("accessToken")
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    if role == "member":
+        user = await get_user_details_with_accessToken(token=access_token)
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return role, user
+
+    if role == "admin":
+        admin = await get_admin_details_with_accessToken_service(token=access_token)
+        if not admin:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return role, admin
+
+    raise HTTPException(status_code=401, detail="Invalid token")
+
+
 @router.get("/get/{chapterId}", response_model=List[PageOut])
 async def get_all_available_pages(chapterId:str, dep=Depends(verify_any_token)):
     if len(chapterId) != 24:
         raise HTTPException(status_code=400, detail="pageId must be exactly 24 characters long")
     try:
-        user_details = await get_user_details_with_accessToken(token=dep["accessToken"])
-        if not user_details:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        pages = await fetch_page_for_user(chapterId=chapterId, user=user_details)
+        role, reader = await _resolve_reader(dep)
+        if role == "admin":
+            pages = await fetch_page(chapterId=chapterId)
+        else:
+            pages = await fetch_page_for_user(chapterId=chapterId, user=reader)
         return pages
     except HTTPException:
         raise
@@ -39,14 +66,15 @@ async def get_particular_page(pageId:str, background_tasks: BackgroundTasks, dep
         raise HTTPException(status_code=400, detail="pageeId must be exactly 24 characters long")
 
     try:
-        user_details = await get_user_details_with_accessToken(token=dep["accessToken"])
-        if not user_details:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        page = await fetch_single_page_by_pageId_for_user(pageId=pageId, user=user_details)
-        if user_details.userId and page.chapterId:
+        role, reader = await _resolve_reader(dep)
+        if role == "admin":
+            return await fetch_single_page_by_pageId(pageId=pageId)
+
+        page = await fetch_single_page_by_pageId_for_user(pageId=pageId, user=reader)
+        if reader.userId and page.chapterId:
             background_tasks.add_task(
                 track_user_reading_progress,
-                user_details.userId,
+                reader.userId,
                 page.chapterId,
                 pageId,
             )
