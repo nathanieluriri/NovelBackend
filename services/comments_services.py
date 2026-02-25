@@ -4,16 +4,21 @@ from repositories.book_repo import get_book_by_book_id
 from repositories.chapter_repo import get_chapter_by_chapter_id
 from repositories.comments_repo import (
     count_all_user_comments,
+    count_chapter_comment_users,
     count_comments_by_target,
     create_comment,
     delete_comment_with_comment_id,
     delete_comment_with_comment_id_userId,
     get_all_user_comments,
+    get_chapter_comment_user_stats,
     get_comments_by_target,
     update_comment_with_comment_id,
 )
 from repositories.page_repo import get_page_by_page_id
+from repositories.user_repo import get_users_by_user_ids
+from schemas.admin_schema import ChapterInteractionUserOut
 from schemas.comments_schema import CommentCreate, CommentCreateRequest, CommentOut, InteractionTargetType
+from schemas.utils import normalize_datetime_to_iso
 
 
 async def _ensure_target_exists(targetType: InteractionTargetType, targetId: str):
@@ -108,6 +113,37 @@ async def retrieve_target_comments_count(
     targetId: str,
 ) -> int:
     return await count_comments_by_target(targetType=targetType, targetId=targetId)
+
+
+async def _hydrate_chapter_interaction_users(stats_rows: list[dict]) -> list[ChapterInteractionUserOut]:
+    user_ids = [str(row.get("_id")) for row in stats_rows if row.get("_id") is not None]
+    users = await get_users_by_user_ids(user_ids)
+    user_map = {str(user.get("_id")): user for user in users}
+
+    return [
+        ChapterInteractionUserOut(
+            userId=str(row.get("_id")),
+            firstName=user_map.get(str(row.get("_id")), {}).get("firstName"),
+            lastName=user_map.get(str(row.get("_id")), {}).get("lastName"),
+            email=user_map.get(str(row.get("_id")), {}).get("email"),
+            avatar=user_map.get(str(row.get("_id")), {}).get("avatar"),
+            interactionCount=int(row.get("interactionCount", 0)),
+            lastInteractionAt=normalize_datetime_to_iso(row.get("lastInteractionAt")),
+        )
+        for row in stats_rows
+        if row.get("_id") is not None
+    ]
+
+
+async def retrieve_chapter_comment_users(chapterId: str, skip: int = 0, limit: int = 20) -> list[ChapterInteractionUserOut]:
+    await _ensure_target_exists(InteractionTargetType.chapter, chapterId)
+    stats = await get_chapter_comment_user_stats(chapterId=chapterId, skip=skip, limit=limit)
+    return await _hydrate_chapter_interaction_users(stats)
+
+
+async def retrieve_chapter_comment_users_count(chapterId: str) -> int:
+    await _ensure_target_exists(InteractionTargetType.chapter, chapterId)
+    return await count_chapter_comment_users(chapterId=chapterId)
 
 
 # Compatibility wrappers used by legacy routes/imports.

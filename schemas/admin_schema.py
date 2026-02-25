@@ -110,4 +110,14 @@ class AdminDashboardAnalytics(BaseModel):
     revenueAnalytics:RevenueAnalytics
     recentChapters: List[RecentChapterOut]
     recentUsers:List[UserOut]
+
+
+class ChapterInteractionUserOut(BaseModel):
+    userId: str
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    email: Optional[EmailStr] = None
+    avatar: Optional[str] = None
+    interactionCount: int = 0
+    lastInteractionAt: Optional[str] = None
     

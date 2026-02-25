@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from schemas.admin_schema import ChapterInteractionUserOut
 from schemas.comments_schema import (
     CommentCreateRequest,
     CommentOut,
@@ -14,6 +15,7 @@ from services.comments_services import (
     add_comment_for_target,
     remove_comment,
     remove_comment_by_userId_and_commentId,
+    retrieve_chapter_comment_users,
     retrieve_target_comments,
     retrieve_user_comments,
     update_comment,
@@ -93,6 +95,15 @@ async def get_all_chapter_comments(chapterId: str, skip: int = 0, limit: int = 2
         skip=skip,
         limit=safe_limit,
     )
+
+
+@router.get(
+    "/admin/get/chapter/{chapterId}/users",
+    response_model=List[ChapterInteractionUserOut],
+    dependencies=[Depends(verify_admin_token)],
+)
+async def get_all_chapter_comment_users(chapterId: str):
+    return await retrieve_chapter_comment_users(chapterId=chapterId, skip=0, limit=1000)
 
 
 @router.post("/create", response_model=CommentOut, dependencies=[Depends(verify_any_token)])

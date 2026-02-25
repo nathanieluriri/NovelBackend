@@ -2,11 +2,14 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from schemas.admin_schema import ChapterInteractionUserOut
 from schemas.comments_schema import CommentOut, InteractionTargetType
 from schemas.listing_schema import PaginatedListOut
-from security.auth import verify_any_token
+from security.auth import verify_admin_token, verify_any_token
 from services.admin_services import get_admin_details_with_accessToken_service
 from services.comments_services import (
+    retrieve_chapter_comment_users,
+    retrieve_chapter_comment_users_count,
     retrieve_target_comments,
     retrieve_target_comments_count,
     retrieve_user_comments,
@@ -96,4 +99,18 @@ async def get_chapter_comments_v2(chapterId: str, skip: int = 0, limit: int = 20
         targetType=InteractionTargetType.chapter,
         targetId=chapterId,
     )
+    return build_list_payload(items, skip=skip, limit=safe_limit, total=total)
+
+
+@router.get(
+    "/admin/get/chapter/{chapterId}/users",
+    response_model=PaginatedListOut[ChapterInteractionUserOut],
+    dependencies=[Depends(verify_admin_token)],
+)
+async def get_chapter_comment_users_v2(chapterId: str, skip: int = 0, limit: int = 20):
+    if skip < 0:
+        raise HTTPException(status_code=400, detail="skip must be >= 0")
+    safe_limit = clamp_limit(limit)
+    items = await retrieve_chapter_comment_users(chapterId=chapterId, skip=skip, limit=safe_limit)
+    total = await retrieve_chapter_comment_users_count(chapterId=chapterId)
     return build_list_payload(items, skip=skip, limit=safe_limit, total=total)

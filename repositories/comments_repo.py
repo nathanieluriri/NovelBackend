@@ -63,6 +63,46 @@ async def count_comments_by_target(
     return await db.comments.count_documents(query)
 
 
+def _chapter_comment_query(chapterId: str) -> dict:
+    return {
+        "$or": [
+            {"targetType": InteractionTargetType.chapter.value, "targetId": chapterId},
+            {"chapterId": chapterId},
+        ]
+    }
+
+
+async def get_chapter_comment_user_stats(chapterId: str, skip: int = 0, limit: int = 20):
+    await ensure_comment_indexes()
+    pipeline = [
+        {"$match": _chapter_comment_query(chapterId)},
+        {
+            "$group": {
+                "_id": "$userId",
+                "interactionCount": {"$sum": 1},
+                "lastInteractionAt": {"$max": "$dateCreated"},
+            }
+        },
+        {"$sort": {"lastInteractionAt": -1, "_id": 1}},
+        {"$skip": skip},
+        {"$limit": limit},
+    ]
+    return await db.comments.aggregate(pipeline).to_list(length=limit)
+
+
+async def count_chapter_comment_users(chapterId: str) -> int:
+    await ensure_comment_indexes()
+    pipeline = [
+        {"$match": _chapter_comment_query(chapterId)},
+        {"$group": {"_id": "$userId"}},
+        {"$count": "total"},
+    ]
+    result = await db.comments.aggregate(pipeline).to_list(length=1)
+    if not result:
+        return 0
+    return int(result[0].get("total", 0))
+
+
 async def get_all_chapter_comments(chapterId: str, skip: int = 0, limit: int = 20):
     # Compatibility wrapper.
     return await get_comments_by_target(

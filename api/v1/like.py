@@ -1,8 +1,15 @@
 from fastapi import APIRouter, HTTPException,Depends
-from security.auth import verify_any_token
+from security.auth import verify_admin_token, verify_any_token
+from schemas.admin_schema import ChapterInteractionUserOut
 from schemas.likes_schema import LikeCreate, LikeOut,LikeBaseRequest,LikeBase
 from typing import List
-from services.like_services import add_like,remove_like,retrieve_user_likes,retrieve_chapter_likes
+from services.like_services import (
+    add_like,
+    remove_like,
+    retrieve_chapter_like_users,
+    retrieve_chapter_likes,
+    retrieve_user_likes,
+)
 from services.user_service import get_user_details_with_accessToken
 from services.admin_services import get_admin_details_with_accessToken_service
 
@@ -31,6 +38,18 @@ async def get_all_chapter_likes(chapterId:str):
     try:
         likes = await retrieve_chapter_likes(chapterId=chapterId)
         return likes
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get(
+    "/admin/get/chapter/{chapterId}/users",
+    response_model=List[ChapterInteractionUserOut],
+    dependencies=[Depends(verify_admin_token)],
+)
+async def get_all_chapter_like_users(chapterId: str):
+    try:
+        return await retrieve_chapter_like_users(chapterId=chapterId, skip=0, limit=1000)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

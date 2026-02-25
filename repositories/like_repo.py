@@ -1,7 +1,6 @@
 from core.database import db
-from schemas.likes_schema import LikeOut,LikeCreate
+from schemas.likes_schema import LikeCreate
 from bson import ObjectId,errors
-import asyncio
 
 async def get_all_user_likes(userId, skip: int = 0, limit: int | None = None):
     cursor = db.likes.find({"userId": userId}).skip(skip)
@@ -25,6 +24,35 @@ async def get_all_chapter_likes(chapterId, skip: int = 0, limit: int | None = No
 
 async def count_likes_by_chapter(chapterId: str) -> int:
     return await db.likes.count_documents({"chapterId": chapterId})
+
+
+async def get_chapter_like_user_stats(chapterId: str, skip: int = 0, limit: int = 20):
+    pipeline = [
+        {"$match": {"chapterId": chapterId}},
+        {
+            "$group": {
+                "_id": "$userId",
+                "interactionCount": {"$sum": 1},
+                "lastInteractionAt": {"$max": "$dateCreated"},
+            }
+        },
+        {"$sort": {"lastInteractionAt": -1, "_id": 1}},
+        {"$skip": skip},
+        {"$limit": limit},
+    ]
+    return await db.likes.aggregate(pipeline).to_list(length=limit)
+
+
+async def count_chapter_like_users(chapterId: str) -> int:
+    pipeline = [
+        {"$match": {"chapterId": chapterId}},
+        {"$group": {"_id": "$userId"}},
+        {"$count": "total"},
+    ]
+    result = await db.likes.aggregate(pipeline).to_list(length=1)
+    if not result:
+        return 0
+    return int(result[0].get("total", 0))
 
 
 async def delete_likes_with_page_id(chapterId: list):

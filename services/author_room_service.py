@@ -2,23 +2,37 @@
 # AUTHOR_ROOM SERVICE
 # ============================================================================
 # This file was auto-generated on: 2026-02-17 12:26:33 WAT
-# It contains  asynchrounous functions that make use of the repo functions 
-# 
+# It contains  asynchrounous functions that make use of the repo functions
+#
 # ============================================================================
+
+from typing import List
 
 from bson import ObjectId
 from fastapi import HTTPException
-from typing import List
 
+from core.entity_cache import get_chapter_summary
 from repositories.author_room import (
     count_author_rooms,
     create_author_room,
+    delete_author_room,
     get_author_room,
     get_author_rooms,
     update_author_room,
-    delete_author_room,
 )
-from schemas.author_room import AuthorRoomCreate, AuthorRoomUpdate, AuthorRoomOut
+from schemas.author_room import AuthorRoomCreate, AuthorRoomOut, AuthorRoomUpdate
+
+
+async def _attach_chapter_summary(author_room: AuthorRoomOut) -> AuthorRoomOut:
+    if author_room.chapterId:
+        author_room.chapterSummary = await get_chapter_summary(author_room.chapterId)
+    return author_room
+
+
+async def _attach_chapter_summary_for_list(items: List[AuthorRoomOut]) -> List[AuthorRoomOut]:
+    for item in items:
+        await _attach_chapter_summary(item)
+    return items
 
 
 async def add_author_room(author_room_data: AuthorRoomCreate) -> AuthorRoomOut:
@@ -27,11 +41,12 @@ async def add_author_room(author_room_data: AuthorRoomCreate) -> AuthorRoomOut:
     Returns:
         _type_: AuthorRoomOut
     """
-    return await create_author_room(author_room_data)
+    created = await create_author_room(author_room_data)
+    return await _attach_chapter_summary(created)
 
 
 async def remove_author_room(author_room_id: str):
-    """deletes a field from the database and removes AuthorRoomCreateobject 
+    """deletes a field from the database and removes AuthorRoomCreateobject
 
     Raises:
         HTTPException 400: Invalid author_room ID format
@@ -46,10 +61,12 @@ async def remove_author_room(author_room_id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="AuthorRoom not found")
 
-    else: return True
-    
+    else:
+        return True
+
+
 async def retrieve_author_room_by_author_room_id(id: str) -> AuthorRoomOut:
-    """Retrieves author_room object based specific Id 
+    """Retrieves author_room object based specific Id
 
     Raises:
         HTTPException 404(not found): if  AuthorRoom not found in the db
@@ -67,16 +84,17 @@ async def retrieve_author_room_by_author_room_id(id: str) -> AuthorRoomOut:
     if not result:
         raise HTTPException(status_code=404, detail="AuthorRoom not found")
 
-    return result
+    return await _attach_chapter_summary(result)
 
 
-async def retrieve_author_rooms(start=0,stop=100) -> List[AuthorRoomOut]:
+async def retrieve_author_rooms(start=0, stop=100) -> List[AuthorRoomOut]:
     """Retrieves AuthorRoomOut Objects in a list
 
     Returns:
         _type_: AuthorRoomOut
     """
-    return await get_author_rooms(start=start,stop=stop)
+    items = await get_author_rooms(start=start, stop=stop)
+    return await _attach_chapter_summary_for_list(items)
 
 
 async def retrieve_author_rooms_count() -> int:
@@ -102,4 +120,4 @@ async def update_author_room_by_id(author_room_id: str, author_room_data: Author
     if not result:
         raise HTTPException(status_code=404, detail="AuthorRoom not found or update failed")
 
-    return result
+    return await _attach_chapter_summary(result)

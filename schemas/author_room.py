@@ -10,6 +10,7 @@
 from schemas.imports import *
 from pydantic import AliasChoices, Field
 import time
+from schemas.cache_summary_schema import ChapterSummaryOut
 from schemas.utils import normalize_datetime_to_iso
 
 
@@ -47,6 +48,7 @@ class AuthorRoomOut(AuthorRoomBase):
         validation_alias=AliasChoices("last_updated", "lastUpdated"),
         serialization_alias="lastUpdated",
     )
+    chapterSummary: Optional[ChapterSummaryOut] = None
     
     @model_validator(mode="before")
     @classmethod

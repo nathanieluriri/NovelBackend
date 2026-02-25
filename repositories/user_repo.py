@@ -1,6 +1,7 @@
 from core.database import db
 from schemas.user_schema import NewUserCreate,UserOut
 from bson import ObjectId
+from typing import List
 
 async def get_user_by_email(email: str):
     return await db.users.find_one({"email": email})
@@ -95,6 +96,19 @@ async def get_user_by_email_and_provider(email: str,provider:str):
 
 async def get_user_by_userId(userId: str):
     return await db.users.find_one({"_id": ObjectId(userId)})
+
+
+async def get_users_by_user_ids(userIds: List[str]):
+    object_ids = []
+    for user_id in userIds:
+        if ObjectId.is_valid(user_id):
+            object_ids.append(ObjectId(user_id))
+
+    if not object_ids:
+        return []
+
+    cursor = db.users.find({"_id": {"$in": object_ids}})
+    return await cursor.to_list(length=None)
 
 async def replace_password(userId: str, hashedPassword: str):
     await db.users.find_one_and_update(
