@@ -1,11 +1,9 @@
 
 from datetime import datetime, timedelta
-from bson import ObjectId
 from core.database import db
 from schemas.admin_schema import AdminDashboardAnalytics, ReaderAnalytics,RecentChapterOut,RevenueAnalytics,PageAnalytics,ChapterAnalytics,ChangeType
 from schemas.user_schema import UserOut
 
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List
 
 
@@ -24,15 +22,42 @@ async def get_recent_chapters_with_wordcount() -> List[RecentChapterOut]:
         {
             "$lookup": {
                 "from": "pages",
-                "localField": "_id",
-                "foreignField": "chapterId",
+                "let": {
+                    "chapterIdStr": {"$toString": "$_id"},
+                    "chapterIdObj": "$_id",
+                },
+                "pipeline": [
+                    {
+                        "$match": {
+                            "$expr": {
+                                "$or": [
+                                    {"$eq": ["$chapterId", "$$chapterIdStr"]},
+                                    {"$eq": ["$chapterId", "$$chapterIdObj"]},
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "$project": {
+                            "_id": 1,
+                            "textCount": {"$ifNull": ["$textCount", 0]},
+                        }
+                    },
+                ],
                 "as": "pages"
             }
         },
         {
             "$addFields": {
+                "pageCount": {"$size": "$pages"},
                 "wordCount": {
-                    "$sum": "$pages.textCount"
+                    "$sum": {
+                        "$map": {
+                            "input": "$pages",
+                            "as": "page",
+                            "in": {"$ifNull": ["$$page.textCount", 0]},
+                        }
+                    }
                 }
             }
         },
@@ -45,12 +70,13 @@ async def get_recent_chapters_with_wordcount() -> List[RecentChapterOut]:
                 "status": 1,
                 "coverImage": 1,
                 "dateUpdated": 1,
+                "pageCount": 1,
                 "wordCount": 1
             }
         }
     ]
 
-    results = await db.chapters.aggregate(pipeline).to_list(length=10)
+    results = await db.chapters.aggregate(pipeline).to_list(length=8)
     return [RecentChapterOut(**doc) for doc in results]
 
 
