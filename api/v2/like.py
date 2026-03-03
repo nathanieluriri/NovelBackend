@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from schemas.admin_schema import ChapterInteractionUserOut
-from schemas.likes_schema import LikeOut
+from schemas.likes_schema import LikeOut, LikeWithUserOut
 from schemas.listing_schema import PaginatedListOut
 from security.auth import verify_admin_token, verify_any_token
 from services.admin_services import get_admin_details_with_accessToken_service
 from services.like_services import (
     retrieve_chapter_like_users,
     retrieve_chapter_like_users_count,
-    retrieve_chapter_likes,
+    retrieve_chapter_likes_with_user_details,
     retrieve_chapter_likes_count,
     retrieve_user_likes,
     retrieve_user_likes_count,
@@ -43,12 +43,12 @@ async def get_user_likes_v2(skip: int = 0, limit: int = 20, dep=Depends(verify_a
     return build_list_payload(items, skip=skip, limit=safe_limit, total=total)
 
 
-@router.get("/get/{chapterId}", response_model=PaginatedListOut[LikeOut])
+@router.get("/get/{chapterId}", response_model=PaginatedListOut[LikeWithUserOut])
 async def get_chapter_likes_v2(chapterId: str, skip: int = 0, limit: int = 20):
     if skip < 0:
         raise HTTPException(status_code=400, detail="skip must be >= 0")
     safe_limit = clamp_limit(limit)
-    items = await retrieve_chapter_likes(chapterId=chapterId, skip=skip, limit=safe_limit)
+    items = await retrieve_chapter_likes_with_user_details(chapterId=chapterId, skip=skip, limit=safe_limit)
     total = await retrieve_chapter_likes_count(chapterId=chapterId)
     return build_list_payload(items, skip=skip, limit=safe_limit, total=total)
 

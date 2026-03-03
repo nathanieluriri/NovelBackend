@@ -43,6 +43,11 @@ async def get_user_details_v2(dep=Depends(verify_token)):
     bookmarks_indexed = [IndexedBookmarkOut(index=i + 1, item=item) for i, item in enumerate(bookmarks_preview)]
 
     return UserDetailsV2Out(
+        userId=user.userId,
+        email=user.email,
+        firstName=user.firstName,
+        lastName=user.lastName,
+        avatar=user.avatar,
         summary=InteractionTotals(totalLikes=likes_total, totalBookmarks=bookmarks_total),
         likes=likes_indexed,
         bookmarks=bookmarks_indexed,

@@ -20,6 +20,10 @@ from repositories.author_room import (
     get_author_rooms,
     update_author_room,
 )
+from repositories.reaction import (
+    get_reaction_summaries_for_author_room_ids,
+    get_reaction_summary_by_author_room_id,
+)
 from schemas.author_room import AuthorRoomCreate, AuthorRoomOut, AuthorRoomUpdate
 
 
@@ -29,9 +33,30 @@ async def _attach_chapter_summary(author_room: AuthorRoomOut) -> AuthorRoomOut:
     return author_room
 
 
+async def _attach_reaction_summary(author_room: AuthorRoomOut) -> AuthorRoomOut:
+    author_room_id = author_room.id
+    if not author_room_id:
+        author_room.reactionSummary = {}
+        return author_room
+    author_room.reactionSummary = await get_reaction_summary_by_author_room_id(author_room_id)
+    return author_room
+
+
 async def _attach_chapter_summary_for_list(items: List[AuthorRoomOut]) -> List[AuthorRoomOut]:
     for item in items:
         await _attach_chapter_summary(item)
+    return items
+
+
+async def _attach_reaction_summary_for_list(items: List[AuthorRoomOut]) -> List[AuthorRoomOut]:
+    author_room_ids = [item.id for item in items if item.id]
+    summary_map = await get_reaction_summaries_for_author_room_ids(author_room_ids)
+
+    for item in items:
+        if not item.id:
+            item.reactionSummary = {}
+            continue
+        item.reactionSummary = summary_map.get(item.id, {})
     return items
 
 
@@ -42,7 +67,8 @@ async def add_author_room(author_room_data: AuthorRoomCreate) -> AuthorRoomOut:
         _type_: AuthorRoomOut
     """
     created = await create_author_room(author_room_data)
-    return await _attach_chapter_summary(created)
+    created = await _attach_chapter_summary(created)
+    return await _attach_reaction_summary(created)
 
 
 async def remove_author_room(author_room_id: str):
@@ -84,7 +110,8 @@ async def retrieve_author_room_by_author_room_id(id: str) -> AuthorRoomOut:
     if not result:
         raise HTTPException(status_code=404, detail="AuthorRoom not found")
 
-    return await _attach_chapter_summary(result)
+    result = await _attach_chapter_summary(result)
+    return await _attach_reaction_summary(result)
 
 
 async def retrieve_author_rooms(start=0, stop=100) -> List[AuthorRoomOut]:
@@ -94,7 +121,8 @@ async def retrieve_author_rooms(start=0, stop=100) -> List[AuthorRoomOut]:
         _type_: AuthorRoomOut
     """
     items = await get_author_rooms(start=start, stop=stop)
-    return await _attach_chapter_summary_for_list(items)
+    items = await _attach_chapter_summary_for_list(items)
+    return await _attach_reaction_summary_for_list(items)
 
 
 async def retrieve_author_rooms_count() -> int:
@@ -120,4 +148,5 @@ async def update_author_room_by_id(author_room_id: str, author_room_data: Author
     if not result:
         raise HTTPException(status_code=404, detail="AuthorRoom not found or update failed")
 
-    return await _attach_chapter_summary(result)
+    result = await _attach_chapter_summary(result)
+    return await _attach_reaction_summary(result)

@@ -49,6 +49,7 @@ class AuthorRoomOut(AuthorRoomBase):
         serialization_alias="lastUpdated",
     )
     chapterSummary: Optional[ChapterSummaryOut] = None
+    reactionSummary: dict[str, int] = Field(default_factory=dict)
     
     @model_validator(mode="before")
     @classmethod

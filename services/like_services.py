@@ -2,7 +2,7 @@ from fastapi import HTTPException
 
 from repositories.user_repo import get_users_by_user_ids
 from schemas.admin_schema import ChapterInteractionUserOut
-from schemas.likes_schema import LikeOut,LikeCreate,LikeBase
+from schemas.likes_schema import LikeCreate, LikeBase, LikeOut, LikeUserDetailsOut, LikeWithUserOut
 from schemas.utils import normalize_datetime_to_iso
 from repositories.like_repo import (
     count_chapter_like_users,
@@ -77,6 +77,33 @@ async def retrieve_chapter_likes(chapterId:str, skip: int = 0, limit: int | None
     chapter_summary = await get_chapter_summary(chapterId)
     for like in list_of_likes:
         like.chapterSummary = chapter_summary
+    return list_of_likes
+
+
+async def retrieve_chapter_likes_with_user_details(
+    chapterId: str, skip: int = 0, limit: int | None = None
+) -> list[LikeWithUserOut]:
+    result = await get_all_chapter_likes(chapterId=chapterId, skip=skip, limit=limit)
+    list_of_likes = [LikeWithUserOut(**likes) for likes in result]
+    chapter_summary = await get_chapter_summary(chapterId)
+
+    unique_user_ids = list(dict.fromkeys(like.userId for like in list_of_likes if like.userId))
+    users = await get_users_by_user_ids(unique_user_ids)
+    user_map = {str(user.get("_id")): user for user in users}
+
+    for like in list_of_likes:
+        like.chapterSummary = chapter_summary
+        user = user_map.get(like.userId)
+        if user is None:
+            like.user = None
+            continue
+        like.user = LikeUserDetailsOut(
+            firstName=user.get("firstName"),
+            lastName=user.get("lastName"),
+            avatar=user.get("avatar"),
+            email=user.get("email"),
+        )
+
     return list_of_likes
 
 

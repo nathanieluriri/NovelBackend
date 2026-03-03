@@ -39,6 +39,11 @@ class UserBookmarksListOut(BaseModel):
 
 
 class UserDetailsV2Out(BaseModel):
+    userId: str
+    email: str
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    avatar: Optional[str] = None
     summary: InteractionTotals
     likes: list[IndexedLikeOut]
     bookmarks: list[IndexedBookmarkOut]

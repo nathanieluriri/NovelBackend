@@ -11,7 +11,7 @@
 from pymongo import ReturnDocument
 from core.database import db
 from fastapi import HTTPException,status
-from typing import List,Optional
+from typing import Dict, List, Optional
 from schemas.reaction import ReactionUpdate, ReactionCreate, ReactionOut
 
 async def create_reaction(reaction_data: ReactionCreate) -> ReactionOut:
@@ -76,3 +76,39 @@ async def update_reaction(filter_dict: dict, reaction_data: ReactionUpdate) -> R
 
 async def delete_reaction(filter_dict: dict):
     return await db.reactions.delete_one(filter_dict)
+
+
+async def get_reaction_summary_by_author_room_id(author_room_id: str) -> Dict[str, int]:
+    pipeline = [
+        {"$match": {"authorRoomId": author_room_id}},
+        {"$match": {"reaction": {"$type": "string", "$ne": ""}}},
+        {"$group": {"_id": "$reaction", "count": {"$sum": 1}}},
+    ]
+    result = await db.reactions.aggregate(pipeline).to_list(length=None)
+    return {str(row["_id"]): int(row["count"]) for row in result if row.get("_id") is not None}
+
+
+async def get_reaction_summaries_for_author_room_ids(author_room_ids: List[str]) -> Dict[str, Dict[str, int]]:
+    if not author_room_ids:
+        return {}
+
+    pipeline = [
+        {"$match": {"authorRoomId": {"$in": author_room_ids}}},
+        {"$match": {"reaction": {"$type": "string", "$ne": ""}}},
+        {
+            "$group": {
+                "_id": {"authorRoomId": "$authorRoomId", "reaction": "$reaction"},
+                "count": {"$sum": 1},
+            }
+        },
+    ]
+    rows = await db.reactions.aggregate(pipeline).to_list(length=None)
+    summary_map: Dict[str, Dict[str, int]] = {}
+    for row in rows:
+        key = row.get("_id", {})
+        author_room_id = key.get("authorRoomId")
+        reaction = key.get("reaction")
+        if author_room_id is None or reaction is None:
+            continue
+        summary_map.setdefault(str(author_room_id), {})[str(reaction)] = int(row.get("count", 0))
+    return summary_map

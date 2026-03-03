@@ -67,3 +67,14 @@ class LikeOut(LikeCreate):
     }
 
 
+class LikeUserDetailsOut(BaseModel):
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    avatar: Optional[str] = None
+    email: Optional[str] = None
+
+
+class LikeWithUserOut(LikeOut):
+    user: Optional[LikeUserDetailsOut] = None
+
+
