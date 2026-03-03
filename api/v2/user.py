@@ -27,6 +27,15 @@ async def _get_user_or_401(dep: dict):
     return user
 
 
+async def _get_reading_progress_or_none(user) -> ReadingProgressOut | None:
+    try:
+        return await get_user_reading_progress(user=user)
+    except HTTPException as exc:
+        if exc.status_code in (403, 404):
+            return None
+        raise
+
+
 @router.get("/details", response_model=UserDetailsV2Out)
 async def get_user_details_v2(dep=Depends(verify_token)):
     user = await _get_user_or_401(dep)
@@ -38,6 +47,7 @@ async def get_user_details_v2(dep=Depends(verify_token)):
 
     likes_preview = await retrieve_user_likes(user.userId, skip=0, limit=100)
     bookmarks_preview = await retrieve_user_bookmark(user.userId, skip=0, limit=100)
+    reading_progress = await _get_reading_progress_or_none(user)
 
     likes_indexed = [IndexedLikeOut(index=i + 1, item=item) for i, item in enumerate(likes_preview)]
     bookmarks_indexed = [IndexedBookmarkOut(index=i + 1, item=item) for i, item in enumerate(bookmarks_preview)]
@@ -51,6 +61,7 @@ async def get_user_details_v2(dep=Depends(verify_token)):
         summary=InteractionTotals(totalLikes=likes_total, totalBookmarks=bookmarks_total),
         likes=likes_indexed,
         bookmarks=bookmarks_indexed,
+        readingProgress=reading_progress,
         likesMeta=build_meta(skip=0, limit=100, returned=len(likes_indexed), total=likes_total),
         bookmarksMeta=build_meta(skip=0, limit=100, returned=len(bookmarks_indexed), total=bookmarks_total),
     )

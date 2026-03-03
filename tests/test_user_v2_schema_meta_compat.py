@@ -9,6 +9,7 @@ def test_user_details_v2_accepts_list_meta_out_instances():
         "firstName": "Reader",
         "lastName": "One",
         "avatar": "https://example.com/avatar.jpg",
+        "readingProgress": None,
         "summary": InteractionTotals(totalLikes=1, totalBookmarks=2),
         "likes": [],
         "bookmarks": [],

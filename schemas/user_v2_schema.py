@@ -2,6 +2,7 @@ from schemas.imports import *
 from schemas.bookmark_schema import BookMarkOutAsync
 from schemas.likes_schema import LikeOut
 from schemas.listing_schema import ListMetaOut
+from schemas.reading_progress_schema import ReadingProgressOut
 
 
 class InteractionTotals(BaseModel):
@@ -47,5 +48,6 @@ class UserDetailsV2Out(BaseModel):
     summary: InteractionTotals
     likes: list[IndexedLikeOut]
     bookmarks: list[IndexedBookmarkOut]
+    readingProgress: Optional[ReadingProgressOut] = None
     likesMeta: ListMetaOut
     bookmarksMeta: ListMetaOut
