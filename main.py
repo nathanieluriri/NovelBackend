@@ -29,6 +29,10 @@ from core.envelope_router import EnvelopeAPIRoute
 from core.response_envelope import build_error_envelope
 from security.auth import verify_admin_token
 
+google_oauth_settings = get_google_oauth_settings()
+cors_allowed_origins = google_oauth_settings.cors_allowed_origins or ["*"]
+cors_allow_credentials = bool(google_oauth_settings.cors_allowed_origins)
+
 # Root application
 app = FastAPI(
     title="Mie Novel-app FastAPI Backend",
@@ -40,12 +44,17 @@ app = FastAPI(
 # Global middleware
 app.add_middleware(
     SessionMiddleware,
-    secret_key=get_google_oauth_settings().session_secret_key,
+    secret_key=google_oauth_settings.session_secret_key,
+    session_cookie=google_oauth_settings.session_cookie_name,
+    max_age=google_oauth_settings.session_cookie_max_age,
+    same_site=google_oauth_settings.session_cookie_same_site,
+    https_only=google_oauth_settings.session_cookie_https_only,
+    domain=google_oauth_settings.session_cookie_domain,
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_allowed_origins,
+    allow_credentials=cors_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

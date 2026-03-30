@@ -1,6 +1,6 @@
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from urllib.parse import urlparse
 
@@ -93,6 +93,82 @@ def _parse_exchange_ttl_seconds(raw_value: str) -> int:
     return max(parsed, 30)
 
 
+def _parse_positive_int(raw_value: str | None, default: int) -> int:
+    if raw_value is None or not raw_value.strip():
+        return default
+    try:
+        parsed = int(raw_value)
+    except (TypeError, ValueError):
+        return default
+    return max(parsed, 1)
+
+
+def _parse_bool(raw_value: str | None, default: bool) -> bool:
+    if raw_value is None or not raw_value.strip():
+        return default
+    normalized = raw_value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return default
+
+
+def _parse_same_site(raw_value: str | None, default: str) -> str:
+    if raw_value is None or not raw_value.strip():
+        return default
+    normalized = raw_value.strip().lower()
+    if normalized in {"lax", "strict", "none"}:
+        return normalized
+    return default
+
+
+def _extract_origin(url: str) -> str | None:
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def _parse_origin_list(raw_value: str) -> list[str]:
+    if not raw_value.strip():
+        return []
+
+    parsed_values: list[str]
+    try:
+        decoded = json.loads(raw_value)
+    except json.JSONDecodeError:
+        decoded = None
+
+    if isinstance(decoded, list):
+        parsed_values = [value for value in decoded if isinstance(value, str)]
+    else:
+        parsed_values = [value.strip() for value in raw_value.split(",")]
+
+    origins: list[str] = []
+    seen: set[str] = set()
+    for value in parsed_values:
+        origin = _extract_origin(value)
+        if origin is None or origin in seen:
+            continue
+        origins.append(origin)
+        seen.add(origin)
+    return origins
+
+
+def _derive_cors_allowed_origins(redirect_targets: dict[str, "GoogleOAuthTarget"]) -> list[str]:
+    origins: list[str] = []
+    seen: set[str] = set()
+    for target in redirect_targets.values():
+        for url in (target.success_url, target.error_url):
+            origin = _extract_origin(url)
+            if origin is None or origin in seen:
+                continue
+            origins.append(origin)
+            seen.add(origin)
+    return origins
+
+
 @dataclass(frozen=True)
 class GoogleOAuthSettings:
     client_id: str
@@ -102,24 +178,50 @@ class GoogleOAuthSettings:
     default_target: str
     exchange_ttl_seconds: int
     session_secret_key: str
+    session_cookie_name: str = "mei_session"
+    session_cookie_same_site: str = "lax"
+    session_cookie_https_only: bool = False
+    session_cookie_domain: str | None = None
+    session_cookie_max_age: int = 900
+    cors_allowed_origins: list[str] = field(default_factory=list)
 
     @classmethod
     def from_env(cls) -> "GoogleOAuthSettings":
         redirect_targets = _parse_redirect_targets(os.getenv("GOOGLE_OAUTH_REDIRECT_TARGETS", ""))
+        callback_url = os.getenv("GOOGLE_OAUTH_CALLBACK_URL", "").strip()
         default_target = os.getenv("GOOGLE_OAUTH_DEFAULT_TARGET", "").strip()
         if not default_target and redirect_targets:
             default_target = next(iter(redirect_targets))
+        callback_is_https = urlparse(callback_url).scheme == "https"
+        cors_allowed_origins = _parse_origin_list(os.getenv("CORS_ALLOWED_ORIGINS", ""))
+        if not cors_allowed_origins:
+            cors_allowed_origins = _derive_cors_allowed_origins(redirect_targets)
 
         return cls(
             client_id=os.getenv("GOOGLE_CLIENT_ID", "").strip(),
             client_secret=os.getenv("GOOGLE_CLIENT_SECRET", "").strip(),
-            callback_url=os.getenv("GOOGLE_OAUTH_CALLBACK_URL", "").strip(),
+            callback_url=callback_url,
             redirect_targets=redirect_targets,
             default_target=default_target,
             exchange_ttl_seconds=_parse_exchange_ttl_seconds(
                 os.getenv("GOOGLE_OAUTH_EXCHANGE_TTL_SECONDS", "120")
             ),
             session_secret_key=os.getenv("SESSION_SECRET_KEY", "some-random-string"),
+            session_cookie_name=os.getenv("SESSION_COOKIE_NAME", "mei_session").strip() or "mei_session",
+            session_cookie_same_site=_parse_same_site(
+                os.getenv("SESSION_COOKIE_SAME_SITE"),
+                default="none" if callback_is_https else "lax",
+            ),
+            session_cookie_https_only=_parse_bool(
+                os.getenv("SESSION_COOKIE_HTTPS_ONLY"),
+                default=callback_is_https,
+            ),
+            session_cookie_domain=os.getenv("SESSION_COOKIE_DOMAIN", "").strip() or None,
+            session_cookie_max_age=_parse_positive_int(
+                os.getenv("SESSION_COOKIE_MAX_AGE"),
+                default=max(900, _parse_exchange_ttl_seconds(os.getenv("GOOGLE_OAUTH_EXCHANGE_TTL_SECONDS", "120"))),
+            ),
+            cors_allowed_origins=cors_allowed_origins,
         )
 
     def resolve_target(self, requested_alias: str | None = None) -> GoogleOAuthTarget:
@@ -151,6 +253,8 @@ class GoogleOAuthSettings:
             missing_settings.append("GOOGLE_OAUTH_REDIRECT_TARGETS")
         elif self.default_target and self.default_target not in self.redirect_targets:
             missing_settings.append("GOOGLE_OAUTH_DEFAULT_TARGET (must match a redirect target alias)")
+        if self.session_cookie_same_site == "none" and not self.session_cookie_https_only:
+            missing_settings.append("SESSION_COOKIE_HTTPS_ONLY (must be true when SESSION_COOKIE_SAME_SITE=none)")
 
         if missing_settings:
             raise ValueError(", ".join(missing_settings))
