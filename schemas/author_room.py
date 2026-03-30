@@ -50,9 +50,9 @@ class AuthorRoomOut(AuthorRoomBase):
     )
     chapterSummary: Optional[ChapterSummaryOut] = None
     reactionSummary: dict[str, int] = Field(default_factory=dict)
-    
+    userReaction:Optional[str]=None
     @model_validator(mode="before")
-    @classmethod
+    @classmethod 
     def convert_objectid(cls, values):
         if isinstance(values, BaseModel):
             values = values.model_dump()
@@ -68,9 +68,8 @@ class AuthorRoomOut(AuthorRoomBase):
             values["last_updated"] = normalize_datetime_to_iso(last_updated)
         return values
             
-    class Config:
-        populate_by_name = True  # allows using `id` when constructing the model
-        arbitrary_types_allowed = True  # allows ObjectId type
-        json_encoders ={
-            ObjectId: str  # automatically converts ObjectId → str
-        }
+    model_config = {
+        "populate_by_name": True,
+        "arbitrary_types_allowed": True,
+        "json_encoders": {ObjectId: str},
+    }

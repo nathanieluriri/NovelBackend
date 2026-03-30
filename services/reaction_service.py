@@ -10,15 +10,59 @@ from bson import ObjectId
 from fastapi import HTTPException
 from typing import List
 
+from repositories.author_room import get_author_room
+from repositories.chapter_repo import get_chapter_by_chapter_id
 from repositories.reaction import (
     count_reactions,
     create_reaction,
     get_reaction,
+    get_reaction_by_user_and_room,
     get_reactions,
     update_reaction,
     delete_reaction,
 )
+from repositories.user_repo import get_user_by_userId
+from schemas.chapter_schema import ChapterOut
 from schemas.reaction import ReactionCreate, ReactionUpdate, ReactionOut
+from schemas.user_schema import UserOut
+from services.access_service import has_chapter_access
+
+
+async def _get_member_user_or_401(user_id: str) -> UserOut:
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user_doc = await get_user_by_userId(userId=user_id)
+    if not user_doc:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    return UserOut(**user_doc)
+
+
+async def _get_author_room_or_404(author_room_id: str):
+    if not ObjectId.is_valid(author_room_id):
+        raise HTTPException(status_code=400, detail="Invalid author_room ID format")
+
+    author_room = await get_author_room({"_id": ObjectId(author_room_id)})
+    if not author_room:
+        raise HTTPException(status_code=404, detail="AuthorRoom not found")
+
+    return author_room
+
+
+async def _ensure_reaction_access(user_id: str, author_room_id: str) -> None:
+    author_room = await _get_author_room_or_404(author_room_id=author_room_id)
+    chapter = await get_chapter_by_chapter_id(chapterId=author_room.chapterId)
+    if chapter is None:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+
+    user = await _get_member_user_or_401(user_id=user_id)
+    chapter_out = ChapterOut(**chapter)
+    await chapter_out.model_async_validate()
+
+    can_access = await has_chapter_access(user=user, chapter=chapter_out)
+    if not can_access:
+        raise HTTPException(status_code=403, detail="You do not have access to react to this chapter")
 
 
 async def add_reaction(reaction_data: ReactionCreate) -> ReactionOut:
@@ -27,12 +71,23 @@ async def add_reaction(reaction_data: ReactionCreate) -> ReactionOut:
     Returns:
         _type_: ReactionOut
     """
+    await _ensure_reaction_access(
+        user_id=reaction_data.userId,
+        author_room_id=reaction_data.authorRoomId,
+    )
+    existing = await get_reaction_by_user_and_room(
+        user_id=reaction_data.userId,
+        author_room_id=reaction_data.authorRoomId,
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="You have already reacted to this author room")
     return await create_reaction(reaction_data)
 
 
 async def remove_reaction_for_user(user_id: str, author_room_id: str) -> bool:
     """Delete a user's reaction within a specific author room."""
-    existing = await get_reaction({"userId": user_id, "authorRoomId": author_room_id})
+    await _ensure_reaction_access(user_id=user_id, author_room_id=author_room_id)
+    existing = await get_reaction_by_user_and_room(user_id=user_id, author_room_id=author_room_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Reaction not found for user in this room")
 
@@ -46,7 +101,7 @@ async def remove_reaction_for_user(user_id: str, author_room_id: str) -> bool:
     
 async def retrieve_reaction_by_user_and_room(user_id: str, author_room_id: str) -> ReactionOut:
     """Retrieves the reaction for a user in a specific author room."""
-    result = await get_reaction({"userId": user_id, "authorRoomId": author_room_id})
+    result = await get_reaction_by_user_and_room(user_id=user_id, author_room_id=author_room_id)
     if not result:
         raise HTTPException(status_code=404, detail="Reaction not found for user in this room")
     return result
@@ -81,7 +136,11 @@ async def update_reaction_by_id(user_id: str, author_room_id: str, reaction_data
     when no reaction exists for the user/room, or 400 for invalid ObjectId.
     """
 
-    existing = await get_reaction({"userId": user_id, "authorRoomId": author_room_id})
+    if reaction_data.reaction is None:
+        raise HTTPException(status_code=400, detail="reaction is required")
+
+    await _ensure_reaction_access(user_id=user_id, author_room_id=author_room_id)
+    existing = await get_reaction_by_user_and_room(user_id=user_id, author_room_id=author_room_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Reaction not found for user in this room")
 

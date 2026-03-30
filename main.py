@@ -24,6 +24,7 @@ from api.v2 import (
     reaction as reaction_v2,
     user as user_v2,
 )
+from core.google_oauth_config import get_google_oauth_settings
 from core.envelope_router import EnvelopeAPIRoute
 from core.response_envelope import build_error_envelope
 from security.auth import verify_admin_token
@@ -37,7 +38,10 @@ app = FastAPI(
 )
 
 # Global middleware
-app.add_middleware(SessionMiddleware, secret_key="some-random-string")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=get_google_oauth_settings().session_secret_key,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

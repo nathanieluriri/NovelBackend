@@ -1,102 +1,117 @@
-from fastapi import APIRouter, HTTPException,Depends, Body,Path, Request
-from schemas.user_schema import Provider,UserOutChapterDetails, NewUserBase, NewUserCreate,NewUserOut,OldUserBase,OldUserOut,OldUserCreate,UserUpdate,UserStatus
-from schemas.reading_progress_schema import ReadingProgressOut
-from services.user_service import register_user,verify_google_access_token,login_credentials,login_google,get_user_details_with_accessToken,change_of_user_password_flow1,change_of_user_password_flow2,update_user,oauth
-from schemas.tokens_schema import TokenOut,refreshTokenRequest
-from services.admin_services import get_all_user_details,update_user_details,get_one_user_details
-from security.auth import verify_admin_token,verify_token,verify_token_and_refresh_token
-from services.reading_progress_service import get_user_reading_progress
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request
 
 from repositories.tokens_repo import delete_refresh_token
+from schemas.google_oauth_schema import GoogleOAuthExchangeRequest
+from schemas.reading_progress_schema import ReadingProgressOut
+from schemas.tokens_schema import refreshTokenRequest
+from schemas.user_schema import (
+    NewUserBase,
+    NewUserCreate,
+    NewUserOut,
+    OldUserBase,
+    OldUserOut,
+    Provider,
+    UserOutChapterDetails,
+    UserStatus,
+    UserUpdate,
+)
+from security.auth import verify_admin_token, verify_token, verify_token_and_refresh_token
+from services.admin_services import get_all_user_details, get_one_user_details, update_user_details
+from services.google_oauth_service import (
+    exchange_google_oauth_code,
+    handle_google_oauth_callback,
+    start_google_oauth,
+)
+from services.reading_progress_service import get_user_reading_progress
+from services.user_service import (
+    change_of_user_password_flow1,
+    change_of_user_password_flow2,
+    get_user_details_with_accessToken,
+    login_credentials,
+    register_user,
+    update_user,
+)
+
+
 router = APIRouter()
 
 
+def _raise_google_body_auth_disabled() -> None:
+    raise HTTPException(
+        status_code=400,
+        detail="Google OAuth now uses /api/v1/user/google/auth and /api/v1/user/google/exchange",
+    )
+
 
 @router.get("/google/auth")
-async def login(request: Request):
-    base_url = request.url_for("root")
-    redirect_uri = f"{base_url}auth/callback"
-    print(redirect_uri)
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+async def login_with_google(request: Request, target: str | None = Query(default=None)):
+    return await start_google_oauth(request=request, target_alias=target)
 
 
-# --- Step 2: Handle callback from Google ---
+@router.get("/google/callback")
 @router.get("/auth/callback")
-async def auth_callback(request: Request):
-    token = await oauth.google.authorize_access_token(request)
-    user_info = token.get('userinfo')
+async def google_auth_callback(request: Request):
+    return await handle_google_oauth_callback(request)
 
-    # Just print or return user info for now
-    if user_info:
-        print("✅ Google user info:", user_info)
-        return  user_info
-    else:
-        raise HTTPException(status_code=400,detail={"status": "failed", "message": "No user info found"})
 
+@router.post("/google/exchange", response_model_exclude_none=True, response_model=OldUserOut)
+async def exchange_google_login(exchange_request: GoogleOAuthExchangeRequest):
+    return await exchange_google_oauth_code(exchange_request)
 
 
 @router.post("/sign-up", response_model=NewUserOut)
 async def register(user: NewUserBase):
-    if user.provider=="google":
-        other_values = verify_google_access_token(google_access_token=user.googleAccessToken)
-        if other_values:
-            user = NewUserCreate(firstName=other_values['firstName'],email=other_values['email'],lastName=other_values['lastName'],avatar=other_values['avatar'],provider=user.provider,password="signed up with google",googleAccessToken=user.googleAccessToken)
-            await user.model_async_validate()
-    elif user.provider=="credentials":
-        user = NewUserCreate(**user.model_dump())
-        await user.model_async_validate()
+    if user.provider == Provider.GOOGLE:
+        _raise_google_body_auth_disabled()
+
+    user_to_create = NewUserCreate(**user.model_dump())
+    await user_to_create.model_async_validate()
     try:
-        new_user = await register_user(user)
-     
-        return new_user
+        return await register_user(user_to_create)
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
 
 
+@router.post("/sign-in", response_model_exclude_none=True, response_model=OldUserOut)
+async def login(user_data: OldUserBase):
+    if user_data.provider == Provider.GOOGLE:
+        _raise_google_body_auth_disabled()
 
-@router.post("/sign-in",response_model_exclude_none=True,response_model=OldUserOut)
-async def login(user_data:OldUserBase):
     try:
-        if user_data.provider=="credentials":
-            data = await login_credentials(user_data=user_data)
-        
-            return data
-        elif user_data.provider=="google":
-            data = await login_google(user_data=user_data)
-           
-                   
-            return data
-        else:
-            raise HTTPException(status_code=404,detail="Provider Not Recognized")
-        
+        return await login_credentials(user_data=user_data)
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
+    except Exception as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
 
 
 @router.post("/refresh")
-async def refresh_access_token(refreshObj:refreshTokenRequest, dep=Depends(verify_token_and_refresh_token)):
+async def refresh_access_token(
+    refreshObj: refreshTokenRequest,
+    dep=Depends(verify_token_and_refresh_token),
+):
     result = await delete_refresh_token(refreshToken=refreshObj.refreshToken)
     if result:
         return dep
-    else:
-        raise HTTPException(status_code=404,detail="Refresh Token is Invalid")
+    raise HTTPException(status_code=404, detail="Refresh Token is Invalid")
 
 
-@router.get("/details",response_model_exclude_none=True,dependencies=[Depends(verify_token)])
-async def get_user_details(accessToken:str=Depends(verify_token) )->NewUserOut:
-    user= await get_user_details_with_accessToken(token=accessToken['accessToken'])
+@router.get("/details", response_model_exclude_none=True, dependencies=[Depends(verify_token)])
+async def get_user_details(accessToken: str = Depends(verify_token)) -> NewUserOut:
+    user = await get_user_details_with_accessToken(token=accessToken["accessToken"])
     if user:
         return user
-    else:
-        raise HTTPException(status_code=404,detail="Details not found")
+    raise HTTPException(status_code=404, detail="Details not found")
 
 
-@router.get("/reading/progress", response_model=ReadingProgressOut, response_model_exclude_none=True, dependencies=[Depends(verify_token)])
+@router.get(
+    "/reading/progress",
+    response_model=ReadingProgressOut,
+    response_model_exclude_none=True,
+    dependencies=[Depends(verify_token)],
+)
 async def get_stopped_reading_progress(accessToken: str = Depends(verify_token)):
     user = await get_user_details_with_accessToken(token=accessToken["accessToken"])
     if not user:
@@ -105,65 +120,76 @@ async def get_stopped_reading_progress(accessToken: str = Depends(verify_token))
 
 
 @router.post("/initiate/change-password")
-async def initiate_change_of_user_password_process(email= Body(title="email",description="Enter your email",alias="email")):
-    try:
-        await change_of_user_password_flow1(email=email['email'])
-        return {"message":"Success"}
-    except Exception as e:
-        raise e
+async def initiate_change_of_user_password_process(
+    email=Body(title="email", description="Enter your email", alias="email"),
+):
+    await change_of_user_password_flow1(email=email["email"])
+    return {"message": "Success"}
+
 
 @router.post("/conclude/change-password")
-async def conclude_change_of_user_password_process(email=  Body(title="email",description="Enter your email",alias="email"),otp =  Body(title="otp",description="Enter your otp",alias="otp"),password=  Body(title="password",description="Enter your password",alias="password")):
-    result = await change_of_user_password_flow2(email=email,otp=otp,password=password)
+async def conclude_change_of_user_password_process(
+    email=Body(title="email", description="Enter your email", alias="email"),
+    otp=Body(title="otp", description="Enter your otp", alias="otp"),
+    password=Body(title="password", description="Enter your password", alias="password"),
+):
+    result = await change_of_user_password_flow2(email=email, otp=otp, password=password)
     return {"message": result}
 
-@router.patch("/update",response_model_exclude_none=True,dependencies=[Depends(verify_token)])
-async def update(update:UserUpdate,accessToken:str=Depends(verify_token))->NewUserOut:
-    try:
-        await update_user(token=accessToken['accessToken'],update=update)
-        user= await get_user_details_with_accessToken(token=accessToken['accessToken'])
-        if user:
-            return user
-        
-    except Exception as e:
-        raise e
-    
-    
-    
-    
-@router.get("/all/user-details",description="Requires admin Tokens",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
+
+@router.patch("/update", response_model_exclude_none=True, dependencies=[Depends(verify_token)])
+async def update(update: UserUpdate, accessToken: str = Depends(verify_token)) -> NewUserOut:
+    await update_user(token=accessToken["accessToken"], update=update)
+    user = await get_user_details_with_accessToken(token=accessToken["accessToken"])
+    if user:
+        return user
+    raise HTTPException(status_code=404, detail="Details not found")
+
+
+@router.get(
+    "/all/user-details",
+    description="Requires admin Tokens",
+    response_model_exclude_none=True,
+    dependencies=[Depends(verify_admin_token)],
+)
 async def get_user_data():
-    try:
-        result  = await get_all_user_details()
-       
-        if result:
-            return result
-        
-    except Exception as e:
-        raise e
-    
-    
-@router.get("/{userId}/user-details",response_model=UserOutChapterDetails,description="Requires admin Tokens",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
-async def get_particular_user_data( userId: str = Path(..., description="The ID of the user whose status is to be updated."),):
-    try:
-        result  = await get_one_user_details(userId=userId)
-       
-        if result:
-            return result
-        
-    except Exception as e:
-        raise e
-    
-    
-@router.patch("/{userId}/status/{new_status}",description="Requires admin Tokens",response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
-async def update_user_data(    userId: str = Path(..., description="The ID of the user whose status is to be updated."),
-    new_status: UserStatus = Path(..., description="The new status for the user (active, suspended, or inactive).")):
+    result = await get_all_user_details()
+    if result:
+        return result
+    raise HTTPException(status_code=404, detail="No user details found")
+
+
+@router.get(
+    "/{userId}/user-details",
+    response_model=UserOutChapterDetails,
+    description="Requires admin Tokens",
+    response_model_exclude_none=True,
+    dependencies=[Depends(verify_admin_token)],
+)
+async def get_particular_user_data(
+    userId: str = Path(..., description="The ID of the user whose status is to be updated."),
+):
+    result = await get_one_user_details(userId=userId)
+    if result:
+        return result
+    raise HTTPException(status_code=404, detail="User details not found")
+
+
+@router.patch(
+    "/{userId}/status/{new_status}",
+    description="Requires admin Tokens",
+    response_model_exclude_none=True,
+    dependencies=[Depends(verify_admin_token)],
+)
+async def update_user_data(
+    userId: str = Path(..., description="The ID of the user whose status is to be updated."),
+    new_status: UserStatus = Path(
+        ...,
+        description="The new status for the user (active, suspended, or inactive).",
+    ),
+):
     user = UserUpdate(status=new_status)
-    try:
-        result  = await update_user_details(updateData=user,userId=userId)
-       
-        if result:
-            return result
-        
-    except Exception as e:
-        raise e
+    result = await update_user_details(updateData=user, userId=userId)
+    if result:
+        return result
+    raise HTTPException(status_code=404, detail="User status update failed")

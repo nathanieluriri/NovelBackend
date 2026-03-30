@@ -2,11 +2,16 @@ from fastapi import HTTPException
 
 from core.entity_cache import get_chapter_summary, get_page_summary
 from repositories.chapter_repo import get_chapter_by_chapter_id
+from repositories.page_repo import get_page_by_page_id
 from repositories.reading_progress_repo import get_reading_progress, upsert_reading_progress
 from schemas.chapter_schema import ChapterAccessType, ChapterOut
 from schemas.reading_progress_schema import ReadingProgressOut, ReadingProgressRecord
 from schemas.user_schema import UserOut
 from services.access_service import is_chapter_unlocked, is_subscription_active
+
+
+def _missing_reading_progress_error() -> HTTPException:
+    return HTTPException(status_code=404, detail="No stopped-reading information found")
 
 
 async def track_user_reading_progress(user_id: str, chapter_id: str, page_id: str) -> None:
@@ -27,11 +32,15 @@ async def get_user_reading_progress(user: UserOut) -> ReadingProgressOut:
 
     progress = await get_reading_progress(user_id=user.userId)
     if progress is None:
-        raise HTTPException(status_code=404, detail="No stopped-reading information found")
+        raise _missing_reading_progress_error()
 
     chapter = await get_chapter_by_chapter_id(chapterId=progress["chapterId"])
     if chapter is None:
-        raise HTTPException(status_code=404, detail="Chapter for stopped-reading information was not found")
+        raise _missing_reading_progress_error()
+
+    page = await get_page_by_page_id(progress["pageId"])
+    if page is None or page.get("chapterId") != progress["chapterId"]:
+        raise _missing_reading_progress_error()
 
     chapter_out = ChapterOut(**chapter)
     await chapter_out.model_async_validate()

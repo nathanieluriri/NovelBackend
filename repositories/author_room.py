@@ -18,7 +18,7 @@ async def create_author_room(author_room_data: AuthorRoomCreate) -> AuthorRoomOu
     author_room_dict = author_room_data.model_dump()
     result =await db.author_rooms.insert_one(author_room_dict)
     result = await db.author_rooms.find_one(filter={"_id":result.inserted_id})
-    returnable_result = AuthorRoomOut(**result)
+    returnable_result = AuthorRoomOut(**result) # type: ignore
     return returnable_result
 
 async def get_author_room(filter_dict: dict) -> Optional[AuthorRoomOut]:

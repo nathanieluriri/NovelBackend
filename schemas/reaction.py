@@ -16,7 +16,22 @@ from schemas.utils import normalize_datetime_to_iso
 class ReactionBase(BaseModel):
     reaction:str
     authorRoomId:str
-    pass
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_reaction(cls, values):
+        if not isinstance(values, dict):
+            return values
+        reaction = values.get("reaction")
+        if reaction is None:
+            return values
+        if not isinstance(reaction, str):
+            return values
+        normalized_reaction = reaction.strip()
+        if not normalized_reaction:
+            raise ValueError("reaction must not be empty")
+        values["reaction"] = normalized_reaction
+        return values
 
 class ReactionCreate(ReactionBase):
     # Add other fields here
@@ -25,8 +40,24 @@ class ReactionCreate(ReactionBase):
     last_updated: int = Field(default_factory=lambda: int(time.time()))
 
 class ReactionUpdate(BaseModel):
-    # Add other fields here 
+    reaction: Optional[str] = None
     last_updated: int = Field(default_factory=lambda: int(time.time()))
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_reaction(cls, values):
+        if not isinstance(values, dict):
+            return values
+        reaction = values.get("reaction")
+        if reaction is None:
+            return values
+        if not isinstance(reaction, str):
+            return values
+        normalized_reaction = reaction.strip()
+        if not normalized_reaction:
+            raise ValueError("reaction must not be empty")
+        values["reaction"] = normalized_reaction
+        return values
 
 class ReactionOut(ReactionBase):
     # Add other fields here 
@@ -63,9 +94,8 @@ class ReactionOut(ReactionBase):
             values["last_updated"] = normalize_datetime_to_iso(last_updated)
         return values
             
-    class Config:
-        populate_by_name = True  # allows using `id` when constructing the model
-        arbitrary_types_allowed = True  # allows ObjectId type
-        json_encoders ={
-            ObjectId: str  # automatically converts ObjectId → str
-        }
+    model_config = {
+        "populate_by_name": True,
+        "arbitrary_types_allowed": True,
+        "json_encoders": {ObjectId: str},
+    }

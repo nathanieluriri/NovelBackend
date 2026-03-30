@@ -2,6 +2,7 @@ from core.database import db
 from schemas.user_schema import NewUserCreate,UserOut
 from bson import ObjectId
 from typing import List
+from pymongo import ReturnDocument
 
 async def get_user_by_email(email: str):
     return await db.users.find_one({"email": email})
@@ -91,7 +92,15 @@ async def create_user(user_data: NewUserCreate):
 
 
 async def get_user_by_email_and_provider(email: str,provider:str):
-    return await db.users.find_one({"email": email,"provider":provider})
+    return await db.users.find_one(
+        {
+            "email": email,
+            "$or": [
+                {"provider": provider},
+                {"authProviders": provider},
+            ],
+        }
+    )
 
 
 async def get_user_by_userId(userId: str):
@@ -121,6 +130,23 @@ async def update_user_profile(userId: str, update: dict):
     updated_doc = await db.users.find_one_and_update(
         filter={"_id": ObjectId(userId)},
         update={"$set": update},
-        return_document=True  # or ReturnDocument.AFTER if using pymongo
+        return_document=ReturnDocument.AFTER,
+    )
+    return updated_doc
+
+
+async def add_auth_provider_to_user(
+    user_id: str,
+    provider: str,
+    profile_updates: dict | None = None,
+):
+    update_operation: dict = {"$addToSet": {"authProviders": provider}}
+    if profile_updates:
+        update_operation["$set"] = profile_updates
+
+    updated_doc = await db.users.find_one_and_update(
+        filter={"_id": ObjectId(user_id)},
+        update=update_operation,
+        return_document=ReturnDocument.AFTER,
     )
     return updated_doc

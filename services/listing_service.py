@@ -1,6 +1,6 @@
 from typing import Any, Sequence
 
-from schemas.listing_schema import ListMetaOut, ListSummaryOut
+from schemas.listing_schema import ListMetaOut, ListSummaryOut, PaginatedListOut
 
 
 def clamp_limit(limit: int) -> int:
@@ -30,10 +30,10 @@ def build_indexed_items(items: Sequence[Any], *, skip: int) -> list[Any]:
 
 
 
-def build_list_payload(items: Sequence[Any], *, skip: int, limit: int, total: int) -> dict[str, Any]:
+def build_list_payload(items: Sequence[Any], *, skip: int, limit: int, total: int) -> PaginatedListOut[Any]:
     returned = len(items)
-    return {
-        "items": build_indexed_items(items, skip=skip),
-        "meta": build_meta(skip=skip, limit=limit, returned=returned, total=total),
-        "summary": build_summary(returned=returned, total=total),
-    }
+    return PaginatedListOut[Any](
+        items=build_indexed_items(items, skip=skip),
+        meta=build_meta(skip=skip, limit=limit, returned=returned, total=total),
+        summary=build_summary(returned=returned, total=total),
+    )

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from repositories.tokens_repo import get_access_tokens
 from schemas.response_schema import APIResponse
 from schemas.listing_schema import PaginatedListOut
 from schemas.reaction import (
@@ -10,30 +11,22 @@ from schemas.reaction import (
 from services.reaction_service import (
     add_reaction,
     remove_reaction_for_user,
-    retrieve_reaction_by_room,
+    retrieve_reaction_by_user_and_room,
     retrieve_reactions,
     retrieve_reactions_count,
     update_reaction_by_id,
 )
-from security.auth import verify_any_token
-from services.admin_services import get_admin_details_with_accessToken_service
+from security.auth import verify_token
 from services.listing_service import build_list_payload, clamp_limit
-from services.user_service import get_user_details_with_accessToken
 
 router = APIRouter(prefix="/reactions", tags=["Reactions"])
 
 
-async def _get_actor_user_id(dep: dict) -> str:
-    if dep["role"] == "member":
-        user = await get_user_details_with_accessToken(token=dep["accessToken"])
-        if not user:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-        return user.userId # type: ignore
-
-    admin = await get_admin_details_with_accessToken_service(token=dep["accessToken"])
-    if not admin:
+async def _get_member_user_id(dep: dict) -> str:
+    token = await get_access_tokens(accessToken=dep["accessToken"])
+    if not token or not token.userId:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    return admin.userId # type: ignore
+    return token.userId
 
 
 # ------------------------------
@@ -58,11 +51,11 @@ async def list_reactions(
 @router.get("/{authorRoomId}", response_model=APIResponse[ReactionOut])
 async def get_reaction_for_room(
     authorRoomId: str = Path(..., description="Author room ID to fetch caller's reaction"),
-    dep=Depends(verify_any_token),
+    dep=Depends(verify_token),
 ):
     """Retrieve the caller's reaction for the given author room."""
-    user_id = await _get_actor_user_id(dep)
-    item = await retrieve_reaction_by_room(author_room_id=authorRoomId)
+    user_id = await _get_member_user_id(dep)
+    item = await retrieve_reaction_by_user_and_room(user_id=user_id, author_room_id=authorRoomId)
     return APIResponse(status_code=200, data=item, detail="Reaction fetched")
 
 
@@ -71,11 +64,11 @@ async def get_reaction_for_room(
 # ------------------------------
 # Uses ReactionBase for input (correctly)
 @router.post("/", response_model=APIResponse[ReactionOut], status_code=status.HTTP_201_CREATED)
-async def create_reaction(payload: ReactionBase, dep=Depends(verify_any_token)):
+async def create_reaction(payload: ReactionBase, dep=Depends(verify_token)):
     """
     Creates a new Reaction.
     """
-    user_id = await _get_actor_user_id(dep)
+    user_id = await _get_member_user_id(dep)
     # Creates ReactionCreate object which includes date_created/last_updated
     new_data = ReactionCreate(**payload.model_dump(), userId=user_id)
     new_item = await add_reaction(new_data)
@@ -93,11 +86,11 @@ async def create_reaction(payload: ReactionBase, dep=Depends(verify_any_token)):
 async def update_reaction(
     payload: ReactionUpdate,
     authorRoomId: str = Path(..., description="ID of the author room whose reaction to update"),
-    dep=Depends(verify_any_token),
+    dep=Depends(verify_token),
 ):
     """Updates the caller's reaction in the specified author room."""
 
-    user_id = await _get_actor_user_id(dep)
+    user_id = await _get_member_user_id(dep)
     updated_item = await update_reaction_by_id(
         user_id=user_id, author_room_id=authorRoomId, reaction_data=payload
     )
@@ -108,8 +101,8 @@ async def update_reaction(
 # Delete an existing Reaction
 # ------------------------------
 @router.delete("/{authorRoomId}", response_model=APIResponse[None])
-async def delete_reaction(authorRoomId: str = Path(..., description="Author room whose reaction to delete"), dep=Depends(verify_any_token)):
+async def delete_reaction(authorRoomId: str = Path(..., description="Author room whose reaction to delete"), dep=Depends(verify_token)):
     """Delete the caller's reaction for the specified author room."""
-    user_id = await _get_actor_user_id(dep)
+    user_id = await _get_member_user_id(dep)
     deleted = await remove_reaction_for_user(user_id=user_id, author_room_id=authorRoomId)
     return APIResponse(status_code=200, data=None, detail="Reaction deleted successfully")

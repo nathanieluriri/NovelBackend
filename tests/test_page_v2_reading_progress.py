@@ -59,7 +59,7 @@ def test_get_particular_page_v2_does_not_track_for_admin(monkeypatch):
     assert background_tasks.tasks == []
 
 
-def test_get_all_available_pages_v2_tracks_reading_progress_for_member(monkeypatch):
+def test_get_all_available_pages_v2_does_not_track_reading_progress_for_member(monkeypatch):
     async def fake_resolve_reader(*args, **kwargs):
         return "member", SimpleNamespace(userId=USER_ID)
 
@@ -85,9 +85,7 @@ def test_get_all_available_pages_v2_tracks_reading_progress_for_member(monkeypat
     )
 
     assert payload.meta.total == 1
-    assert len(background_tasks.tasks) == 1
-    assert background_tasks.tasks[0].func is page_v2.track_user_reading_progress
-    assert background_tasks.tasks[0].args == (USER_ID, CHAPTER_ID, PAGE_ID)
+    assert background_tasks.tasks == []
 
 
 def test_get_all_available_pages_v2_does_not_track_for_admin(monkeypatch):

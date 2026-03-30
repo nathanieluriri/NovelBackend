@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 
-from security.auth import verify_any_token
+from repositories.tokens_repo import get_access_tokens
+from security.auth import verify_any_token, verify_token
 from schemas.listing_schema import PaginatedListOut
 from schemas.author_room import AuthorRoomBase, AuthorRoomCreate, AuthorRoomOut, AuthorRoomUpdate
 from services.author_room_service import (
@@ -16,23 +17,35 @@ from services.listing_service import build_list_payload, clamp_limit
 router = APIRouter(prefix="/author_room", tags=["AuthorRooms-v2"])
 
 
+async def _get_member_user_id_or_401(dep: dict) -> str:
+    token = await get_access_tokens(accessToken=dep["accessToken"])
+    if not token or not token.userId:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    return token.userId
+
+
 @router.get("/", response_model=PaginatedListOut[AuthorRoomOut])
 async def list_author_rooms(
     skip: int = 0,
     limit: int = 20,
-    dep=Depends(verify_any_token),
+    dep=Depends(verify_token),
 ):
     if skip < 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="skip must be >= 0")
     safe_limit = clamp_limit(limit)
-    items = await retrieve_author_rooms(start=skip, stop=skip + safe_limit)
+    user_id = await _get_member_user_id_or_401(dep)
+    items = await retrieve_author_rooms(start=skip, stop=skip + safe_limit, user_id=user_id)
     total = await retrieve_author_rooms_count()
     return build_list_payload(items, skip=skip, limit=safe_limit, total=total)
 
 
 @router.get("/{id}", response_model=AuthorRoomOut)
-async def get_author_room_by_id(dep=Depends(verify_any_token),id: str = Path(..., description="Author room ID")):
-    item = await retrieve_author_room_by_author_room_id(id=id)
+async def get_author_room_by_id(
+    dep=Depends(verify_token),
+    id: str = Path(..., description="Author room ID"),
+):
+    user_id = await _get_member_user_id_or_401(dep)
+    item = await retrieve_author_room_by_author_room_id(id=id, user_id=user_id)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="AuthorRoom not found")
     return item

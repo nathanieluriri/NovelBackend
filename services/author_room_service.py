@@ -21,6 +21,8 @@ from repositories.author_room import (
     update_author_room,
 )
 from repositories.reaction import (
+    get_reaction_by_user_and_room,
+    get_reactions_by_user_for_author_room_ids,
     get_reaction_summaries_for_author_room_ids,
     get_reaction_summary_by_author_room_id,
 )
@@ -42,6 +44,16 @@ async def _attach_reaction_summary(author_room: AuthorRoomOut) -> AuthorRoomOut:
     return author_room
 
 
+async def _attach_user_reaction(author_room: AuthorRoomOut, user_id: str | None = None) -> AuthorRoomOut:
+    author_room.userReaction = None
+    if not user_id or not author_room.id:
+        return author_room
+
+    reaction = await get_reaction_by_user_and_room(user_id=user_id, author_room_id=author_room.id)
+    author_room.userReaction = reaction.reaction if reaction else None
+    return author_room
+
+
 async def _attach_chapter_summary_for_list(items: List[AuthorRoomOut]) -> List[AuthorRoomOut]:
     for item in items:
         await _attach_chapter_summary(item)
@@ -57,6 +69,30 @@ async def _attach_reaction_summary_for_list(items: List[AuthorRoomOut]) -> List[
             item.reactionSummary = {}
             continue
         item.reactionSummary = summary_map.get(item.id, {})
+    return items
+
+
+async def _attach_user_reaction_for_list(
+    items: List[AuthorRoomOut],
+    user_id: str | None = None,
+) -> List[AuthorRoomOut]:
+    if not user_id:
+        for item in items:
+            item.userReaction = None
+        return items
+
+    author_room_ids = [item.id for item in items if item.id]
+    reaction_map = await get_reactions_by_user_for_author_room_ids(
+        user_id=user_id,
+        author_room_ids=author_room_ids,
+    )
+
+    for item in items:
+        if not item.id:
+            item.userReaction = None
+            continue
+        reaction = reaction_map.get(item.id)
+        item.userReaction = reaction.reaction if reaction else None
     return items
 
 
@@ -91,7 +127,7 @@ async def remove_author_room(author_room_id: str):
         return True
 
 
-async def retrieve_author_room_by_author_room_id(id: str) -> AuthorRoomOut:
+async def retrieve_author_room_by_author_room_id(id: str, user_id: str | None = None) -> AuthorRoomOut:
     """Retrieves author_room object based specific Id
 
     Raises:
@@ -111,10 +147,11 @@ async def retrieve_author_room_by_author_room_id(id: str) -> AuthorRoomOut:
         raise HTTPException(status_code=404, detail="AuthorRoom not found")
 
     result = await _attach_chapter_summary(result)
-    return await _attach_reaction_summary(result)
+    result = await _attach_reaction_summary(result)
+    return await _attach_user_reaction(result, user_id=user_id)
 
 
-async def retrieve_author_rooms(start=0, stop=100) -> List[AuthorRoomOut]:
+async def retrieve_author_rooms(start=0, stop=100, user_id: str | None = None) -> List[AuthorRoomOut]:
     """Retrieves AuthorRoomOut Objects in a list
 
     Returns:
@@ -122,7 +159,8 @@ async def retrieve_author_rooms(start=0, stop=100) -> List[AuthorRoomOut]:
     """
     items = await get_author_rooms(start=start, stop=stop)
     items = await _attach_chapter_summary_for_list(items)
-    return await _attach_reaction_summary_for_list(items)
+    items = await _attach_reaction_summary_for_list(items)
+    return await _attach_user_reaction_for_list(items, user_id=user_id)
 
 
 async def retrieve_author_rooms_count() -> int:

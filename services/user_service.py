@@ -1,167 +1,124 @@
-from repositories.user_repo import get_user_by_email, create_user,get_user_by_email_and_provider,get_user_by_userId,replace_password,update_user_profile
-from repositories.tokens_repo import get_access_tokens,delete_all_tokens_with_user_id
-from schemas.user_schema import NewUserCreate,UserOut,OldUserBase,OldUserCreate,OldUserOut,UserUpdate
+import asyncio
+from typing import Optional
+
+from fastapi import HTTPException, status
+
+from repositories.tokens_repo import delete_all_tokens_with_user_id, get_access_tokens
+from repositories.user_repo import (
+    create_user,
+    get_user_by_email,
+    get_user_by_email_and_provider,
+    get_user_by_userId,
+    replace_password,
+    update_user_profile,
+)
 from schemas.tokens_schema import accessTokenOut
-from fastapi import HTTPException,status
-from security.hash import check_password,hash_password
-from security.tokens import generate_member_access_tokens,generate_refresh_tokens
-from security.user_otp import generate_otp, verify_otp, send_otp_user
+from schemas.user_schema import NewUserCreate, NewUserOut, OldUserBase, OldUserOut, UserOut, UserUpdate
+from security.hash import check_password, hash_password
+from security.tokens import generate_member_access_tokens, generate_refresh_tokens
+from security.user_otp import generate_otp, send_otp_user, verify_otp
 from services.bookmark_services import retrieve_user_bookmark
 from services.like_services import retrieve_user_likes
-from authlib.integrations.starlette_client import OAuth
-from typing import Optional
-import os
-from dotenv import load_dotenv
-load_dotenv()
 
 
-
-oauth = OAuth()
-oauth.register(
-    name='google',
-    client_id=os.getenv("GOOGLE_CLIENT_ID"),
-    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={'scope': 'openid email profile'},
-)
- 
-def verify_google_access_token(google_access_token:str):
-    import requests
-
-    url = "https://www.googleapis.com/oauth2/v3/userinfo"
-
-    payload = {}
-  
-    headers = {
-    'Authorization': f'Bearer {google_access_token}'
-    }
-
-    response = requests.request("GET", url, headers=headers, data=payload)
-
-    response = response.json()
-    if response.get('error',None)!=None:
-        raise HTTPException(status_code=401,detail="Invalid Google Access Token")
-        return None
-    else:
-        avatar = response.get("picture")
-        firstName= response.get("given_name")
-        lastName= response.get("family_name")
-        email= response.get("email")
-        return {"avatar":avatar,"firstName":firstName,"lastName":lastName,"email":email,"google_access_token" :google_access_token}
+async def _issue_member_tokens(user_id: str) -> tuple[str, str]:
+    access_token = await generate_member_access_tokens(user_id)
+    refresh_token = await generate_refresh_tokens(
+        userId=user_id,
+        accessToken=access_token.accesstoken,
+    )
+    return access_token.accesstoken, refresh_token.refreshtoken
 
 
+async def _load_user_activity(user_id: str) -> tuple[list, list]:
+    bookmarks, likes = await asyncio.gather(
+        retrieve_user_bookmark(userId=user_id),
+        retrieve_user_likes(userId=user_id),
+    )
+    return bookmarks, likes
 
-async def register_user(user_data: NewUserCreate):
+
+async def build_authenticated_user_output(user_doc: dict) -> OldUserOut:
+    user_id = str(user_doc["_id"])
+    access_token, refresh_token = await _issue_member_tokens(user_id)
+    bookmarks, likes = await _load_user_activity(user_id)
+    return OldUserOut(
+        **user_doc,
+        accessToken=access_token,
+        refreshToken=refresh_token,
+        bookmarks=bookmarks,
+        likes=likes,
+    )
+
+
+async def register_user(user_data: NewUserCreate) -> NewUserOut:
     existing = await get_user_by_email(user_data.email)
     if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="User already exists")
-    new_user =await create_user(user_data)
-    new_user = UserOut(**new_user)
-    accessToken= await generate_member_access_tokens(new_user.userId)
-    new_user.accessToken=accessToken.accesstoken
-    refreshToken= await generate_refresh_tokens(userId=new_user.userId,accessToken=new_user.accessToken)
-    
-    
-    new_user.refreshToken=refreshToken.refreshtoken
-    return new_user
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
+
+    new_user = await create_user(user_data)
+    user_out = UserOut(**new_user)
+    access_token, refresh_token = await _issue_member_tokens(user_out.userId)
+    user_out.accessToken = access_token
+    user_out.refreshToken = refresh_token
+    return NewUserOut(**user_out.model_dump())
 
 
+async def login_credentials(user_data: OldUserBase) -> OldUserOut:
+    existing = await get_user_by_email_and_provider(email=user_data.email, provider="credentials")
+    if existing is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User Not Found")
+
+    hashed_password = existing.get("password")
+    if hashed_password is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Password wasn't provided",
+        )
+
+    if not check_password(user_data.password, hashed=hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Password Incorrect")
+
+    return await build_authenticated_user_output(existing)
 
 
-async def login_credentials(user_data:OldUserBase):
-    existing = await get_user_by_email_and_provider(email=user_data.email,provider="credentials")
-    if existing:
-        if existing.get("password",None)!=None:
-            hashed=existing.get("password")
-            regular=user_data.password
-            
-            if check_password(regular,hashed=hashed):
-                
-                accessToken=await generate_member_access_tokens(str(existing['_id']))
-                existing['accessToken']= accessToken.accesstoken
-                
-                refreshToken=await generate_refresh_tokens(userId=str(existing['_id']),accessToken=accessToken.accesstoken)
-                
-                existing['refreshToken']= refreshToken.refreshtoken
-                
-                
-                user = OldUserOut(**existing,likes=[])
-                # print(user)
-                bookmarks = await retrieve_user_bookmark(userId=user.userId)
-                likes = await retrieve_user_likes(userId=user.userId)
-                # print(bookmarks)
-                user.bookmarks = bookmarks
-                user.likes= likes
-                return user 
-                
-            else:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Password Incorrect")
-        else:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,detail="Password wasn't provided")
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User Not Found")        
-
-
-async def login_google(user_data:OldUserBase):
-    existing = await get_user_by_email_and_provider(email=user_data.email,provider="google")
-    print(existing)
-    if existing:
-        details = verify_google_access_token(user_data.googleAccessToken)
-        if details['email']==user_data.email:
-            print(details)
-            accessToken =await generate_member_access_tokens(str(existing['_id']))
-            existing['accessToken']= accessToken.accesstoken
-            refreshToken =await generate_refresh_tokens(userId=str(existing['_id']),accessToken=existing['accessToken'])
-            existing['refreshToken']= refreshToken.refreshtoken
-            bookmarks = await retrieve_user_bookmark(userId=str(existing['_id']))
-            likes = await retrieve_user_likes(userId=str(existing['_id']))
-            return OldUserOut(**existing,bookmarks=bookmarks,likes=likes)
-        else:raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Invalid User Login")
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User Not Found")
-    
-    
-    
-async def get_user_details_with_accessToken(token:str)->Optional[UserOut]:
-    tokenOut = await get_access_tokens(accessToken=token)
-    if not isinstance(tokenOut, accessTokenOut):
+async def get_user_details_with_accessToken(token: str) -> Optional[UserOut]:
+    token_out = await get_access_tokens(accessToken=token)
+    if not isinstance(token_out, accessTokenOut):
         return None
 
-    userDetails = await get_user_by_userId(userId=tokenOut.userId)
-    if userDetails:
-        bookmarks = await retrieve_user_bookmark(userId=tokenOut.userId)
-        likes = await retrieve_user_likes(userId=tokenOut.userId)
-        return UserOut(**userDetails, bookmarks=bookmarks, likes=likes)
-    return None
-        
-        
+    user_details = await get_user_by_userId(userId=token_out.userId)
+    if user_details is None:
+        return None
+
+    bookmarks, likes = await _load_user_activity(token_out.userId)
+    return UserOut(**user_details, bookmarks=bookmarks, likes=likes)
+
+
 async def change_of_user_password_flow1(email):
     if await get_user_by_email(email=email):
         otp = generate_otp(email=email)
-        await send_otp_user(otp=otp,user_email=email)
+        await send_otp_user(otp=otp, user_email=email)
     else:
-        raise HTTPException(status_code=404,detail="User Doesn't exist")
-    
-    
-    
-async def change_of_user_password_flow2(email,otp,password):
-    isValid = await verify_otp(email=email,otp=otp)
-    if isValid:
-        hashed_password= hash_password(password=password)
+        raise HTTPException(status_code=404, detail="User Doesn't exist")
+
+
+async def change_of_user_password_flow2(email, otp, password):
+    is_valid = await verify_otp(email=email, otp=otp)
+    if is_valid:
+        hashed_password = hash_password(password=password)
         user = await get_user_by_email(email=email)
-        await replace_password(userId=str(user['_id']),hashedPassword=hashed_password)
-        
-        await delete_all_tokens_with_user_id(userId=str(user['_id']))
+        await replace_password(userId=str(user["_id"]), hashedPassword=hashed_password)
+        await delete_all_tokens_with_user_id(userId=str(user["_id"]))
         return True
-    elif isValid==False:
+    if is_valid is False:
         return False
-        
-async def update_user(token:str,update:UserUpdate):
-    try:
-        user= await get_user_details_with_accessToken(token=token)
-        if user:
-            await update_user_profile(userId=user.userId,update=update.model_dump(exclude=None))
-        else:
-            raise HTTPException(status_code=404,detail="User Doesn't exist")
-    except Exception as e:
-        raise HTTPException(status_code=500,detail=f"{e}")
+    raise HTTPException(status_code=400, detail="Invalid password reset request")
+
+
+async def update_user(token: str, update: UserUpdate):
+    user = await get_user_details_with_accessToken(token=token)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User Doesn't exist")
+
+    await update_user_profile(userId=user.userId, update=update.model_dump(exclude_none=True))

@@ -58,14 +58,6 @@ async def get_all_available_pages_v2(
         items = await fetch_page(chapterId=chapterId, skip=skip, limit=safe_limit)
     else:
         items = await fetch_page_for_user(chapterId=chapterId, user=reader, skip=skip, limit=safe_limit)
-        first_page = items[0] if items else None
-        if first_page and reader.userId and first_page.id and first_page.chapterId:
-            background_tasks.add_task(
-                track_user_reading_progress,
-                reader.userId,
-                first_page.chapterId,
-                first_page.id,
-            )
     total = await fetch_pages_count(chapterId=chapterId)
     return build_list_payload(items, skip=skip, limit=safe_limit, total=total)
 

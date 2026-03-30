@@ -27,9 +27,16 @@ async def _get_user_or_401(dep: dict):
     return user
 
 
+def _coerce_reading_progress(reading_progress) -> ReadingProgressOut:
+    if isinstance(reading_progress, ReadingProgressOut):
+        return reading_progress
+    return ReadingProgressOut.model_validate(reading_progress, from_attributes=True)
+
+
 async def _get_reading_progress_or_none(user) -> ReadingProgressOut | None:
     try:
-        return await get_user_reading_progress(user=user)
+        reading_progress = await get_user_reading_progress(user=user)
+        return _coerce_reading_progress(reading_progress)
     except HTTPException as exc:
         if exc.status_code in (403, 404):
             return None
@@ -98,4 +105,5 @@ async def get_user_bookmarks_v2(skip: int = 0, limit: int = 20, dep=Depends(veri
 @router.get("/reading/progress", response_model=ReadingProgressOut, response_model_exclude_none=True)
 async def get_stopped_reading_progress_v2(dep=Depends(verify_token)):
     user = await _get_user_or_401(dep)
-    return await get_user_reading_progress(user=user)
+    reading_progress = await get_user_reading_progress(user=user)
+    return _coerce_reading_progress(reading_progress)

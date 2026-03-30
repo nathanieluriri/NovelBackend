@@ -17,3 +17,7 @@ class ReadingProgressOut(BaseModel):
     dateUpdated: Optional[str] = None
     chapterSummary: Optional[ChapterSummaryOut] = None
     pageSummary: Optional[PageSummaryOut] = None
+
+    model_config = {
+        "from_attributes": True,
+    }

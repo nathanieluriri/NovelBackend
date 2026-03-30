@@ -28,3 +28,17 @@ def test_author_room_out_defaults_reaction_summary_to_empty_map():
     room = AuthorRoomOut.model_validate(payload)
 
     assert room.reactionSummary == {}
+
+
+def test_author_room_out_defaults_user_reaction_to_none():
+    payload = {
+        "_id": "e" * 24,
+        "text": "author update",
+        "chapterId": "f" * 24,
+        "dateCreated": "2026-03-01T10:00:00+00:00",
+        "lastUpdated": "2026-03-01T11:00:00+00:00",
+    }
+
+    room = AuthorRoomOut.model_validate(payload)
+
+    assert room.userReaction is None
