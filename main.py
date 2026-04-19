@@ -35,7 +35,7 @@ cors_allow_credentials = bool(google_oauth_settings.cors_allowed_origins)
 
 # Root application
 app = FastAPI(
-    title="Mie Novel-app FastAPI Backend",
+    title="Echoes Novel-app FastAPI Backend",
     summary="""Backend for the "Mie Novel-app", providing RESTful endpoints to manage users, novel content (books, chapters, pages), bookmarks, and likes. Features JWT-based authentication supporting both traditional credentials and Google sign-in, including token refresh capabilities.""",
     docs_url="/docs",
     openapi_url="/openapi.json",
