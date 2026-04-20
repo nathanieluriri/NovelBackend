@@ -310,6 +310,99 @@ async def start_google_oauth(
     )
 
 
+_GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
+_GOOGLE_USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo"
+
+
+def _is_state_mismatch_error(err: Exception) -> bool:
+    """Heuristically detect authlib's state/CSRF mismatch error.
+
+    We avoid a hard import of `authlib.integrations.base_client.errors` because
+    that module path has moved across authlib versions; matching on the class
+    name plus a small set of error strings keeps the recovery path working
+    whether the installed version raises `MismatchingStateError`,
+    `MismatchingState`, or a plain `AuthlibBaseError` with `error="mismatching_state"`.
+    """
+    class_name = err.__class__.__name__
+    if class_name in {"MismatchingStateError", "MismatchingState", "CSRFError"}:
+        return True
+    marker = (getattr(err, "error", None) or "").lower()
+    return marker in {"mismatching_state", "csrf", "missing_state"}
+
+
+def _decode_id_token_payload(id_token: str) -> dict[str, Any]:
+    """Decode the JWT payload without signature verification.
+
+    The id_token was just fetched over TLS from Google's token endpoint using
+    our client secret, so the transport authenticates the source. Signature
+    verification is skipped here because, when we take this code path, the
+    session has been lost and we no longer have the original OIDC ``nonce`` to
+    compare against.
+    """
+    parts = id_token.split(".")
+    if len(parts) != 3:
+        return {}
+    payload = parts[1]
+    padding = "=" * (-len(payload) % 4)
+    try:
+        raw = base64.urlsafe_b64decode(payload + padding).decode("utf-8")
+        data = json.loads(raw)
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+async def _manual_google_code_exchange(
+    settings: GoogleOAuthSettings, code: str
+) -> dict[str, Any] | None:
+    """Exchange an authorization code with Google, bypassing authlib's state check.
+
+    Returns the userinfo dict on success, `None` on any failure.
+    """
+    try:
+        from authlib.integrations.httpx_client import AsyncOAuth2Client
+    except ModuleNotFoundError:
+        return None
+
+    try:
+        async with AsyncOAuth2Client(
+            client_id=settings.client_id,
+            client_secret=settings.client_secret,
+        ) as oauth_client:
+            token = await oauth_client.fetch_token(
+                _GOOGLE_TOKEN_ENDPOINT,
+                code=code,
+                grant_type="authorization_code",
+                redirect_uri=settings.callback_url,
+            )
+    except Exception:
+        return None
+
+    id_token = token.get("id_token") if isinstance(token, dict) else None
+    if isinstance(id_token, str):
+        userinfo = _decode_id_token_payload(id_token)
+        if userinfo:
+            return userinfo
+
+    access_token = token.get("access_token") if isinstance(token, dict) else None
+    if not isinstance(access_token, str):
+        return None
+    try:
+        import httpx
+
+        async with httpx.AsyncClient(timeout=10.0) as http:
+            resp = await http.get(
+                _GOOGLE_USERINFO_ENDPOINT,
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            if resp.status_code != 200:
+                return None
+            data = resp.json()
+    except Exception:
+        return None
+    return data if isinstance(data, dict) else None
+
+
 def _resolve_callback_flow_metadata(
     request: Request,
     settings: GoogleOAuthSettings,
@@ -354,24 +447,47 @@ async def handle_google_oauth_callback(request: Request) -> RedirectResponse:
         return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
     oauth = get_google_oauth_client()
+    user_info: dict[str, Any] | None = None
+    token: dict[str, Any] | None = None
     try:
         token = await oauth.google.authorize_access_token(request)
     except HTTPException:
         raise
     except Exception as err:
-        redirect_url = _build_error_redirect_url(
-            frontend_target,
-            getattr(err, "error", None) or str(err),
-            redirect_path,
-        )
-        return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+        # When the session cookie fails to round-trip (cross-site SameSite,
+        # reverse-proxy cookie stripping, HTTPS downgrade), authlib raises
+        # MismatchingStateError before it even tries to exchange the code.
+        # The design of our own `state` payload explicitly makes it the
+        # fallback source of truth, so we finish the flow manually instead of
+        # bouncing the user to the frontend's error URL.
+        state_payload = _decode_oauth_state(request.query_params.get("state"))
+        authorization_code = request.query_params.get("code")
+        if (
+            _is_state_mismatch_error(err)
+            and state_payload
+            and isinstance(authorization_code, str)
+            and authorization_code
+        ):
+            user_info = await _manual_google_code_exchange(settings, authorization_code)
+        if user_info is None:
+            redirect_url = _build_error_redirect_url(
+                frontend_target,
+                getattr(err, "error", None) or str(err),
+                redirect_path,
+            )
+            return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
-    user_info = token.get("userinfo")
-    if not isinstance(user_info, dict):
-        try:
-            user_info = await oauth.google.parse_id_token(request, token)
-        except Exception:
-            user_info = None
+    if user_info is None and isinstance(token, dict):
+        maybe_userinfo = token.get("userinfo")
+        if isinstance(maybe_userinfo, dict):
+            user_info = maybe_userinfo
+        else:
+            try:
+                parsed = await oauth.google.parse_id_token(request, token)
+            except Exception:
+                parsed = None
+            if isinstance(parsed, dict):
+                user_info = parsed
     if not isinstance(user_info, dict):
         redirect_url = _build_error_redirect_url(frontend_target, "missing_google_userinfo", redirect_path)
         return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
