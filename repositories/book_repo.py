@@ -1,77 +1,87 @@
-from core.database import db
-from schemas.book_schema import BookCreate,BookUpdate,BookOut
-from bson import ObjectId,errors
-import asyncio
 import re
 
-def get_book_by_number(number: int,name:str,books:list):
-    retrieved_books= [books_with_same_name_and_number for books_with_same_name_and_number in books if( re.findall(r'[\w\s!?,\'\.-]+(?=\s*\d*$)|\d+$', books_with_same_name_and_number.get('name'))[0]==name and books_with_same_name_and_number.get('number')==number)]
-    if len(retrieved_books)==0:
+from core.database import client, maybe_id
+from schemas.book_schema import BookCreate, BookUpdate
+
+
+BOOKS = "books"
+
+
+# Kept as pure-Python utilities for callers that already have the full list
+# in memory. They do not issue DB queries.
+def get_book_by_number(number: int, name: str, books: list):
+    pattern = r"[\w\s!?,\'\.-]+(?=\s*\d*$)|\d+$"
+    matches = [
+        book
+        for book in books
+        if re.findall(pattern, book.get("name"))[0] == name
+        and book.get("number") == number
+    ]
+    if not matches:
         return None
-    return retrieved_books[0]
+    return matches[0]
+
+
+def get_all_books_by_name(name: str, books: list):
+    # Preserves legacy behaviour: returns all books. Kept for backward
+    # compatibility with callers that depend on this shape.
+    del name
+    return books
+
 
 async def get_all_books():
-    cursor= db.books.find()
-    retrieved_books = [books async for books in cursor]
-    return retrieved_books
+    return await client.find_many(BOOKS)
 
 
 async def get_all_books_paginated(skip: int = 0, limit: int = 20):
-    cursor = db.books.find().skip(skip).limit(limit)
-    return [books async for books in cursor]
+    return await client.find_many(BOOKS, skip=skip, limit=limit)
 
 
 async def count_all_books() -> int:
-    return await db.books.count_documents({})
+    return await client.count(BOOKS)
 
-def get_all_books_by_name(name:str,books:list):
-    books_with_same_name= [books_with_same_name for books_with_same_name in books if re.findall(r'[\w\s!?,\'\.-]+(?=\s*\d*$)|\d+$', books_with_same_name.get('name'))[0] ==name]
-    return books
 
-async def get_book_by_book_id(bookId:str):
-    try:
-        obj_id = ObjectId(bookId)
-    except errors.InvalidId:
+async def get_book_by_book_id(bookId: str):
+    oid = maybe_id(bookId)
+    if oid is None:
         return None
-    return await db.books.find_one({"_id": ObjectId(bookId)})
+    return await client.find_one(BOOKS, {"_id": oid})
+
 
 async def create_book(book_data: BookCreate):
-    book = book_data.model_dump()
-    result = await db.books.insert_one(book)
-    created_book = await db.books.find_one({"_id": result.inserted_id})
-    return created_book
+    return await client.insert_and_fetch(BOOKS, book_data.model_dump())
 
 
 async def update_book(book_id: str, update_data: BookUpdate):
-    update_dict = {k: v for k, v in update_data.model_dump(exclude_none=True).items() if v is not None}
-    update_dict.pop("id",None)
-    result = await db.books.update_one(
-        {"_id": ObjectId(book_id)},
-        {"$set": update_dict}
+    oid = maybe_id(book_id)
+    if oid is None:
+        return {"message": "Invalid book id."}
+
+    update_dict = {
+        k: v
+        for k, v in update_data.model_dump(exclude_none=True).items()
+        if v is not None
+    }
+    update_dict.pop("id", None)
+    modified = await client.update_one(
+        BOOKS, {"_id": oid}, {"set": update_dict}
     )
-
-    if result.modified_count == 0:
+    if modified == 0:
         return {"message": "No changes made or chapter not found."}
-
-    updated_book_value = await db.books.find_one({"_id": ObjectId(book_id)})
-    return updated_book_value
+    return await client.find_one(BOOKS, {"_id": oid})
 
 
-
-async def delete_book_with_bookId(bookId:str):
-    try:
-        obj_id = ObjectId(bookId)
-    except errors.InvalidId:
+async def delete_book_with_bookId(bookId: str):
+    oid = maybe_id(bookId)
+    if oid is None:
         return None
-    result = await db.books.find_one_and_delete({"_id":ObjectId(bookId)})
-  
-    return result
+    return await client.find_one_and_delete(BOOKS, {"_id": oid})
 
 
-async def update_book_order_after_delete(deleted_position:int):
-    return await db.books.update_many(
-    {   
-        "number": {"$gt": deleted_position}
-    },  # only items after the deleted one
-    {"$inc": {"number": -1}}                # shift them up
-)
+async def update_book_order_after_delete(deleted_position: int):
+    # Shift all books positioned after the deleted one up by 1.
+    return await client.update_many(
+        BOOKS,
+        {"number": {"$gt": deleted_position}},
+        {"inc": {"number": -1}},
+    )

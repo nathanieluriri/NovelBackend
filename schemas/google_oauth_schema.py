@@ -1,5 +1,22 @@
+from enum import Enum
+
 from schemas.imports import *
 from schemas.utils import normalize_datetime_to_iso
+
+
+class GoogleOAuthTargetEnum(str, Enum):
+    """Canonical frontend targets for the Google OAuth flow.
+
+    The value of each member must match the alias used as a key in the
+    ``GOOGLE_OAUTH_REDIRECT_TARGETS`` env var. Only aliases registered there
+    will actually resolve at runtime; this enum simply gives callers (and the
+    OpenAPI schema) a fixed vocabulary of supported environments.
+    """
+
+    LOCAL = "local"
+    DEV = "dev"
+    STAGING = "staging"
+    PROD = "prod"
 
 
 class GoogleOAuthExchangeRequest(BaseModel):

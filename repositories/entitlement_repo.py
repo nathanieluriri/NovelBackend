@@ -1,22 +1,39 @@
-from core.database import db
+import asyncio
+
+from core.database import ASC, client
 from schemas.entitlement_schema import EntitlementCreate, EntitlementOut
-from pymongo import ASCENDING
 
 
-entitlement_collection = db.entitlements
+ENTITLEMENTS = "entitlements"
 
 
-async def ensure_entitlement_indexes():
-    await entitlement_collection.create_index(
-        [("userId", ASCENDING), ("chapterId", ASCENDING)],
-        unique=True,
-        background=True,
-    )
+_entitlement_indexes_ready = False
+_entitlement_indexes_lock = asyncio.Lock()
+
+
+async def ensure_entitlement_indexes() -> None:
+    global _entitlement_indexes_ready
+    if _entitlement_indexes_ready:
+        return
+    async with _entitlement_indexes_lock:
+        if _entitlement_indexes_ready:
+            return
+        await client.ensure_index(
+            ENTITLEMENTS,
+            [("userId", ASC), ("chapterId", ASC)],
+            unique=True,
+            background=True,
+        )
+        _entitlement_indexes_ready = True
 
 
 async def has_chapter_entitlement(userId: str, chapterId: str) -> bool:
     await ensure_entitlement_indexes()
-    found = await entitlement_collection.find_one({"userId": userId, "chapterId": chapterId})
+    found = await client.find_one(
+        ENTITLEMENTS,
+        {"userId": userId, "chapterId": chapterId},
+        projection={"_id": 1},
+    )
     return found is not None
 
 
@@ -27,7 +44,9 @@ async def create_chapter_entitlement_if_absent(
     tx_ref: str | None = None,
 ):
     await ensure_entitlement_indexes()
-    existing = await entitlement_collection.find_one({"userId": userId, "chapterId": chapterId})
+    existing = await client.find_one(
+        ENTITLEMENTS, {"userId": userId, "chapterId": chapterId}
+    )
     if existing:
         return EntitlementOut(**existing), False
 
@@ -37,6 +56,6 @@ async def create_chapter_entitlement_if_absent(
         source=source,
         txRef=tx_ref,
     )
-    result = await entitlement_collection.insert_one(created.model_dump())
-    new_doc = await entitlement_collection.find_one({"_id": result.inserted_id})
-    return EntitlementOut(**new_doc), True # type: ignore
+    new_doc = await client.insert_and_fetch(ENTITLEMENTS, created.model_dump())
+    assert new_doc is not None
+    return EntitlementOut(**new_doc), True

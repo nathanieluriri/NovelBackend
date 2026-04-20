@@ -1,110 +1,144 @@
-from core.database import db
-
-from schemas.tokens_schema import accessTokenCreate,refreshTokenCreate,accessTokenOut,refreshTokenOut
 import asyncio
 from datetime import datetime, timedelta
+
 from dateutil import parser
-from bson import ObjectId,errors
 from fastapi import HTTPException
 
-async def add_access_tokens(token_data:accessTokenCreate)->accessTokenOut:
-    token = token_data.model_dump()
-    token['role']="member"
-    result = await db.accessToken.insert_one(token)
-    tokn = await db.accessToken.find_one({"_id":result.inserted_id})
-    accessToken = accessTokenOut(**tokn)
-    
-    return accessToken 
-    
+from core.database import ASC, client, maybe_id
+from schemas.tokens_schema import (
+    accessTokenCreate,
+    accessTokenOut,
+    refreshTokenCreate,
+    refreshTokenOut,
+)
 
-async def add_admin_access_tokens(token_data:accessTokenCreate)->accessTokenOut:
-    token = token_data.model_dump()
-    token['role']="admin"
-    token['status']="inactive"
-    result = await db.accessToken.insert_one(token)
-    tokn = await db.accessToken.find_one({"_id":result.inserted_id})
-    accessToken = accessTokenOut(**tokn)
-    
-    return accessToken 
 
-async def update_admin_access_tokens(token:str)->accessTokenOut:
-    updatedToken= await db.accessToken.find_one_and_update(filter={"_id":ObjectId(token)},update={"$set": {'status':'active'}},return_document=True)
-    accessToken = accessTokenOut(**updatedToken)
-    return accessToken
-    
-async def add_refresh_tokens(token_data:refreshTokenCreate)->refreshTokenOut:
+ACCESS_TOKENS = "accessToken"
+REFRESH_TOKENS = "refreshToken"
+
+
+_token_indexes_ready = False
+_token_indexes_lock = asyncio.Lock()
+
+
+async def ensure_token_indexes() -> None:
+    global _token_indexes_ready
+    if _token_indexes_ready:
+        return
+    async with _token_indexes_lock:
+        if _token_indexes_ready:
+            return
+        await client.ensure_index(
+            ACCESS_TOKENS, [("userId", ASC)], background=True
+        )
+        await client.ensure_index(
+            REFRESH_TOKENS, [("userId", ASC)], background=True
+        )
+        _token_indexes_ready = True
+
+
+async def add_access_tokens(
+    token_data: accessTokenCreate,
+) -> accessTokenOut:
+    await ensure_token_indexes()
     token = token_data.model_dump()
-    result = await db.refreshToken.insert_one(token)
-    tokn = await db.refreshToken.find_one({"_id":result.inserted_id})
-    refreshToken = refreshTokenOut(**tokn)
-    return refreshToken
+    token["role"] = "member"
+    created = await client.insert_and_fetch(ACCESS_TOKENS, token)
+    assert created is not None
+    return accessTokenOut(**created)
+
+
+async def add_admin_access_tokens(
+    token_data: accessTokenCreate,
+) -> accessTokenOut:
+    await ensure_token_indexes()
+    token = token_data.model_dump()
+    token["role"] = "admin"
+    token["status"] = "inactive"
+    created = await client.insert_and_fetch(ACCESS_TOKENS, token)
+    assert created is not None
+    return accessTokenOut(**created)
+
+
+async def update_admin_access_tokens(token: str) -> accessTokenOut:
+    oid = maybe_id(token)
+    if oid is None:
+        raise HTTPException(status_code=401, detail="Invalid Access Id")
+    updated = await client.find_one_and_update(
+        ACCESS_TOKENS,
+        {"_id": oid},
+        {"set": {"status": "active"}},
+    )
+    assert updated is not None
+    return accessTokenOut(**updated)
+
+
+async def add_refresh_tokens(
+    token_data: refreshTokenCreate,
+) -> refreshTokenOut:
+    await ensure_token_indexes()
+    created = await client.insert_and_fetch(
+        REFRESH_TOKENS, token_data.model_dump()
+    )
+    assert created is not None
+    return refreshTokenOut(**created)
+
 
 async def delete_access_token(accessToken):
-    # await db.refreshToken.delete_many({"previousAccessToken":accessToken})
-    await db.accessToken.find_one_and_delete({'_id':ObjectId(accessToken)})
-    
-    
-async def delete_refresh_token(refreshToken:str):
-    try:
-        obj_id=ObjectId(refreshToken)
-    except errors.InvalidId:
-        raise HTTPException(status_code=401,detail="Invalid Refresh Id")
-    result = await db.refreshToken.find_one_and_delete({"_id":obj_id})
+    oid = maybe_id(accessToken)
+    if oid is None:
+        return
+    await client.find_one_and_delete(ACCESS_TOKENS, {"_id": oid})
+
+
+async def delete_refresh_token(refreshToken: str):
+    oid = maybe_id(refreshToken)
+    if oid is None:
+        raise HTTPException(status_code=401, detail="Invalid Refresh Id")
+    result = await client.find_one_and_delete(REFRESH_TOKENS, {"_id": oid})
     if result:
         return True
 
 
-
 def is_older_than_days(date_string, days=10):
-    # Parse the ISO 8601 date string into a datetime object
     created_date = parser.isoparse(date_string)
-
-    # Get the current time in UTC
     now = datetime.utcnow().replace(tzinfo=created_date.tzinfo)
-
-    # Check if the difference is greater than the given number of days
     return (now - created_date) > timedelta(days=days)
 
 
-
-async def get_access_tokens(accessToken:str):
-    try:
-        token = await db.accessToken.find_one({"_id": ObjectId(accessToken)})
-    except errors.InvalidId:
+async def get_access_tokens(accessToken: str):
+    oid = maybe_id(accessToken)
+    if oid is None:
         return None
-
-    if token:
-        if is_older_than_days(date_string=token['dateCreated'])==False:
-            if token.get("role",None)=="member":
-                tokn = accessTokenOut(**token)
-                return tokn
-            elif token.get("role",None)=="admin":
-                if token.get('status',None)=="active":
-                    tokn = accessTokenOut(**token)
-                    return tokn
-                else: 
-                    return "inactive"
-            else:
-                return None
-            
-        else:
-            await delete_access_token(accessToken=str(token['_id']))
-            return None
-    else:
+    token = await client.find_one(ACCESS_TOKENS, {"_id": oid})
+    if not token:
         print("No token found")
         return None
-    
-    
-async def get_refresh_tokens(refreshToken:str):
-    token = await db.refreshToken.find_one({"_id": ObjectId(refreshToken)})
-    if token:
-        tokn = refreshTokenOut(**token)
-        return tokn
+    if is_older_than_days(date_string=token["dateCreated"]):
+        await delete_access_token(accessToken=str(token["_id"]))
+        return None
 
-    else: return None
-    
-    
-    
-async def delete_all_tokens_with_user_id(userId:str):
-    await db.refreshToken.delete_many(filter={"userId":userId})
-    await db.accessToken.delete_many(filter={"userId":userId})
+    role = token.get("role")
+    if role == "member":
+        return accessTokenOut(**token)
+    if role == "admin":
+        if token.get("status") == "active":
+            return accessTokenOut(**token)
+        return "inactive"
+    return None
+
+
+async def get_refresh_tokens(refreshToken: str):
+    oid = maybe_id(refreshToken)
+    if oid is None:
+        return None
+    token = await client.find_one(REFRESH_TOKENS, {"_id": oid})
+    if token:
+        return refreshTokenOut(**token)
+    return None
+
+
+async def delete_all_tokens_with_user_id(userId: str):
+    await ensure_token_indexes()
+    await client.delete_many(REFRESH_TOKENS, {"userId": userId})
+    await client.delete_many(ACCESS_TOKENS, {"userId": userId})

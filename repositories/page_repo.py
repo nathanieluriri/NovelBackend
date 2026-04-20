@@ -1,92 +1,109 @@
-from core.database import db
-from schemas.page_schema import PageCreate,PageUpdate,PageOut
-from bson import ObjectId,errors
 import asyncio
+
+from core.database import ASC, client, is_valid_id, maybe_id
+from schemas.page_schema import PageCreate, PageUpdate
+
+
+PAGES = "pages"
+
+
+_page_indexes_ready = False
+_page_indexes_lock = asyncio.Lock()
+
+
+async def ensure_page_indexes() -> None:
+    global _page_indexes_ready
+    if _page_indexes_ready:
+        return
+    async with _page_indexes_lock:
+        if _page_indexes_ready:
+            return
+        await client.ensure_index(
+            PAGES, [("chapterId", ASC), ("number", ASC)], background=True
+        )
+        _page_indexes_ready = True
+
+
 async def get_all_pages(chapterId):
-    cursor= db.pages.find({"chapterId":chapterId})
-    retrieved_pages= [chapters async for chapters in cursor]
-    return retrieved_pages
+    await ensure_page_indexes()
+    return await client.find_many(PAGES, {"chapterId": chapterId})
 
 
-async def get_page_by_page_number(number: int,chapterId:str):
-    return await db.pages.find_one({"number": number,"chapterId":chapterId})
+async def get_page_by_page_number(number: int, chapterId: str):
+    await ensure_page_indexes()
+    return await client.find_one(
+        PAGES, {"number": number, "chapterId": chapterId}
+    )
+
 
 async def get_page_by_page_id(pageId: str):
-    try:
-        obj_id = ObjectId(pageId)
-    except errors.InvalidId:
+    oid = maybe_id(pageId)
+    if oid is None:
         return None
-    return await db.pages.find_one({"_id": ObjectId(pageId)})
+    return await client.find_one(PAGES, {"_id": oid})
 
 
 async def delete_page_with_page_id(pageId: str):
-    try:
-        obj_id = ObjectId(pageId)
-    except errors.InvalidId:
-        return None  # or raise an error / log it
-    return await db.pages.find_one_and_delete({"_id": obj_id})
+    oid = maybe_id(pageId)
+    if oid is None:
+        return None
+    return await client.find_one_and_delete(PAGES, {"_id": oid})
+
 
 async def delete_pages_with_chapter_ids(chapterIds: list):
-    if len(chapterIds)>0:
-     
-        result = await db.pages.delete_many({"chapterId": {"$in": chapterIds}})
-        return result
-    else:
-        print("no pages in this book")
+    if not chapterIds:
         return None
+    return await client.delete_many(
+        PAGES, {"chapterId": {"$in": chapterIds}}
+    )
 
 
+async def update_page_order_after_delete(deleted_position: int, chapterId: str):
+    return await client.update_many(
+        PAGES,
+        {"chapterId": chapterId, "number": {"$gt": deleted_position}},
+        {"inc": {"number": -1}},
+    )
 
-async def update_page_order_after_delete(deleted_position:int,chapterId:str):
-    return await db.pages.update_many(
-        
-    {   "chapterId":chapterId,
-        "number": {"$gt": deleted_position}
-    }, 
-    {"$inc": {"number": -1}}  
-)
 
 async def delete_pages_by_chapter_id(chapter_id: str):
-    try:
-        obj_id = ObjectId(chapter_id)
-    except errors.InvalidId:
-        return None  # or raise an error / log it
-    result = await db.pages.delete_many({"chapter_id": chapter_id})
-    return result.deleted_count  # optional: returns how many were deleted
+    if not is_valid_id(chapter_id):
+        return None
+    # Preserves a legacy field name `chapter_id` that may exist on older docs.
+    return await client.delete_many(PAGES, {"chapter_id": chapter_id})
 
 
 async def create_page(page_data: PageCreate):
-    page = page_data.model_dump()
-    result = await db.pages.insert_one(page)
-    created_page = await db.pages.find_one({"_id": result.inserted_id})
-    return created_page
+    return await client.insert_and_fetch(PAGES, page_data.model_dump())
+
 
 async def update_page(page_id: str, update_data: PageUpdate):
-    update_dict = {k: v for k, v in update_data.model_dump().items() if v is not None}
-    update_dict.pop("id",None)
-    result = await db.pages.update_one(
-        {"_id": ObjectId(page_id)},
-        {"$set": update_dict}
+    oid = maybe_id(page_id)
+    if oid is None:
+        return {"message": "Invalid page id."}
+
+    update_dict = {
+        k: v for k, v in update_data.model_dump().items() if v is not None
+    }
+    update_dict.pop("id", None)
+    modified = await client.update_one(
+        PAGES, {"_id": oid}, {"set": update_dict}
     )
-
-    if result.modified_count == 0:
+    if modified == 0:
         return {"message": "No changes made or chapter not found."}
-
-    updated_page_value = await db.pages.find_one({"_id": ObjectId(page_id)})
-    return updated_page_value
+    return await client.find_one(PAGES, {"_id": oid})
 
 
-async def get_pages_by_chapter_id(chapterId, skip: int = 0, limit: int | None = None):
-    try:
-        obj_id = ObjectId(chapterId)
-    except errors.InvalidId:
-        return None 
-    cursor = db.pages.find({"chapterId": chapterId}).skip(skip)
-    if limit is not None:
-        cursor = cursor.limit(limit)
-    pages = [page async for page in cursor]
-    return pages
+async def get_pages_by_chapter_id(
+    chapterId, skip: int = 0, limit: int | None = None
+):
+    if not is_valid_id(chapterId):
+        return None
+    await ensure_page_indexes()
+    return await client.find_many(
+        PAGES, {"chapterId": chapterId}, skip=skip, limit=limit
+    )
 
 
 async def count_pages_by_chapter_id(chapterId: str) -> int:
-    return await db.pages.count_documents({"chapterId": chapterId})
+    return await client.count(PAGES, {"chapterId": chapterId})

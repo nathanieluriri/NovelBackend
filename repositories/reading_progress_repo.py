@@ -1,27 +1,40 @@
+import asyncio
 from datetime import datetime, timezone
 
-from pymongo import ASCENDING
-
-from core.database import db
+from core.database import ASC, client
 from schemas.reading_progress_schema import ReadingProgressRecord
 
 
-async def ensure_reading_progress_indexes():
-    await db.reading_progress.create_index([("userId", ASCENDING)], unique=True, background=True)
+READING_PROGRESS = "reading_progress"
+
+
+_indexes_ready = False
+_indexes_lock = asyncio.Lock()
+
+
+async def ensure_reading_progress_indexes() -> None:
+    global _indexes_ready
+    if _indexes_ready:
+        return
+    async with _indexes_lock:
+        if _indexes_ready:
+            return
+        await client.ensure_index(
+            READING_PROGRESS, [("userId", ASC)], unique=True, background=True
+        )
+        _indexes_ready = True
 
 
 async def upsert_reading_progress(record: ReadingProgressRecord):
     await ensure_reading_progress_indexes()
     now = datetime.now(timezone.utc).isoformat()
     payload = record.model_dump(exclude_none=True)
-    await db.reading_progress.update_one(
+    await client.update_one(
+        READING_PROGRESS,
         {"userId": record.userId},
         {
-            "$set": {
-                **payload,
-                "dateUpdated": now,
-            },
-            "$setOnInsert": {"dateCreated": now},
+            "set": {**payload, "dateUpdated": now},
+            "set_on_insert": {"dateCreated": now},
         },
         upsert=True,
     )
@@ -29,4 +42,4 @@ async def upsert_reading_progress(record: ReadingProgressRecord):
 
 async def get_reading_progress(user_id: str):
     await ensure_reading_progress_indexes()
-    return await db.reading_progress.find_one({"userId": user_id})
+    return await client.find_one(READING_PROGRESS, {"userId": user_id})

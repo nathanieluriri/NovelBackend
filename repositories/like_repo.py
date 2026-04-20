@@ -1,32 +1,62 @@
-from core.database import db
+import asyncio
+
+from pymongo.errors import DuplicateKeyError
+
+from core.database import ASC, client, maybe_id
 from schemas.likes_schema import LikeCreate
-from bson import ObjectId,errors
+
+
+LIKES = "likes"
+
+
+_like_indexes_ready = False
+_like_indexes_lock = asyncio.Lock()
+
+
+async def ensure_like_indexes() -> None:
+    global _like_indexes_ready
+    if _like_indexes_ready:
+        return
+    async with _like_indexes_lock:
+        if _like_indexes_ready:
+            return
+        # Prevents duplicate (userId, chapterId) likes at the DB layer instead
+        # of the check-then-insert race that used to live in `create_like`.
+        await client.ensure_index(
+            LIKES,
+            [("userId", ASC), ("chapterId", ASC)],
+            unique=True,
+            background=True,
+        )
+        await client.ensure_index(LIKES, [("chapterId", ASC)], background=True)
+        _like_indexes_ready = True
+
 
 async def get_all_user_likes(userId, skip: int = 0, limit: int | None = None):
-    cursor = db.likes.find({"userId": userId}).skip(skip)
-    if limit is not None:
-        cursor = cursor.limit(limit)
-    retrieved_likes= [chapters async for chapters in cursor]
-    return retrieved_likes
+    return await client.find_many(
+        LIKES, {"userId": userId}, skip=skip, limit=limit
+    )
 
 
 async def count_user_likes(userId: str) -> int:
-    return await db.likes.count_documents({"userId": userId})
+    return await client.count(LIKES, {"userId": userId})
 
 
-async def get_all_chapter_likes(chapterId, skip: int = 0, limit: int | None = None):
-    cursor = db.likes.find({"chapterId": chapterId}).skip(skip)
-    if limit is not None:
-        cursor = cursor.limit(limit)
-    retrieved_likes= [chapters async for chapters in cursor]
-    return retrieved_likes
+async def get_all_chapter_likes(
+    chapterId, skip: int = 0, limit: int | None = None
+):
+    return await client.find_many(
+        LIKES, {"chapterId": chapterId}, skip=skip, limit=limit
+    )
 
 
 async def count_likes_by_chapter(chapterId: str) -> int:
-    return await db.likes.count_documents({"chapterId": chapterId})
+    return await client.count(LIKES, {"chapterId": chapterId})
 
 
-async def get_chapter_like_user_stats(chapterId: str, skip: int = 0, limit: int = 20):
+async def get_chapter_like_user_stats(
+    chapterId: str, skip: int = 0, limit: int = 20
+):
     pipeline = [
         {"$match": {"chapterId": chapterId}},
         {
@@ -40,7 +70,7 @@ async def get_chapter_like_user_stats(chapterId: str, skip: int = 0, limit: int 
         {"$skip": skip},
         {"$limit": limit},
     ]
-    return await db.likes.aggregate(pipeline).to_list(length=limit)
+    return await client.aggregate(LIKES, pipeline, length=limit)
 
 
 async def count_chapter_like_users(chapterId: str) -> int:
@@ -49,56 +79,43 @@ async def count_chapter_like_users(chapterId: str) -> int:
         {"$group": {"_id": "$userId"}},
         {"$count": "total"},
     ]
-    result = await db.likes.aggregate(pipeline).to_list(length=1)
+    result = await client.aggregate(LIKES, pipeline, length=1)
     if not result:
         return 0
     return int(result[0].get("total", 0))
 
 
 async def delete_likes_with_page_id(chapterId: list):
-    """_summary_
-    
-    Accepts a list of page Id's and deletes likes with it
-    
-    Args:
-        chapterId (list): _description_
+    """Delete all likes for the given chapter ids."""
+    if not chapterId:
+        return None
+    return await client.delete_many(LIKES, {"chapterId": {"$in": chapterId}})
 
-    Returns:
-        _type_: _description_
-    """
-    result = await db.likes.delete_many({"chapterId": {"$in": chapterId}})
-    return result
 
 async def delete_likes_with_user_id(userId: list):
-    """_summary_
-    Accepts list of user Id's and deletes likes with it
-    Args:
-        userId (list): _description_
-        
-
-    Returns:
-        _type_: _description_
-    """
-    result = await db.likes.delete_many({"userId": {"$in": userId}})
-    return result
+    """Delete all likes for the given user ids."""
+    if not userId:
+        return None
+    return await client.delete_many(LIKES, {"userId": {"$in": userId}})
 
 
 async def create_like(like_data: LikeCreate):
+    await ensure_like_indexes()
     like = like_data.model_dump()
-    already_liked = await db.likes.find_one(filter={"userId":like_data.userId,"chapterId":like_data.chapterId})
-    if already_liked==None:
-        result = await db.likes.insert_one(like)
-        created_like = await db.likes.find_one({"_id": result.inserted_id})
-        return created_like
-    else:return already_liked
-
+    try:
+        inserted_id = await client.insert_one(LIKES, like)
+    except DuplicateKeyError:
+        # Idempotent: if the like already exists, return it rather than
+        # raising — matches the previous behaviour of the check-then-insert.
+        return await client.find_one(
+            LIKES,
+            {"userId": like_data.userId, "chapterId": like_data.chapterId},
+        )
+    return await client.find_one(LIKES, {"_id": inserted_id})
 
 
 async def delete_like_with_like_id(likeId: str):
-    try:
-        obj_id = ObjectId(likeId)
-    except errors.InvalidId:
-        return None  # or raise an error / log it
-    return await db.likes.find_one_and_delete({"_id": obj_id})
-
-
+    oid = maybe_id(likeId)
+    if oid is None:
+        return None
+    return await client.find_one_and_delete(LIKES, {"_id": oid})

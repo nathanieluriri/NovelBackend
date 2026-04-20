@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request
 
 from repositories.tokens_repo import delete_refresh_token
-from schemas.google_oauth_schema import GoogleOAuthExchangeRequest
+from schemas.google_oauth_schema import GoogleOAuthExchangeRequest, GoogleOAuthTargetEnum
 from schemas.reading_progress_schema import ReadingProgressOut
 from schemas.tokens_schema import refreshTokenRequest
 from schemas.user_schema import (
@@ -44,8 +44,31 @@ def _raise_google_body_auth_disabled() -> None:
 
 
 @router.get("/google/auth")
-async def login_with_google(request: Request, target: str | None = Query(default=None)):
-    return await start_google_oauth(request=request, target_alias=target)
+async def login_with_google(
+    request: Request,
+    target: GoogleOAuthTargetEnum | None = Query(
+        default=None,
+        description=(
+            "Frontend environment to return the user to after authentication. "
+            "Must be an alias registered in GOOGLE_OAUTH_REDIRECT_TARGETS."
+        ),
+    ),
+    redirect_path: str | None = Query(
+        default=None,
+        description=(
+            "Relative path the frontend should send the user back to after "
+            "login (e.g. '/settings'). Must start with a single '/'; absolute "
+            "URLs and protocol-relative paths are rejected. Forwarded to the "
+            "frontend as the ?redirect_path= query parameter on the success URL."
+        ),
+        max_length=512,
+    ),
+):
+    return await start_google_oauth(
+        request=request,
+        target_alias=target.value if target is not None else None,
+        redirect_path=redirect_path,
+    )
 
 
 @router.get("/google/callback")

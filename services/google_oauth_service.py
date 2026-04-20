@@ -1,9 +1,11 @@
+import base64
 import hashlib
+import json
 import secrets
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import parse_qsl, quote, unquote, urlencode, urlparse, urlunparse
 
 from fastapi import HTTPException, Request, status
 from fastapi.responses import RedirectResponse
@@ -17,6 +19,107 @@ from services.user_service import build_authenticated_user_output
 
 
 _GOOGLE_OAUTH_TARGET_SESSION_KEY = "google_oauth_target_alias"
+_GOOGLE_OAUTH_REDIRECT_PATH_SESSION_KEY = "google_oauth_redirect_path"
+_GOOGLE_OAUTH_STATE_SEPARATOR = ":"
+_GOOGLE_OAUTH_STATE_PREFIX = "v1."  # versioned base64-JSON states
+_GOOGLE_OAUTH_MAX_REDIRECT_PATH_LENGTH = 512
+
+
+def _sanitize_redirect_path(raw_path: str | None) -> str | None:
+    """Normalize and validate a caller-supplied post-login ``redirect_path``.
+
+    Only relative paths (starting with a single ``/``) are accepted so that the
+    feature cannot be abused as an open redirect. The path may include a query
+    string and fragment, but no scheme, host, or userinfo.
+    """
+    if not isinstance(raw_path, str):
+        return None
+    path = raw_path.strip()
+    if not path:
+        return None
+    if len(path) > _GOOGLE_OAUTH_MAX_REDIRECT_PATH_LENGTH:
+        return None
+    # Must be rooted at the frontend origin.
+    if not path.startswith("/"):
+        return None
+    # Reject protocol-relative ("//evil.com/x") and backslash variants that some
+    # browsers interpret as absolute URLs.
+    if path.startswith("//") or path.startswith("/\\") or path.startswith("/%2F") or path.startswith("/%2f"):
+        return None
+    parsed = urlparse(path)
+    if parsed.scheme or parsed.netloc:
+        return None
+    return path
+
+
+def _encode_oauth_state(target_alias: str, redirect_path: str | None = None) -> str:
+    """Encode flow metadata into the OAuth ``state`` parameter.
+
+    The state survives the Google round-trip as a query param, so using it as
+    the source of truth makes the flow resilient to session-cookie loss.
+    """
+    payload: dict[str, Any] = {
+        "t": target_alias,
+        "n": secrets.token_urlsafe(24),
+    }
+    if redirect_path:
+        payload["r"] = redirect_path
+    raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    encoded = base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+    return _GOOGLE_OAUTH_STATE_PREFIX + encoded
+
+
+def _decode_oauth_state(state_value: str | None) -> dict[str, str]:
+    """Decode ``state`` produced by :func:`_encode_oauth_state`.
+
+    Returns a dict with optional keys ``target`` and ``redirect_path``. The
+    legacy ``alias:nonce`` format is accepted too so that in-flight redirects
+    created by older builds of the service keep working.
+    """
+    if not isinstance(state_value, str) or not state_value:
+        return {}
+
+    # New format: "v1." + base64url(JSON)
+    if state_value.startswith(_GOOGLE_OAUTH_STATE_PREFIX):
+        body = state_value[len(_GOOGLE_OAUTH_STATE_PREFIX):]
+        try:
+            padding = "=" * (-len(body) % 4)
+            raw = base64.urlsafe_b64decode(body + padding).decode("utf-8")
+            payload = json.loads(raw)
+        except Exception:
+            return {}
+        if not isinstance(payload, dict):
+            return {}
+        result: dict[str, str] = {}
+        target = payload.get("t")
+        if isinstance(target, str) and target.strip():
+            result["target"] = target.strip()
+        redirect_path = _sanitize_redirect_path(payload.get("r") if isinstance(payload.get("r"), str) else None)
+        if redirect_path:
+            result["redirect_path"] = redirect_path
+        return result
+
+    # Legacy format: "<url-encoded-alias>:<nonce>"
+    head, sep, _rest = state_value.partition(_GOOGLE_OAUTH_STATE_SEPARATOR)
+    if not sep or not head:
+        return {}
+    try:
+        alias = unquote(head).strip()
+    except Exception:
+        return {}
+    return {"target": alias} if alias else {}
+
+
+# Deprecated shims kept so external call sites (and tests) can still reach the
+# underlying primitives. Prefer :func:`_encode_oauth_state` /
+# :func:`_decode_oauth_state`.
+def _encode_state_with_target(target_alias: str) -> str:
+    return _encode_oauth_state(target_alias)
+
+
+def _decode_target_from_state(state_value: str | None) -> str | None:
+    return _decode_oauth_state(state_value).get("target")
+
 
 if TYPE_CHECKING:
     from authlib.integrations.starlette_client import OAuth
@@ -97,15 +200,26 @@ def _resolve_frontend_target(
         ) from err
 
 
-def _build_success_redirect_url(frontend_target: GoogleOAuthTarget, code: str) -> str:
-    return _append_query_params(frontend_target.success_url, {"code": code})
+def _build_success_redirect_url(
+    frontend_target: GoogleOAuthTarget,
+    code: str,
+    redirect_path: str | None = None,
+) -> str:
+    params: dict[str, str] = {"code": code}
+    if redirect_path:
+        params["redirect_path"] = redirect_path
+    return _append_query_params(frontend_target.success_url, params)
 
 
-def _build_error_redirect_url(frontend_target: GoogleOAuthTarget, error_code: str) -> str:
-    return _append_query_params(
-        frontend_target.error_url,
-        {"error": _normalize_error_code(error_code)},
-    )
+def _build_error_redirect_url(
+    frontend_target: GoogleOAuthTarget,
+    error_code: str,
+    redirect_path: str | None = None,
+) -> str:
+    params: dict[str, str] = {"error": _normalize_error_code(error_code)}
+    if redirect_path:
+        params["redirect_path"] = redirect_path
+    return _append_query_params(frontend_target.error_url, params)
 
 
 def _extract_profile_value(user_info: dict[str, Any], key: str) -> str | None:
@@ -168,20 +282,66 @@ async def _get_or_create_google_user(user_info: dict[str, Any]) -> dict[str, Any
     return await create_user(new_user)
 
 
-async def start_google_oauth(request: Request, target_alias: str | None) -> RedirectResponse:
+async def start_google_oauth(
+    request: Request,
+    target_alias: str | None,
+    redirect_path: str | None = None,
+) -> RedirectResponse:
     settings = get_google_oauth_settings()
     _ensure_google_oauth_configured(settings)
     target = _resolve_frontend_target(settings, target_alias)
+    sanitized_redirect_path = _sanitize_redirect_path(redirect_path)
+
+    # Keep the alias + redirect_path in session as a secondary source; the
+    # primary source is the OAuth ``state`` parameter below, which round-trips
+    # through Google and is not affected by session cookie loss.
     request.session[_GOOGLE_OAUTH_TARGET_SESSION_KEY] = target.alias
+    if sanitized_redirect_path:
+        request.session[_GOOGLE_OAUTH_REDIRECT_PATH_SESSION_KEY] = sanitized_redirect_path
+    else:
+        request.session.pop(_GOOGLE_OAUTH_REDIRECT_PATH_SESSION_KEY, None)
+
     oauth = get_google_oauth_client()
-    return await oauth.google.authorize_redirect(request, settings.callback_url)
+    state_value = _encode_oauth_state(target.alias, sanitized_redirect_path)
+    return await oauth.google.authorize_redirect(
+        request,
+        settings.callback_url,
+        state=state_value,
+    )
+
+
+def _resolve_callback_flow_metadata(
+    request: Request,
+    settings: GoogleOAuthSettings,
+) -> tuple[str | None, str | None]:
+    """Resolve ``(target_alias, redirect_path)`` for a callback request.
+
+    Prefer values embedded in the OAuth ``state`` query parameter because it
+    survives the Google round-trip even when the session cookie is not sent
+    back (cross-site SameSite=Lax quirks, reverse-proxy cookie stripping, HTTPS
+    downgrade). Fall back to the session for backwards compatibility.
+    """
+    state_payload = _decode_oauth_state(request.query_params.get("state"))
+    state_alias = state_payload.get("target")
+    state_redirect_path = state_payload.get("redirect_path")
+
+    session_alias = request.session.pop(_GOOGLE_OAUTH_TARGET_SESSION_KEY, None)
+    session_redirect_path = request.session.pop(_GOOGLE_OAUTH_REDIRECT_PATH_SESSION_KEY, None)
+
+    if state_alias and state_alias in settings.redirect_targets:
+        resolved_alias: str | None = state_alias
+    else:
+        resolved_alias = session_alias
+
+    resolved_redirect_path = state_redirect_path or _sanitize_redirect_path(session_redirect_path)
+    return resolved_alias, resolved_redirect_path
 
 
 async def handle_google_oauth_callback(request: Request) -> RedirectResponse:
     settings = get_google_oauth_settings()
     _ensure_google_oauth_configured(settings)
 
-    stored_target_alias = request.session.pop(_GOOGLE_OAUTH_TARGET_SESSION_KEY, None)
+    stored_target_alias, redirect_path = _resolve_callback_flow_metadata(request, settings)
     frontend_target = _resolve_frontend_target(
         settings,
         stored_target_alias,
@@ -190,7 +350,7 @@ async def handle_google_oauth_callback(request: Request) -> RedirectResponse:
 
     callback_error = request.query_params.get("error")
     if callback_error:
-        redirect_url = _build_error_redirect_url(frontend_target, callback_error)
+        redirect_url = _build_error_redirect_url(frontend_target, callback_error, redirect_path)
         return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
     oauth = get_google_oauth_client()
@@ -202,6 +362,7 @@ async def handle_google_oauth_callback(request: Request) -> RedirectResponse:
         redirect_url = _build_error_redirect_url(
             frontend_target,
             getattr(err, "error", None) or str(err),
+            redirect_path,
         )
         return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
@@ -212,13 +373,13 @@ async def handle_google_oauth_callback(request: Request) -> RedirectResponse:
         except Exception:
             user_info = None
     if not isinstance(user_info, dict):
-        redirect_url = _build_error_redirect_url(frontend_target, "missing_google_userinfo")
+        redirect_url = _build_error_redirect_url(frontend_target, "missing_google_userinfo", redirect_path)
         return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
     try:
         user = await _get_or_create_google_user(user_info)
     except HTTPException as err:
-        redirect_url = _build_error_redirect_url(frontend_target, str(err.detail))
+        redirect_url = _build_error_redirect_url(frontend_target, str(err.detail), redirect_path)
         return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
     code = _generate_exchange_code()
@@ -232,7 +393,7 @@ async def handle_google_oauth_callback(request: Request) -> RedirectResponse:
         )
     )
 
-    redirect_url = _build_success_redirect_url(frontend_target, code)
+    redirect_url = _build_success_redirect_url(frontend_target, code, redirect_path)
     return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
 
