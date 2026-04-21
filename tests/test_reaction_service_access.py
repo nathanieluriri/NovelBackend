@@ -84,25 +84,39 @@ def test_ensure_reaction_access_rejects_inaccessible_member(monkeypatch):
     assert exc.value.detail == "You do not have access to react to this chapter"
 
 
-def test_add_reaction_raises_conflict_when_user_already_reacted(monkeypatch):
+def test_add_reaction_replaces_existing_reaction(monkeypatch):
     async def fake_ensure_reaction_access(*args, **kwargs):
         return None
 
     async def fake_get_reaction_by_user_and_room(*args, **kwargs):
-        return ReactionOut.model_validate(_reaction_out_payload())
+        return ReactionOut.model_validate(_reaction_out_payload(reaction="❤️"))
+
+    captured = {}
+
+    async def fake_update_reaction(filter_dict, reaction_data):
+        captured["filter"] = filter_dict
+        captured["data"] = reaction_data
+        return ReactionOut.model_validate(
+            _reaction_out_payload(reaction=reaction_data.reaction)
+        )
+
+    async def fake_create_reaction(reaction_data):
+        raise AssertionError("create_reaction should not be called when reaction exists")
 
     monkeypatch.setattr(reaction_service, "_ensure_reaction_access", fake_ensure_reaction_access)
     monkeypatch.setattr(reaction_service, "get_reaction_by_user_and_room", fake_get_reaction_by_user_and_room)
+    monkeypatch.setattr(reaction_service, "update_reaction", fake_update_reaction)
+    monkeypatch.setattr(reaction_service, "create_reaction", fake_create_reaction)
 
-    with pytest.raises(HTTPException) as exc:
-        asyncio.run(
-            reaction_service.add_reaction(
-                ReactionCreate(reaction="❤️", authorRoomId=ROOM_ID, userId=USER_ID)
-            )
+    replaced = asyncio.run(
+        reaction_service.add_reaction(
+            ReactionCreate(reaction="🔥", authorRoomId=ROOM_ID, userId=USER_ID)
         )
+    )
 
-    assert exc.value.status_code == 409
-    assert exc.value.detail == "You have already reacted to this author room"
+    assert replaced.reaction == "🔥"
+    assert captured["data"].reaction == "🔥"
+    assert str(captured["filter"]["_id"]) == "4" * 24
 
 
 def test_add_reaction_creates_when_member_has_access(monkeypatch):

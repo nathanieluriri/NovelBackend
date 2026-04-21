@@ -66,7 +66,10 @@ async def _ensure_reaction_access(user_id: str, author_room_id: str) -> None:
 
 
 async def add_reaction(reaction_data: ReactionCreate) -> ReactionOut:
-    """adds an entry of ReactionCreate to the database and returns an object
+    """adds an entry of ReactionCreate to the database and returns an object.
+
+    If the user has already reacted to the author room, the existing reaction
+    is replaced with the new value instead of returning a conflict.
 
     Returns:
         _type_: ReactionOut
@@ -80,7 +83,12 @@ async def add_reaction(reaction_data: ReactionCreate) -> ReactionOut:
         author_room_id=reaction_data.authorRoomId,
     )
     if existing:
-        raise HTTPException(status_code=409, detail="You have already reacted to this author room")
+        if not existing.id or not ObjectId.is_valid(existing.id):
+            raise HTTPException(status_code=400, detail="Invalid reaction ID format")
+        return await update_reaction(
+            {"_id": ObjectId(existing.id)},
+            ReactionUpdate(reaction=reaction_data.reaction),
+        )
     return await create_reaction(reaction_data)
 
 
