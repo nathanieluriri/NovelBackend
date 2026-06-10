@@ -6,7 +6,36 @@
  * Structure/content kept verbatim (including the odd quoted-printable
  * artifacts in the OTP template). The only intentional change: the password
  * template's unclosed-`</html>` bug is fixed (cosmetic, per email-resend.md).
+ *
+ * SECURITY: every interpolated variable is HTML-escaped via `esc()` before it
+ * reaches the markup (the legacy Python string.Template did not escape, allowing
+ * HTML injection via user-controlled names/emails/geo data). Escaping is a no-op
+ * for ordinary values, so the rendered email is unchanged for legitimate data.
+ * URL-valued fields (avatar src) additionally go through `safeUrl()`, which only
+ * admits http/https and drops anything else.
  */
+
+/** HTML-escape a value for safe interpolation into text or quoted attributes. */
+function esc(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Escaped http/https URL, or "" for any non-http(s) / unparseable value. */
+function safeUrl(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  try {
+    const u = new URL(raw);
+    if (u.protocol === "http:" || u.protocol === "https:") return esc(u.toString());
+  } catch {
+    /* not a valid URL */
+  }
+  return "";
+}
 
 /** `otp_template.py` — vars `$otp_code`, `$user_email`. */
 export function otpTemplate(vars: { otp_code: string; user_email: string }): string {
@@ -331,7 +360,7 @@ er">
                     <tr>
                         <td>
                             <div class="Mie-email-template--otp-code">
-                                <p>${vars.otp_code}</p>
+                                <p>${esc(vars.otp_code)}</p>
                             </div>
                         </td>
                     </tr>
@@ -361,7 +390,7 @@ er">
                                 <p style="padding: 0 22px">Mie. All rights reserved.</p>
                                 <div class="footer-text">
                                     This email was intended for <span class=
-="user-email">${vars.user_email}</span>. This message
+="user-email">${esc(vars.user_email)}</span>. This message
                                     is intended only for the personal and confidential use of the designated recipient(s). If you
                                     are not the intended recipient of this message you are hereby notified that any review,
                                     dissemination, distribution or copying of this message is strictly prohibited.
@@ -394,7 +423,7 @@ export function invitationTemplate(vars: {
 <html lang="en">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
-    <title>${vars.first_name} ${vars.last_name} invited you to collaborate on the Mie Project </title>
+    <title>${esc(vars.first_name)} ${esc(vars.last_name)} invited you to collaborate on the Mie Project </title>
   </head>
 <body bgcolor="#fafafa" topmargin="0" leftmargin="0" marginheight="0" marginwidth="0" style="width: 100% !important; min-width: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; background-color: #fafafa; color: #333333; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: normal; text-align: center; line-height: 20px; font-size: 14px; margin: 0; padding: 0;">
   <table class="body" style="border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: center; height: 100%; width: 100%; background-color: #fafafa; color: #333333; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: normal; line-height: 20px; font-size: 14px; margin: 0; padding: 0;" bgcolor="#fafafa">
@@ -433,25 +462,25 @@ export function invitationTemplate(vars: {
                           <tr style="vertical-align: top; text-align: center; padding: 0;" align="center">
                             <td style="word-break: break-word; -webkit-hyphens: auto; -moz-hyphens: auto; hyphens: auto; border-collapse: collapse !important; vertical-align: top; text-align: center; color: #333333; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: normal; line-height: 20px; font-size: 14px; margin: 0; padding: 0px 0px 0;" align="center" valign="top">
                               <div class="email-content">
-                                <h1 class="primary-heading" style="color: #333; font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; font-weight: 300; text-align: center; line-height: 1.2; word-break: normal; font-size: 24px; margin: 10px 0 25px; padding: 0;" align="center">${vars.first_name} ${vars.last_name} Invited you to Use<br><strong> Mie </strong> Story App As an Admin</h1>
+                                <h1 class="primary-heading" style="color: #333; font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; font-weight: 300; text-align: center; line-height: 1.2; word-break: normal; font-size: 24px; margin: 10px 0 25px; padding: 0;" align="center">${esc(vars.first_name)} ${esc(vars.last_name)} Invited you to Use<br><strong> Mie </strong> Story App As an Admin</h1>
                                 <hr class="rule" style="color: #d9d9d9; background-color: #d9d9d9; height: 1px; margin: 20px 0; border-style: none;">
                                 <p style="word-wrap: normal; hyphens: none; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: normal; color: #333; line-height: 20px; text-align: left; margin: 15px 0 5px; padding: 0;" align="left">
-                                  You can <a href="${vars.register_link}" style="color: #4183C4; text-decoration: none;">accept or Ignore</a> this invitation.
-                                    You can also visit <a href="${vars.main_website_link}" style="color: #4183C4; text-decoration: none;">Mie Story App</a> to learn a bit more about them.
+                                  You can <a href="${esc(vars.register_link)}" style="color: #4183C4; text-decoration: none;">accept or Ignore</a> this invitation.
+                                    You can also visit <a href="${esc(vars.main_website_link)}" style="color: #4183C4; text-decoration: none;">Mie Story App</a> to learn a bit more about them.
                                 </p>
                                 <p style="word-wrap: normal; hyphens: none; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: normal; color: #333; line-height: 20px; text-align: left; margin: 15px 0 5px; padding: 0;" align="left">
                                   This invitation will expire in 7 days.
                                 </p>
                                 <div class="cta-button-wrap cta-button-wrap-centered" style="text-align: center; color: #ffffff; padding: 20px 0 25px;" align="center">
-                                  <a class="cta-button" href="${vars.register_link}" style="display: inline-block; color: #fff; font-size: 14px; font-weight: 600; background-color: #4183C4; text-decoration: none; width: auto !important; text-align: center; border-radius: 5px; -webkit-border-radius: 5px; box-shadow: 0px 3px 0px #25588c; letter-spacing: normal; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-text-size-adjust: none; margin: 0 auto; padding: 6px 12px;">View invitation</a>
+                                  <a class="cta-button" href="${esc(vars.register_link)}" style="display: inline-block; color: #fff; font-size: 14px; font-weight: 600; background-color: #4183C4; text-decoration: none; width: auto !important; text-align: center; border-radius: 5px; -webkit-border-radius: 5px; box-shadow: 0px 3px 0px #25588c; letter-spacing: normal; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-text-size-adjust: none; margin: 0 auto; padding: 6px 12px;">View invitation</a>
                                 </div>
                                 <p class="email-body-subtext" style="word-wrap: normal; hyphens: none; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; font-weight: normal; color: #333; line-height: 20px; text-align: left; margin: 15px 0 5px; padding: 0;" align="left">
-                                  <strong>Note:</strong> This invitation was intended for <strong>${vars.invitee_email_address}</strong>.
+                                  <strong>Note:</strong> This invitation was intended for <strong>${esc(vars.invitee_email_address)}</strong>.
                                 </p>
                                 <hr class="rule" style="color: #d9d9d9; background-color: #d9d9d9; height: 1px; margin: 20px 0; border-style: none;">
                                 <p class="email-text-small email-text-gray" style="word-wrap: normal; hyphens: none; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 12px; font-weight: normal; color: #777777; line-height: 20px; text-align: left; margin: 15px 0 5px; padding: 0;" align="left">
                                   <strong>Button not working?</strong> Copy and paste this link into your browser:
-                                  <br><a href="${vars.register_link}" style="color: #4183C4; text-decoration: none;">${vars.register_link}</a>
+                                  <br><a href="${esc(vars.register_link)}" style="color: #4183C4; text-decoration: none;">${esc(vars.register_link)}</a>
                                 </p>
                               </div>
 </td>
@@ -648,13 +677,13 @@ export function newSignInWarningTemplate(vars: {
                       <td align="left" style="font-size: 0px; padding: 10px 25px 24px 25px; word-break: break-word;">
                         <div style="font-family: -apple-system, system-ui, BlinkMacSystemFont; font-size: 15px; font-weight: 300; line-height: 24px; text-align: left; color: #333333;">
                           <h1>We've noticed a new login</h1>
-                          <p>Hi ${vars.firstName} ${vars.lastName},</p>
+                          <p>Hi ${esc(vars.firstName)} ${esc(vars.lastName)},</p>
                           <p>This is a routine security alert. Someone logged into your Mie account from a new IP address:</p>
                           <p>
-                            <strong>Time:</strong> ${vars.time_data}<br />
-                            <strong>IP address:</strong> ${vars.ip_address}<br />
-                            <strong>Location:</strong> ${vars.location}<br />
-                            <strong>More Information:</strong> ${vars.extra_data}
+                            <strong>Time:</strong> ${esc(vars.time_data)}<br />
+                            <strong>IP address:</strong> ${esc(vars.ip_address)}<br />
+                            <strong>Location:</strong> ${esc(vars.location)}<br />
+                            <strong>More Information:</strong> ${esc(vars.extra_data)}
                           </p>
                           <p>If this was you, you can ignore this alert. If you noticed any suspicious activity on your account, please change your password on your email login and on your account page.</p>
                         </div>
@@ -729,7 +758,7 @@ export function changingPasswordTemplate(vars: {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Here’s the code to reset your password: ${vars.otp_code}</title>
+  <title>Here’s the code to reset your password: ${esc(vars.otp_code)}</title>
   <meta name="format-detection" content="email=no" />
   <meta name="format-detection" content="date=no" />
   <style nonce="DoEqAMc5wqGswLpJhSuEWA">
@@ -793,8 +822,8 @@ export function changingPasswordTemplate(vars: {
                       <td width="13" style="width: 13px;"></td>
                       <td style="direction: ltr;">
                         <span style="font-family: Roboto-Regular, Helvetica, Arial, sans-serif; font-size: 13px; color: rgba(0,0,0,0.54); line-height: 1.6;">
-                          Here’s the code to reset your password: ${vars.otp_code}
-                          <a style="text-decoration: none; color: rgba(0,0,0,0.87);">we’ve sent it to ${vars.email},</a> the address associated with the account requesting the reset.
+                          Here’s the code to reset your password: ${esc(vars.otp_code)}
+                          <a style="text-decoration: none; color: rgba(0,0,0,0.87);">we’ve sent it to ${esc(vars.email)},</a> the address associated with the account requesting the reset.
 
                         </span>
                         <span style="font-family: Roboto-Regular, Helvetica, Arial, sans-serif; font-size: 13px; color: rgba(0,0,0,0.54); line-height: 1.6;">
@@ -822,14 +851,14 @@ export function changingPasswordTemplate(vars: {
      style="margin-bottom: 16px; background-color: rgba(0, 0, 0, 1); border-radius: 10%;"
      alt="Mie" />
                 <div style="font-family: 'Google Sans', Roboto, RobotoDraft, Helvetica, Arial, sans-serif; border-bottom: thin solid #dadce0; color: rgba(0,0,0,0.87); line-height: 32px; padding-bottom: 24px; text-align: center; word-break: break-word;">
-                  <div style="font-size: 24px;">${vars.otp_code}</div>
+                  <div style="font-size: 24px;">${esc(vars.otp_code)}</div>
                   <table align="center" style="margin-top: 8px;">
                     <tr style="line-height: normal;">
                       <td align="right" style="padding-right: 8px;">
-                        <img width="20" height="20" style="width: 20px; height: 20px; vertical-align: sub; border-radius: 50%;" src="${vars.avatar}" alt="avatar" />
+                        <img width="20" height="20" style="width: 20px; height: 20px; vertical-align: sub; border-radius: 50%;" src="${safeUrl(vars.avatar)}" alt="avatar" />
                       </td>
                       <td>
-                        <a style="font-family: 'Google Sans', Roboto, RobotoDraft, Helvetica, Arial, sans-serif; color: rgba(0,0,0,0.87); font-size: 14px; line-height: 20px;">${vars.email}</a>
+                        <a style="font-family: 'Google Sans', Roboto, RobotoDraft, Helvetica, Arial, sans-serif; color: rgba(0,0,0,0.87); font-size: 14px; line-height: 20px;">${esc(vars.email)}</a>
                       </td>
                     </tr>
                   </table>

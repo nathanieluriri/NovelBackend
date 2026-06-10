@@ -6,7 +6,7 @@ import { z } from "zod";
 import { withRoute } from "@/lib/http/route";
 import { parseBody } from "@/lib/http/validate";
 import { HttpError } from "@/lib/http/errors";
-import { verifyToken, verifyAnyToken } from "@/lib/http/guards";
+import { verifyToken, verifyAnyToken, verifyAdminToken } from "@/lib/http/guards";
 import { getAccessTokenRow, type Claims } from "@/lib/auth";
 import {
   retrieveAuthorRoomById,
@@ -53,11 +53,16 @@ export const PATCH = withRoute(async (req, ctx) => {
 });
 
 /**
- * DELETE /api/v2/author_room/{id} — PUBLIC (no auth, exactly as legacy).
+ * DELETE /api/v2/author_room/{id} — ADMIN ONLY.
  * Returns `{deleted:true}` (200); 404 when missing, 400 on a malformed id.
- * Port of `delete_a_comment_in_author_room`.
+ * Port of `delete_a_comment_in_author_room`, hardened: the legacy route was
+ * unauthenticated (anyone could delete any author room). Author rooms are
+ * admin/author content (no per-user owner in the schema), so deletion now
+ * requires an admin token. This is the one intentional auth deviation from
+ * legacy parity, approved to close an open destructive endpoint.
  */
-export const DELETE = withRoute(async (_req, ctx) => {
+export const DELETE = withRoute(async (req, ctx) => {
+  await verifyAdminToken(req);
   const { id } = await ctx.params;
   await removeAuthorRoom(id);
   return { deleted: true };
