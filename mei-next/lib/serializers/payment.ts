@@ -5,7 +5,7 @@
  * - Bundle `dateCreated` is stored as epoch seconds → ISO `+00:00`.
  */
 import { nowIso, toIsoOffset } from "@/lib/util/dates";
-import { type AnyDoc, docId, numOrDefault, numOrNull, strOrNull } from "./common";
+import { type AnyDoc, docId, numOrDefault, numOrNull, strArrOrNull, strOrNull } from "./common";
 
 export type TransactionType =
   | "cash"
@@ -43,6 +43,8 @@ export interface PaymentBundlesOut {
   bundleType: BundleType | null;
   durationDays: number | null;
   description: string;
+  /** Feature bullets for list rendering; `[]` when the doc has none. */
+  features: string[];
   dateCreated: string | null;
 }
 
@@ -50,6 +52,8 @@ export interface PricingBundleOut {
   id: string;
   bundleType: BundleType;
   description: string;
+  /** Feature bullets for list rendering; `[]` when the doc has none. */
+  features: string[];
   durationDays: number | null;
   cashAmount: number | null;
   starAmount: number | null;
@@ -89,6 +93,7 @@ export function toPaymentBundlesOut(doc: AnyDoc): PaymentBundlesOut {
     bundleType: normalizeBundleType(doc.bundleType),
     durationDays: numOrNull(doc.durationDays),
     description: String(doc.description ?? ""),
+    features: strArrOrNull(doc.features) ?? [],
     dateCreated: toIsoOffset(doc.dateCreated),
   };
 }
@@ -98,6 +103,7 @@ export function toPricingBundleOut(doc: AnyDoc): PricingBundleOut {
     id: docId(doc),
     bundleType: normalizeBundleType(doc.bundleType) ?? "cash",
     description: String(doc.description ?? ""),
+    features: strArrOrNull(doc.features) ?? [],
     durationDays: numOrNull(doc.durationDays),
     cashAmount: numOrNull(doc.cashAmount ?? doc.amount),
     starAmount: numOrNull(doc.starAmount ?? doc.numberOfstars),

@@ -62,6 +62,7 @@ export interface PaymentBundleCreateInput {
   numberOfstars?: number | null;
   durationDays?: number | null;
   description: string;
+  features?: string[] | null;
 }
 
 export interface PaymentBundleUpdateInput {
@@ -70,6 +71,7 @@ export interface PaymentBundleUpdateInput {
   numberOfstars?: number | null;
   durationDays?: number | null;
   description?: string | null;
+  features?: string[] | null;
 }
 
 /** Pydantic-style 422 (after-validator ValueError → "Value error, <msg>"). */
@@ -163,6 +165,9 @@ export async function createBundle(input: PaymentBundleCreateInput): Promise<Pay
   if (normalized.durationDays !== null && normalized.durationDays !== undefined) {
     fields.durationDays = normalized.durationDays;
   }
+  if (normalized.features !== null && normalized.features !== undefined) {
+    fields.features = normalized.features;
+  }
   fields.dateCreated = nowEpoch();
 
   const created = await PaymentBundle.create(fields);
@@ -195,6 +200,9 @@ export async function updateBundle(bundleId: string, input: PaymentBundleUpdateI
   }
   if (normalized.description !== null && normalized.description !== undefined) {
     partial.description = normalized.description;
+  }
+  if (normalized.features !== null && normalized.features !== undefined) {
+    partial.features = normalized.features;
   }
   if (Object.keys(partial).length === 0) return false;
   partial.dateUpdated = nowEpoch();

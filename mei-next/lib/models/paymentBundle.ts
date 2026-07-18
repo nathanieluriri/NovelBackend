@@ -23,6 +23,10 @@ const PaymentBundleSchema = new Schema<PaymentBundleDoc>(
     numberOfstars: { type: Number, default: null },
     durationDays: { type: Number, default: null }, // subscriptions
     description: { type: String, required: true },
+    // Frontend-rendered feature bullets. Optional; absent on legacy docs (the
+    // serializer defaults those to `[]`). `default: undefined` keeps the key off
+    // documents that never set it rather than storing an empty array.
+    features: { type: [String], default: undefined },
     dateCreated: { type: Number }, // epoch seconds
     dateUpdated: { type: Number }, // epoch seconds
   },

@@ -331,13 +331,14 @@ export const schemas: Record<string, Schema> = {
       ),
       durationDays: intN,
       description: str,
+      features: arr(str),
       dateCreated: dateStrN,
     },
-    ["id", "description"],
+    ["id", "description", "features"],
   ),
   PricingBundleOut: obj(
-    { id: str, bundleType: str, description: str, durationDays: intN, cashAmount: intN, starAmount: intN, dateCreated: dateStrN },
-    ["id", "bundleType", "description"],
+    { id: str, bundleType: str, description: str, features: arr(str), durationDays: intN, cashAmount: intN, starAmount: intN, dateCreated: dateStrN },
+    ["id", "bundleType", "description", "features"],
   ),
   PricingCatalogOut: obj(
     {
@@ -464,8 +465,9 @@ export const schemas: Record<string, Schema> = {
       numberOfstars: intN,
       durationDays: intN,
       description: str,
+      features: arr(str),
     },
     ["bundleType", "description"],
   ),
-  PaymentBundlesUpdate: obj({ amount: intN, numberOfstars: intN, durationDays: intN, description: strN }),
+  PaymentBundlesUpdate: obj({ amount: intN, numberOfstars: intN, durationDays: intN, description: strN, features: arr(str) }),
 };

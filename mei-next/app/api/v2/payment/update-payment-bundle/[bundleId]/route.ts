@@ -29,6 +29,7 @@ const PaymentBundlesUpdate = z.object({
   numberOfstars: z.number().int().nullish(),
   durationDays: z.number().int().nullish(),
   description: z.string().nullish(),
+  features: z.array(z.string()).nullish(),
 });
 
 /**
